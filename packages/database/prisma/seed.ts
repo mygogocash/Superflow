@@ -201,6 +201,16 @@ const ESS_V2_FEEDBACK_COLUMNS_SEED: Prisma.InputJsonValue = [
 
 const ADMIN_EMAIL = "admin@manut.xyz";
 
+// Org identity for the demo tenant. Override with SEED_ORG_NAME to brand the
+// whole demo (entities, offices, admin, app.name) for a different org — e.g.
+// `SEED_ORG_NAME=Acme pnpm db:seed` produces an Acme-branded tenant. Defaults
+// to Manut. This exercises the modular company-identity work: the invoice /
+// payslip company blocks default their name from the `app.name` SystemSetting.
+const ORG_NAME = (process.env.SEED_ORG_NAME || "Manut").trim() || "Manut";
+const ADMIN_NAME = `${ORG_NAME} Admin`;
+/** Rebrand the seed's built-in "Manut" org token to the configured org name. */
+const brandOrg = (value: string): string => value.split("Manut").join(ORG_NAME);
+
 /** Entity `code` values — DB assigns `Entity.id` (cuid). */
 const ENTITY_CODE_ORDER = ["TH", "AE", "SG", "PT", "ID", "VN", "IN"] as const;
 
@@ -783,13 +793,14 @@ async function main() {
   // ─── 1. ENTITIES ────────────────────────────
   console.log("=== 1. Entities ===");
   await prisma.$transaction(
-    ENTITIES.map((entity) =>
-      prisma.entity.upsert({
+    ENTITIES.map((entity) => {
+      const data = { ...entity, name: brandOrg(entity.name) };
+      return prisma.entity.upsert({
         where: { code: entity.code },
-        update: entity,
-        create: entity,
-      }),
-    ),
+        update: data,
+        create: data,
+      });
+    }),
   );
   const entityRows = await prisma.entity.findMany({
     orderBy: { code: "asc" },
@@ -1193,7 +1204,7 @@ async function main() {
             email: ADMIN_EMAIL,
             password: adminPassword,
             email_confirm: true,
-            user_metadata: { name: "Manut Admin" },
+            user_metadata: { name: ADMIN_NAME },
           }),
         });
 
@@ -1222,11 +1233,11 @@ async function main() {
   // Create/update admin in Prisma database
   await prisma.user.upsert({
     where: { email: ADMIN_EMAIL },
-    update: { id: adminUserId, name: "Manut Admin", isActive: true },
+    update: { id: adminUserId, name: ADMIN_NAME, isActive: true },
     create: {
       id: adminUserId,
       email: ADMIN_EMAIL,
-      name: "Manut Admin",
+      name: ADMIN_NAME,
       phone: "+66812345678",
       entityId: entityIdByCode["TH"]!,
       department: "Operations",
@@ -3784,7 +3795,10 @@ async function main() {
       timezone: "Asia/Bangkok",
       capacity: 20,
     },
-  ];
+    // Brand the office names to the configured org up front so every
+    // downstream lookup (createMany, findMany-by-name, the per-office loop)
+    // uses the same value.
+  ].map((office) => ({ ...office, name: brandOrg(office.name) }));
 
   const officesData: Prisma.OfficeUncheckedCreateInput[] = OFFICES.map((o) => ({
     ...o,
@@ -4621,7 +4635,7 @@ async function main() {
   // ─── 37. SYSTEM SETTINGS ──────────────────
   console.log("=== 37. System Settings ===");
   const SETTINGS = [
-    { key: "app.name", value: "Manut" },
+    { key: "app.name", value: ORG_NAME },
     { key: "app.version", value: "1.0.0" },
     { key: "app.timezone", value: "Asia/Bangkok" },
     { key: "app.locale", value: "en" },
