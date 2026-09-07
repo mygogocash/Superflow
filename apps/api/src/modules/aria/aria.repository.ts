@@ -1,3 +1,5 @@
+import { type Prisma } from "@nexora/database";
+
 import { prisma } from "@/infrastructure/database/prisma";
 
 export const ariaRepository = {
@@ -459,6 +461,73 @@ export const ariaRepository = {
         errorMessage: input.errorMessage ?? undefined,
         toolUseCount: input.toolUseCount ?? 0,
         toolNames: input.toolNames ?? [],
+      },
+    });
+  },
+
+  // ── Training-data trace (Phase 1) ─────────────────────────────────
+  // Append-only full-turn capture. Best-effort caller; gated behind the
+  // ARIA_TRACE_CAPTURE flag. Never joined into the live chat path.
+  async recordInteractionTrace(input: {
+    conversationId: string | null;
+    userId: string;
+    assistantMessageId: string | null;
+    turnKind: string;
+    promptVersion: string;
+    model: string;
+    maxTokens: number | null;
+    userMessage: string;
+    permissionsSnapshot: string[];
+    offeredTools: string[];
+    retrievedArticleIds: string[];
+    retrievedDistances: number[];
+    topDistance: number | null;
+    retrievalMode: string;
+    workspaceBytes: number;
+    knowledgeBytes: number;
+    assistantText: string;
+    stopReason: string | null;
+    toolCalls: unknown[];
+    toolUseCount: number;
+    toolNames: string[];
+    tokensIn: number | null;
+    tokensOut: number | null;
+    cacheReadTokens: number | null;
+    cacheCreateTokens: number | null;
+    latencyMs: number;
+    error: boolean;
+    errorMessage: string | null;
+  }) {
+    return prisma.ariaInteractionTrace.create({
+      data: {
+        conversationId: input.conversationId,
+        userId: input.userId,
+        assistantMessageId: input.assistantMessageId,
+        turnKind: input.turnKind,
+        promptVersion: input.promptVersion,
+        model: input.model,
+        maxTokens: input.maxTokens ?? undefined,
+        userMessage: input.userMessage,
+        permissionsSnapshot: input.permissionsSnapshot,
+        offeredTools: input.offeredTools,
+        retrievedArticleIds: input.retrievedArticleIds,
+        retrievedDistances: input.retrievedDistances,
+        topDistance: input.topDistance ?? undefined,
+        retrievalMode: input.retrievalMode,
+        workspaceBytes: input.workspaceBytes,
+        knowledgeBytes: input.knowledgeBytes,
+        assistantText: input.assistantText,
+        stopReason: input.stopReason ?? undefined,
+        toolCalls: input.toolCalls as Prisma.InputJsonValue,
+        toolUseCount: input.toolUseCount,
+        toolNames: input.toolNames,
+        tokensIn: input.tokensIn ?? undefined,
+        tokensOut: input.tokensOut ?? undefined,
+        cacheReadTokens: input.cacheReadTokens ?? undefined,
+        cacheCreateTokens: input.cacheCreateTokens ?? undefined,
+        latencyMs: input.latencyMs,
+        error: input.error,
+        errorMessage: input.errorMessage ?? undefined,
       },
     });
   },

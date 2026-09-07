@@ -267,6 +267,7 @@ model User {
   ariaConversations            AriaConversation[]
   ariaKnowledgeArticles        AriaKnowledgeArticle[]    @relation("AriaKnowledgeArticleAuthor")
   ariaQueryLogs                AriaQueryLog[]
+  ariaInteractionTraces        AriaInteractionTrace[]    @relation("AriaInteractionTraceUser")
   ariaFeedback                 AriaFeedback[]            @relation("AriaFeedbackAuthor")
   ariaFeedbackReviewed         AriaFeedback[]            @relation("AriaFeedbackReviewer")
   ariaAttachments              AriaAttachment[]          @relation("AriaAttachmentUploader")
