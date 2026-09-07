@@ -4,6 +4,7 @@ import { Moon, Sun } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { AccountMenuItems } from "@/components/layout/account-menu";
 import { CompanySwitcher } from "@/components/layout/company-switcher";
 import { NotificationBell } from "@/components/layout/notification-bell";
@@ -19,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/providers/auth-provider";
+import { updateMyProfile } from "@/services/my-portal.service";
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard": "Home",
@@ -182,6 +184,14 @@ export function Topbar() {
         `}
       >
         <CompanySwitcher />
+        <LanguageSwitcher
+          className="h-7 w-auto gap-1.5 text-xs"
+          onChange={(locale) => {
+            // Persist to the profile so the preference follows the user across
+            // devices. Fire-and-forget: the switcher already applied it locally.
+            void updateMyProfile({ locale });
+          }}
+        />
         <ThemeToggle />
       </div>
       <NotificationBell />

@@ -93,7 +93,9 @@
     --shadow-lg: 0 20px 48px rgba(11, 11, 10, 0.12);
     --shadow-xl: 0 20px 48px rgba(11, 11, 10, 0.12);
 
-    --font-sans: "Inter", system-ui, sans-serif;
+    --font-sans:
+      var(--font-inter), "Inter", var(--font-thai), "Noto Sans Thai", system-ui,
+      sans-serif;
     --font-serif: "Instrument Serif", Georgia, serif;
     --font-mono: "DM Mono", monospace;
   }

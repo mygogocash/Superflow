@@ -96,6 +96,10 @@ model User {
   location           String?
   country            String?
   timezone           String?
+  // Preferred UI language (BCP-47 primary subtag, e.g. "en" / "th"). Resolved
+  // as user.locale -> app.locale (org default) -> browser. Null = follow the
+  // org/browser default.
+  locale             String?
   dateOfBirth        DateTime? @map("date_of_birth") @db.Date
   passportNumber     String?   @map("passport_number")
   nationality        String?
