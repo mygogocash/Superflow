@@ -1,12 +1,13 @@
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, View } from "react-native";
 import { AuthFrame, AuthLink } from "@/components/auth-frame";
 import { Field } from "@/components/field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
-import { ApiError } from "@/lib/api-client";
+import { ApiError, api } from "@/lib/api-client";
+import { authClient } from "@/lib/auth-client";
 import { BRAND } from "@/lib/brand";
 import { useAuth } from "@/store/auth";
 
@@ -29,6 +30,23 @@ export default function LoginScreen() {
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [lineLogin, setLineLogin] = useState(false);
+  const [lineBusy, setLineBusy] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const status = await api.get<{ login?: boolean }>("/line/status");
+        if (!cancelled) setLineLogin(Boolean(status.login));
+      } catch {
+        if (!cancelled) setLineLogin(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function onSubmit() {
     setBusy(true);
@@ -40,6 +58,24 @@ export default function LoginScreen() {
       setError(loginErrorMessage(e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function onLineLogin() {
+    setLineBusy(true);
+    setError(null);
+    try {
+      const { error: baError } = await authClient.signIn.social({
+        provider: "line",
+        callbackURL: "/dashboard",
+      });
+      if (baError) {
+        setError(baError.message || "LINE sign-in failed. Link LINE from Profile after email sign-in.");
+      }
+    } catch (e) {
+      setError(loginErrorMessage(e));
+    } finally {
+      setLineBusy(false);
     }
   }
 
@@ -99,6 +135,17 @@ export default function LoginScreen() {
       <Button disabled={busy} onPress={onSubmit} className="mt-1">
         {busy ? <ActivityIndicator color={BRAND.white} /> : <Text>Sign in</Text>}
       </Button>
+      {lineLogin ? (
+        <Button
+          disabled={lineBusy || busy}
+          onPress={onLineLogin}
+          variant="outline"
+          className="mt-1"
+          accessibilityLabel="Continue with LINE"
+        >
+          {lineBusy ? <ActivityIndicator color={BRAND.ink} /> : <Text>Continue with LINE</Text>}
+        </Button>
+      ) : null}
       <View className="mt-1 flex-row flex-wrap gap-x-4 gap-y-2">
         <AuthLink href="/(auth)/reset">Forgot password?</AuthLink>
         <AuthLink href="/(auth)/magic-link">Use a magic link</AuthLink>

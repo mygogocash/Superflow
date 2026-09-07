@@ -57,6 +57,14 @@ export type Bindings = {
   FX_FALLBACK_BASE_URL?: string;
   ACCOUNTING_FIXED_ASSETS?: string;
   ACCOUNTING_GL_POSTING?: string;
+  /** Fail-closed: avatar generator routes only when === "true". */
+  AVATAR_GENERATOR_ENABLED?: string;
+  /** LINE Login (Better Auth socialProviders.line). Unset = login button hidden. */
+  LINE_LOGIN_CHANNEL_ID?: string;
+  LINE_LOGIN_CHANNEL_SECRET?: string;
+  /** LINE Messaging API (OA webhook + reply/push). */
+  LINE_MESSAGING_CHANNEL_SECRET?: string;
+  LINE_MESSAGING_CHANNEL_ACCESS_TOKEN?: string;
 };
 
 /** Minimal shape of the Rate Limiting binding (not yet in workers-types). */

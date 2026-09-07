@@ -617,6 +617,7 @@ export const users = pgTable("users", {
 	name: text().notNull(),
 	emailVerified: boolean("email_verified").default(false).notNull(),
 	avatarUrl: text("avatar_url"),
+	lineUserId: text("line_user_id"),
 	phone: text(),
 	phonePublic: boolean("phone_public").default(false).notNull(),
 	entityId: text("entity_id"),
@@ -633,6 +634,7 @@ export const users = pgTable("users", {
 	location: text(),
 	country: text(),
 	timezone: text(),
+	locale: text(),
 	dateOfBirth: date("date_of_birth"),
 	passportNumber: text("passport_number"),
 	nationality: text(),
@@ -654,6 +656,7 @@ export const users = pgTable("users", {
 	index("users_email_idx").using("btree", table.email.asc().nullsLast().op("text_ops")),
 	uniqueIndex("users_email_key").using("btree", table.email.asc().nullsLast().op("text_ops")),
 	uniqueIndex("users_employee_id_key").using("btree", table.employeeId.asc().nullsLast().op("text_ops")),
+	uniqueIndex("users_line_user_id_key").using("btree", table.lineUserId.asc().nullsLast().op("text_ops")),
 	index("users_entity_id_idx").using("btree", table.entityId.asc().nullsLast().op("text_ops")),
 	index("users_is_active_idx").using("btree", table.isActive.asc().nullsLast().op("bool_ops")),
 	foreignKey({
@@ -666,6 +669,27 @@ export const users = pgTable("users", {
 			foreignColumns: [table.id],
 			name: "users_reporting_to_fkey"
 		}).onUpdate("cascade").onDelete("set null"),
+]);
+
+export const lineMessageLogs = pgTable("line_message_logs", {
+	id: text().primaryKey().notNull(),
+	lineUserId: text("line_user_id").notNull(),
+	userId: uuid("user_id"),
+	eventType: text("event_type").notNull(),
+	direction: text().default("inbound").notNull(),
+	messageType: text("message_type"),
+	preview: text(),
+	raw: jsonb(),
+	createdAt: timestamp("created_at", { precision: 3, mode: "string" }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+}, (table) => [
+	index("line_message_logs_line_user_id_idx").using("btree", table.lineUserId.asc().nullsLast().op("text_ops")),
+	index("line_message_logs_user_id_idx").using("btree", table.userId.asc().nullsLast().op("uuid_ops")),
+	index("line_message_logs_created_at_idx").using("btree", table.createdAt.asc().nullsLast().op("timestamp_ops")),
+	foreignKey({
+		columns: [table.userId],
+		foreignColumns: [users.id],
+		name: "line_message_logs_user_id_fkey",
+	}).onUpdate("cascade").onDelete("set null"),
 ]);
 
 export const departments = pgTable("departments", {

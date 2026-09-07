@@ -10,6 +10,7 @@ export type AuthUser = {
   name: string;
   avatarUrl?: string | null;
   mustChangePassword?: boolean;
+  lineLinked?: boolean;
 };
 
 type AuthRole = { id: string; name: string; isSystem: boolean; defaultRoute: string | null };
