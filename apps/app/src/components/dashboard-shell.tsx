@@ -270,6 +270,17 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         </View>
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel="Open profile"
+          className={cn(
+            "mb-1 flex-row items-center gap-2 rounded-md px-2.5 py-2",
+            Platform.select({ web: "hover:bg-accent/60 transition-colors duration-fast ease-manut" }),
+          )}
+          onPress={() => go("/profile")}
+        >
+          <Text className="text-[13px] text-sidebar-foreground">Profile</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
           accessibilityLabel="Sign out"
           className={cn(
             "flex-row items-center gap-2 rounded-md px-2.5 py-2",

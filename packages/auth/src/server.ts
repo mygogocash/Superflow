@@ -20,6 +20,9 @@ export type AuthEnv = {
   TRUSTED_ORIGINS?: string;
   /** Comma-separated role names allowed to request magic links (empty = disabled). */
   MAGIC_LINK_ALLOWED_ROLES?: string;
+  /** LINE Login channel (LINE Developers Console). Unset = LINE Login off. */
+  LINE_LOGIN_CHANNEL_ID?: string;
+  LINE_LOGIN_CHANNEL_SECRET?: string;
 };
 
 export type AuthEmailSender = {
@@ -66,6 +69,22 @@ export function parseMagicLinkAllowedRoles(raw: string | undefined): string[] {
     .filter(Boolean);
 }
 
+async function syncLineUserId(
+  db: Db,
+  input: { userId: string; providerId: string; accountId: string },
+) {
+  if (input.providerId !== "line" || !input.accountId) return;
+  // Clear any other Manut user that currently holds this LINE subject.
+  await db
+    .update(schema.users)
+    .set({ lineUserId: null, updatedAt: new Date().toISOString() })
+    .where(eq(schema.users.lineUserId, input.accountId));
+  await db
+    .update(schema.users)
+    .set({ lineUserId: input.accountId, updatedAt: new Date().toISOString() })
+    .where(eq(schema.users.id, input.userId));
+}
+
 /**
  * Better Auth server bound to the EXISTING `users` table (ids preserved from
  * Supabase Auth). Migrated Supabase users carry bcrypt hashes in
@@ -80,6 +99,9 @@ export function createAuth(
 ) {
   const trusted = (env.TRUSTED_ORIGINS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   const magicRoles = parseMagicLinkAllowedRoles(env.MAGIC_LINK_ALLOWED_ROLES);
+  const lineLoginConfigured = Boolean(
+    env.LINE_LOGIN_CHANNEL_ID?.trim() && env.LINE_LOGIN_CHANNEL_SECRET?.trim(),
+  );
 
   return betterAuth({
     database: drizzleAdapter(db, {
@@ -116,6 +138,25 @@ export function createAuth(
         updatedAt: "updated_at",
       },
     },
+    account: {
+      accountLinking: {
+        enabled: true,
+        trustedProviders: ["line"],
+        // Admin-provisioned users may not have email_verified stamped; LINE
+        // still needs to attach to the existing invite-only row.
+        allowDifferentEmails: false,
+      },
+    },
+    socialProviders: lineLoginConfigured
+      ? {
+          line: {
+            clientId: env.LINE_LOGIN_CHANNEL_ID!.trim(),
+            clientSecret: env.LINE_LOGIN_CHANNEL_SECRET!.trim(),
+            // Invite-only: never mint a new users row from LINE Login.
+            disableSignUp: true,
+          },
+        }
+      : {},
     advanced: {
       database: { generateId: () => crypto.randomUUID() },
       useSecureCookies: env.APP_URL.startsWith("https://"),
@@ -133,6 +174,29 @@ export function createAuth(
             await email.sendResetPassword({ email: user.email, url });
           }
         : undefined,
+    },
+    databaseHooks: {
+      account: {
+        create: {
+          after: async (account) => {
+            await syncLineUserId(db, {
+              userId: account.userId,
+              providerId: account.providerId,
+              accountId: account.accountId,
+            });
+          },
+        },
+        update: {
+          after: async (account) => {
+            if (!account.userId || !account.providerId || !account.accountId) return;
+            await syncLineUserId(db, {
+              userId: account.userId,
+              providerId: account.providerId,
+              accountId: account.accountId,
+            });
+          },
+        },
+      },
     },
     plugins: [
       magicLink({
