@@ -13,6 +13,7 @@ import {
   loginSchema,
   recoverPasswordSchema,
   setActiveEntitySchema,
+  setActiveOrganizationSchema,
   updateMyProfileSchema,
 } from "@/modules/auth/auth.validation";
 import { isExpoClient } from "@/modules/auth/expo-client";
@@ -260,6 +261,20 @@ router.put(
     const result = await authService.setActiveEntity(
       req.user!.id,
       input.entityId,
+    );
+    res.json({ data: result });
+  }),
+);
+
+router.put(
+  "/active-organization",
+  authenticate,
+  requireActive,
+  asyncHandler(async (req, res) => {
+    const input = setActiveOrganizationSchema.parse(req.body);
+    const result = await authService.setActiveOrganization(
+      req.user!.id,
+      input.organizationId,
     );
     res.json({ data: result });
   }),

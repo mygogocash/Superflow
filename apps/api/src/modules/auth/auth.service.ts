@@ -28,6 +28,11 @@ import {
   applyManagerImplicitPerms,
   countActiveDirectReports,
 } from "@/modules/auth/manager-implicit-perms";
+import {
+  isOrgRole,
+  mergeOrgAwarePermissions,
+  type OrgRole,
+} from "@/modules/auth/org-rbac";
 
 const RECOVERY_REQUEST_ACTIONS = ["forgot-password", "magic-link"] as const;
 const RECOVERY_EMAIL_LIMIT_PER_HOUR = 3;
@@ -672,6 +677,15 @@ export class AuthService {
             entity: { select: { id: true, name: true, code: true } },
           },
         },
+        organizationMemberships: {
+          where: { isActive: true },
+          orderBy: { createdAt: "asc" },
+          include: {
+            organization: {
+              select: { id: true, name: true, slug: true, status: true, deletedAt: true },
+            },
+          },
+        },
         userRoles: {
           include: {
             role: {
@@ -684,9 +698,9 @@ export class AuthService {
 
     if (!user) throw new UnauthorizedException("User not found");
 
-    const permissions = resolvePermissions(user.userRoles);
+    const legacyPermissions = resolvePermissions(user.userRoles);
     const directReportCount = await countActiveDirectReports(user.id);
-    applyManagerImplicitPerms(permissions, directReportCount > 0);
+    applyManagerImplicitPerms(legacyPermissions, directReportCount > 0);
 
     const roles = user.userRoles.map((ur) => ({
       id: ur.role.id,
@@ -698,6 +712,36 @@ export class AuthService {
       isSystem: ur.role.isSystem,
     }));
 
+    const organizationMemberships = (user.organizationMemberships ?? [])
+      .filter((m) => !m.organization.deletedAt && isOrgRole(m.orgRole))
+      .map((m) => ({
+        organizationId: m.organizationId,
+        orgRole: m.orgRole as OrgRole,
+        isActive: m.isActive,
+        organization: {
+          id: m.organization.id,
+          name: m.organization.name,
+          slug: m.organization.slug,
+          status: m.organization.status,
+        },
+      }));
+
+    const activeOrganizationId =
+      user.activeOrganizationId &&
+      organizationMemberships.some((m) => m.organizationId === user.activeOrganizationId)
+        ? user.activeOrganizationId
+        : (organizationMemberships[0]?.organizationId ?? null);
+
+    const orgRole =
+      organizationMemberships.find((m) => m.organizationId === activeOrganizationId)?.orgRole ??
+      null;
+
+    const permissions = mergeOrgAwarePermissions({
+      legacyPermissionCodes: [...legacyPermissions],
+      orgRole,
+      platformRole: user.platformRole,
+    });
+
     return {
       user: {
         id: user.id,
@@ -708,12 +752,17 @@ export class AuthService {
         jobTitle: user.jobTitle,
         entity: user.entity,
         mustChangePassword: user.mustChangePassword,
+        platformRole: user.platformRole ?? null,
       },
       roles,
-      permissions: Array.from(permissions).filter(isValidPermissionCode),
+      permissions: permissions.filter(isValidPermissionCode),
       // ── Additive multi-company fields (PRD Rule 7) ──────────────────
       memberships: mapMemberships(user.entityMemberships ?? []),
       activeEntityId: user.activeEntityId ?? null,
+      // ── Additive multi-org fields ─────────────────────────────────────
+      organizationMemberships,
+      activeOrganizationId,
+      orgRole,
     };
   }
 
@@ -757,6 +806,41 @@ export class AuthService {
     return {
       activeEntityId: entityId,
       entity: membership.entity,
+    };
+  }
+
+  async setActiveOrganization(userId: string, organizationId: string) {
+    const membership = await prisma.organizationMembership.findUnique({
+      where: {
+        organizationId_userId: { organizationId, userId },
+      },
+      include: {
+        organization: {
+          select: { id: true, name: true, slug: true, status: true, deletedAt: true },
+        },
+      },
+    });
+
+    if (!membership || !membership.isActive || membership.organization.deletedAt) {
+      throw new ForbiddenException(
+        "You do not have an active membership in this organization",
+      );
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { activeOrganizationId: organizationId },
+    });
+
+    return {
+      activeOrganizationId: organizationId,
+      orgRole: membership.orgRole,
+      organization: {
+        id: membership.organization.id,
+        name: membership.organization.name,
+        slug: membership.organization.slug,
+        status: membership.organization.status,
+      },
     };
   }
 

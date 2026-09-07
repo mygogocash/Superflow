@@ -31,6 +31,10 @@ export const setActiveEntitySchema = z.object({
   entityId: z.string().min(1, "Entity is required"),
 });
 
+export const setActiveOrganizationSchema = z.object({
+  organizationId: z.string().min(1, "Organization is required"),
+});
+
 const emptyToUndefined = z
   .string()
   .transform((v) => (v === "" ? undefined : v));
@@ -68,5 +72,6 @@ export type AuthEmailRequestInput = z.infer<typeof authEmailRequestSchema>;
 export type RecoverPasswordInput = z.infer<typeof recoverPasswordSchema>;
 export type ExchangeSessionInput = z.infer<typeof exchangeSessionSchema>;
 export type SetActiveEntityInput = z.infer<typeof setActiveEntitySchema>;
+export type SetActiveOrganizationInput = z.infer<typeof setActiveOrganizationSchema>;
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateMyProfileInput = z.infer<typeof updateMyProfileSchema>;

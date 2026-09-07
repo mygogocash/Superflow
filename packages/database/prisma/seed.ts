@@ -1377,6 +1377,62 @@ async function main() {
     `  ✅ ${1 + EMPLOYEE_NAMES.length} users (1 admin + ${EMPLOYEE_NAMES.length} employees)\n`,
   );
 
+  // ─── 4a. ORGANIZATION TENANCY (home org) ───
+  // Matches migration backfill so greenfield seed has the same shape as
+  // migrate-deployed environments. Idempotent upserts.
+  console.log("=== 4a. Organization tenancy ===");
+  const HOME_ORG_ID = "org_manut_home";
+  const homeOrg = await prisma.organization.upsert({
+    where: { slug: "manut" },
+    update: { name: "Manut", status: "active", deletedAt: null },
+    create: {
+      id: HOME_ORG_ID,
+      name: "Manut",
+      slug: "manut",
+      status: "active",
+    },
+  });
+  await prisma.entity.updateMany({
+    where: { organizationId: null, deletedAt: null },
+    data: { organizationId: homeOrg.id },
+  });
+  for (const userId of USER_IDS) {
+    const isAdmin = userId === adminUserId;
+    await prisma.organizationMembership.upsert({
+      where: {
+        organizationId_userId: {
+          organizationId: homeOrg.id,
+          userId,
+        },
+      },
+      update: {
+        orgRole: isAdmin ? "super_admin" : "user",
+        isActive: true,
+      },
+      create: {
+        organizationId: homeOrg.id,
+        userId,
+        orgRole: isAdmin ? "super_admin" : "user",
+        isActive: true,
+      },
+    });
+  }
+  await prisma.user.update({
+    where: { id: adminUserId },
+    data: {
+      activeOrganizationId: homeOrg.id,
+      platformRole: "platform_admin",
+    },
+  });
+  await prisma.user.updateMany({
+    where: {
+      id: { in: USER_IDS.filter((id) => id !== adminUserId) },
+      activeOrganizationId: null,
+    },
+    data: { activeOrganizationId: homeOrg.id },
+  });
+  console.log(`  ✅ Home org ${homeOrg.slug} + ${USER_IDS.length} memberships\n`);
+
   // ─── 4b. MODULE ACCESS (sample overrides) ───
   console.log("=== 4b. Module Access ===");
   const MODULES_ALL = [

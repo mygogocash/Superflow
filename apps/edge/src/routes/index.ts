@@ -20,6 +20,7 @@ import { certificates } from "./certificates";
 import { performance } from "./performance";
 import { docs } from "./docs";
 import { office } from "./office";
+import { organizations } from "./organizations";
 import { survey } from "./survey";
 import { surveyForms } from "./survey-forms";
 import { visaChecklist } from "./visa-checklist";
@@ -121,6 +122,7 @@ export const api = new Hono<AppEnv>()
   .route("/performance", performance)
   .route("/docs", docs)
   .route("/office", office)
+  .route("/organizations", organizations)
   .route("/survey", survey)
   .route("/survey-forms", surveyForms)
   .route("/visa-checklist", visaChecklist)

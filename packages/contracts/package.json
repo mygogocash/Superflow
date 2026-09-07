@@ -25,6 +25,7 @@
     "./modules/wall/wall.validation": "./src/modules/wall/wall.validation.ts",
     "./modules/lost-reasons/lost-reasons.validation": "./src/modules/lost-reasons/lost-reasons.validation.ts",
     "./modules/messages/messages.validation": "./src/modules/messages/messages.validation.ts",
+    "./modules/organizations/organizations.validation": "./src/modules/organizations/organizations.validation.ts",
     "./modules/opportunities/opportunities.validation": "./src/modules/opportunities/opportunities.validation.ts",
     "./modules/opportunities/opportunities.constants": "./src/modules/opportunities/opportunities.constants.ts",
     "./modules/marketing-analytics/marketing-analytics.validation": "./src/modules/marketing-analytics/marketing-analytics.validation.ts",

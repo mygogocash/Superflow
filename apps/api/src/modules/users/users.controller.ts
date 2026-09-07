@@ -62,7 +62,7 @@ router.get(
   requirePermission(PERMISSIONS.USER_READ),
   asyncHandler(async (req, res) => {
     const query = listUsersQuerySchema.parse(req.query);
-    const result = await usersService.list(query);
+    const result = await usersService.list(query, req.user!.id);
     res.json(result);
   }),
 );

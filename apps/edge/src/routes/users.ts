@@ -17,7 +17,7 @@ function notImplemented(message: string) {
 
 export const users = new Hono<AppEnv>()
   .get("/", requirePermission(PERMISSIONS.USER_READ), zValidator("query", listUsersQuerySchema), async (c) =>
-    c.json(await usersService.list(c.var.db, c.req.valid("query"))),
+    c.json(await usersService.list(c.var.db, c.req.valid("query"), c.var.user!.id)),
   )
   .get("/stats", requirePermission(PERMISSIONS.USER_READ), async (c) =>
     c.json(await usersService.stats(c.var.db)),

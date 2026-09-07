@@ -1,0 +1,48 @@
+/// Multi-org tenancy (docs/ORG_TENANCY_RBAC_PLAN.md).
+/// Organization = customer tenant. Entity (legal company) nests under an org.
+/// OrgRole is per membership; platformRole on User is Manut-team cross-org.
+
+enum OrgRole {
+  user
+  admin
+  super_admin
+
+  @@map("org_role")
+}
+
+model Organization {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  status    String    @default("active") // active | suspended | provisioning
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  entities    Entity[]
+  memberships OrganizationMembership[]
+
+  @@index([status])
+  @@index([deletedAt])
+  @@map("organizations")
+}
+
+model OrganizationMembership {
+  id             String   @id @default(cuid())
+  organizationId String   @map("organization_id")
+  userId         String   @map("user_id") @db.Uuid
+  orgRole        OrgRole  @default(user) @map("org_role")
+  isActive       Boolean  @default(true) @map("is_active")
+  invitedById    String?  @map("invited_by_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation("OrgMembershipUser", fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy    User?        @relation("OrgMembershipInviter", fields: [invitedById], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([organizationId, isActive])
+  @@map("organization_memberships")
+}

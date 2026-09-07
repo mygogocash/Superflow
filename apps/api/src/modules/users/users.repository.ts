@@ -18,6 +18,7 @@ export class UsersRepository {
       includePlaceholders,
       sortBy,
       sortOrder,
+      userIds,
     } = query;
 
     const where: Prisma.UserWhereInput = {
@@ -36,6 +37,9 @@ export class UsersRepository {
     if (department) where.department = department;
     if (employmentType) where.employmentType = employmentType;
     if (isActive !== undefined) where.isActive = isActive;
+    if (userIds) {
+      where.id = { in: userIds };
+    }
     // Payroll bulk-import mints dormant placeholders with emails of the
     // form `payroll-<uuid>@placeholder.local`. Hide them from the
     // Employees directory by default — they belong on payslips, not on
@@ -64,6 +68,12 @@ export class UsersRepository {
       // TBH-008 and TBH-009. Falls back to raw employee_id for ties.
       const dir = sortOrder === "desc" ? Prisma.raw("DESC") : Prisma.raw("ASC");
       const searchPattern = search ? `%${search.toLowerCase()}%` : null;
+      const userIdFilter =
+        userIds === undefined
+          ? Prisma.empty
+          : userIds.length === 0
+            ? Prisma.sql`AND false`
+            : Prisma.sql`AND u.id IN (${Prisma.join(userIds)})`;
 
       const idRows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
         SELECT u.id
@@ -80,6 +90,7 @@ export class UsersRepository {
             SELECT 1 FROM user_roles ur
             WHERE ur.user_id = u.id AND ur.role_id = ${roleId ?? null}::uuid
           ))
+          ${userIdFilter}
           AND (
             ${searchPattern}::text IS NULL
             OR LOWER(u.name) LIKE ${searchPattern}

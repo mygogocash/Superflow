@@ -31,6 +31,7 @@ import type {
   ResetPasswordInput,
   UpdateUserInput,
 } from "@/modules/users/users.validation";
+import { isPlatformAdmin } from "@/modules/auth/org-rbac";
 
 // 12-char alphanumeric one-time password. Paired with
 // mustChangePassword=true so the user is forced to rotate it on first
@@ -129,8 +130,43 @@ export class UsersService {
     };
   }
 
-  async list(query: ListUsersQuery) {
-    const { users, total } = await usersRepository.findMany(query);
+  async list(query: ListUsersQuery, actorId?: string) {
+    const scoped: ListUsersQuery = { ...query };
+
+    if (actorId) {
+      const actor = await prisma.user.findUnique({
+        where: { id: actorId },
+        select: { platformRole: true, activeOrganizationId: true },
+      });
+      if (!isPlatformAdmin(actor?.platformRole)) {
+        const orgId = actor?.activeOrganizationId ?? null;
+        if (!orgId) {
+          return {
+            data: [],
+            meta: {
+              page: query.page,
+              limit: query.limit,
+              total: 0,
+              totalPages: 0,
+            },
+          };
+        }
+        const members = await prisma.organizationMembership.findMany({
+          where: { organizationId: orgId, isActive: true },
+          select: { userId: true },
+        });
+        scoped.userIds = members.map((m) => m.userId);
+        delete scoped.organizationId;
+      } else if (query.organizationId) {
+        const members = await prisma.organizationMembership.findMany({
+          where: { organizationId: query.organizationId, isActive: true },
+          select: { userId: true },
+        });
+        scoped.userIds = members.map((m) => m.userId);
+      }
+    }
+
+    const { users, total } = await usersRepository.findMany(scoped);
 
     return {
       data: users.map((u) => ({

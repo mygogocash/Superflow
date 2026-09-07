@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./server": "./src/server.ts",
     "./rbac": "./src/rbac.ts",
+    "./org-rbac": "./src/org-rbac.ts",
     "./client": "./src/client.ts",
     "./magic-link": "./src/magic-link.ts",
     "./manager-implicit-perms": "./src/manager-implicit-perms.ts"

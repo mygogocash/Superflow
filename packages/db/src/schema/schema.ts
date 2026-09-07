@@ -536,6 +536,20 @@ export const wikiPagePermissions = pgTable("wiki_page_permissions", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
+export const organizations = pgTable("organizations", {
+	id: text().primaryKey().notNull(),
+	name: text().notNull(),
+	slug: text().notNull(),
+	status: text().default('active').notNull(),
+	deletedAt: timestamp("deleted_at", { precision: 3, mode: 'string' }),
+	createdAt: timestamp("created_at", { precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: timestamp("updated_at", { precision: 3, mode: 'string' }).notNull(),
+}, (table) => [
+	uniqueIndex("organizations_slug_key").using("btree", table.slug.asc().nullsLast().op("text_ops")),
+	index("organizations_status_idx").using("btree", table.status.asc().nullsLast().op("text_ops")),
+	index("organizations_deleted_at_idx").using("btree", table.deletedAt.asc().nullsLast().op("timestamp_ops")),
+]);
+
 export const entities = pgTable("entities", {
 	id: text().primaryKey().notNull(),
 	name: text().notNull(),
@@ -558,11 +572,56 @@ export const entities = pgTable("entities", {
 	defaultRateSource: text("default_rate_source").default('bot').notNull(),
 	enabledCurrencies: text("enabled_currencies").array().default(["RAY"]),
 	setupState: text("setup_state").default('active').notNull(),
+	organizationId: text("organization_id"),
 	deletedAt: timestamp("deleted_at", { precision: 3, mode: 'string' }),
 	createdAt: timestamp("created_at", { precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
 	updatedAt: timestamp("updated_at", { precision: 3, mode: 'string' }).notNull(),
 }, (table) => [
 	uniqueIndex("entities_code_key").using("btree", table.code.asc().nullsLast().op("text_ops")),
+	index("entities_organization_id_idx").using("btree", table.organizationId.asc().nullsLast().op("text_ops")),
+	foreignKey({
+			columns: [table.organizationId],
+			foreignColumns: [organizations.id],
+			name: "entities_organization_id_fkey"
+		}).onUpdate("cascade").onDelete("restrict"),
+]);
+
+export const organizationMemberships = pgTable("organization_memberships", {
+	id: text().primaryKey().notNull(),
+	organizationId: text("organization_id").notNull(),
+	userId: uuid("user_id").notNull(),
+	orgRole: text("org_role").default('user').notNull(),
+	isActive: boolean("is_active").default(true).notNull(),
+	invitedById: uuid("invited_by_id"),
+	createdAt: timestamp("created_at", { precision: 3, mode: 'string' }).default(sql`CURRENT_TIMESTAMP`).notNull(),
+	updatedAt: timestamp("updated_at", { precision: 3, mode: 'string' }).notNull(),
+}, (table) => [
+	uniqueIndex("organization_memberships_organization_id_user_id_key").using(
+		"btree",
+		table.organizationId.asc().nullsLast().op("text_ops"),
+		table.userId.asc().nullsLast().op("uuid_ops"),
+	),
+	index("organization_memberships_user_id_idx").using("btree", table.userId.asc().nullsLast().op("uuid_ops")),
+	index("organization_memberships_organization_id_is_active_idx").using(
+		"btree",
+		table.organizationId.asc().nullsLast().op("text_ops"),
+		table.isActive.asc().nullsLast().op("bool_ops"),
+	),
+	foreignKey({
+			columns: [table.organizationId],
+			foreignColumns: [organizations.id],
+			name: "organization_memberships_organization_id_fkey"
+		}).onUpdate("cascade").onDelete("cascade"),
+	foreignKey({
+			columns: [table.userId],
+			foreignColumns: [users.id],
+			name: "organization_memberships_user_id_fkey"
+		}).onUpdate("cascade").onDelete("cascade"),
+	foreignKey({
+			columns: [table.invitedById],
+			foreignColumns: [users.id],
+			name: "organization_memberships_invited_by_id_fkey"
+		}).onUpdate("cascade").onDelete("set null"),
 ]);
 
 export const userEntityMemberships = pgTable("user_entity_memberships", {
@@ -621,6 +680,8 @@ export const users = pgTable("users", {
 	phonePublic: boolean("phone_public").default(false).notNull(),
 	entityId: text("entity_id"),
 	activeEntityId: text("active_entity_id"),
+	activeOrganizationId: text("active_organization_id"),
+	platformRole: text("platform_role"),
 	department: text(),
 	jobTitle: text("job_title"),
 	employeeId: text("employee_id"),
@@ -656,6 +717,8 @@ export const users = pgTable("users", {
 	uniqueIndex("users_employee_id_key").using("btree", table.employeeId.asc().nullsLast().op("text_ops")),
 	index("users_entity_id_idx").using("btree", table.entityId.asc().nullsLast().op("text_ops")),
 	index("users_is_active_idx").using("btree", table.isActive.asc().nullsLast().op("bool_ops")),
+	index("users_active_organization_id_idx").using("btree", table.activeOrganizationId.asc().nullsLast().op("text_ops")),
+	index("users_platform_role_idx").using("btree", table.platformRole.asc().nullsLast().op("text_ops")),
 	foreignKey({
 			columns: [table.entityId],
 			foreignColumns: [entities.id],

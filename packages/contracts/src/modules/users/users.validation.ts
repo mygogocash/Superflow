@@ -118,6 +118,8 @@ export const listUsersQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(500).default(20),
   search: z.string().optional(),
   entityId: z.string().min(1).optional(),
+  /** Platform admin may filter by org; non-platform actors are forced to active org. */
+  organizationId: z.string().min(1).optional(),
   roleId: z.string().uuid().optional(),
   isActive: z
     .enum(["true", "false"])
@@ -157,7 +159,10 @@ export const addMembershipSchema = z.object({
 
 export type CreateUserInput = z.infer<typeof createUserSchema>;
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
-export type ListUsersQuery = z.infer<typeof listUsersQuerySchema>;
+/** Wire query + optional internal `userIds` scope (never accept from clients). */
+export type ListUsersQuery = z.infer<typeof listUsersQuerySchema> & {
+  userIds?: string[];
+};
 export type AssignRolesInput = z.infer<typeof assignRolesSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type AddMembershipInput = z.infer<typeof addMembershipSchema>;
