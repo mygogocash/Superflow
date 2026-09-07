@@ -477,6 +477,58 @@ model AriaInteractionTrace {
   @@map("aria_interaction_traces")
 }
 
+// Phase 2 — a versioned, immutable training dataset built from interaction
+// traces (+ joined feedback). One row per build; the example rows themselves
+// are produced on demand and exported as JSONL. `filters`/`stats` are JSON;
+// `checksum` (sha256 of the serialized rows) makes a build verifiable and
+// lets a re-build be detected as identical. `version` is monotonic per kind.
+model AriaTrainingDataset {
+  id          String   @id @default(uuid()) @db.Uuid
+  kind        String // "sft" | "dpo" | "eval" | "retrieval"
+  version     Int
+  format      String   @default("jsonl")
+  rowCount    Int      @map("row_count")
+  filters     Json     @default("{}")
+  stats       Json     @default("{}")
+  checksum    String
+  createdById String?  @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  createdBy     User?              @relation("AriaTrainingDatasetAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  modelVersions AriaModelVersion[]
+
+  @@unique([kind, version])
+  @@index([kind, createdAt])
+  @@map("aria_training_datasets")
+}
+
+// Phase 4 — registry of candidate / promoted fine-tunes. The training itself
+// runs on external infra; this records lineage (base model, source dataset,
+// external job ref) and the eval summary, and gates promotion behind eval
+// results (see aria-training eval-gate). Status is a small state machine:
+// draft → candidate → promoted | rejected, with archived as a terminal park.
+model AriaModelVersion {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @unique
+  baseModel   String    @map("base_model")
+  method      String // "sft" | "dpo" | "prompt"
+  datasetId   String?   @map("dataset_id") @db.Uuid
+  status      String    @default("draft")
+  evalSummary Json      @default("{}") @map("eval_summary")
+  externalRef String?   @map("external_ref")
+  notes       String?
+  createdById String?   @map("created_by_id") @db.Uuid
+  promotedAt  DateTime? @map("promoted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  dataset   AriaTrainingDataset? @relation(fields: [datasetId], references: [id], onDelete: SetNull)
+  createdBy User?                @relation("AriaModelVersionAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@map("aria_model_versions")
+}
+
 // Phase 8 — proactive daily brief.
 //
 // Per-user opt-in for ARIA's morning brief. A cron sweeps every hour
