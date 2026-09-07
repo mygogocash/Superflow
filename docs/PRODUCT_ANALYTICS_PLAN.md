@@ -12,13 +12,13 @@
 |---|---|
 | Product telemetry today is **PostHog only** (`apps/web` + Express; edge `/ingest` proxy) | GA + Mixpanel are **additive destinations**, not a greenfield blank slate |
 | Official client is **Expo** (`apps/app`) — **no** product SDK there yet | Instrument Expo first; Next.js (`apps/web`) is legacy UI |
-| Tenancy is **single-tenant SaaS**, multi-**entity** (TH / IN / VN / ID legal companies) | “Per org” in this product = **per `Entity`**, unless we invent a real `Organization` tenant model |
+| Tenancy today is **single-tenant**, multi-**entity** (TH / IN / VN / ID) | Target is **multi-org**: see `docs/ORG_TENANCY_RBAC_PLAN.md` — Organization tenant + org RBAC; Entity stays legal company under an org |
 | Marketing Analytics (`/marketing-analytics`) is **BNII / OneWave telco data** | Separate product; **do not** put GA/Mixpanel admin under that module |
 | Edge deploy cannot run `posthog-node` HogQL the same way as Express | Admin “query Mixpanel/GA/PostHog APIs” needs `fetch`-based core services or stays Node/501 until ported |
 
-Goal of telemetry (unchanged from `.telemetry/product.md`):
+Goal of telemetry (updated for multi-org):
 
-> Which modules are used, where funnels drop, what is dead weight — **per entity**.
+> Which modules people use, where funnels drop, what is dead weight — **per Organization**, with optional drill-down **per Entity**.
 
 ---
 
@@ -38,13 +38,23 @@ Keep **one tracking plan**, fan out to destinations with clear jobs:
 
 ### 1.2 What “org” means
 
-**Recommended (phase 1):** treat **Entity** as the org unit.
+**Target (product decision):** real **Organization** tenants with per-org RBAC
+(User / Admin / Super Admin) and **Manut Platform Admin** over all orgs.
+Contract: `docs/ORG_TENANCY_RBAC_PLAN.md`.
+
+Analytics grouping:
+
+| Layer | Key | Who analyzes |
+|---|---|---|
+| Organization | `organization_id` | Org Admin / Org Super Admin (own org); Platform Admin (all) |
+| Entity | `entity_id` | Drill-down inside an org (legal companies) |
 
 - Identify user → `distinct_id = user.id`
-- Group → Mixpanel Group / PostHog `group("entity", entityId)` / GA4 `user_properties.entity_code`
-- Admin panel filter = entity picker (TH / IN / VN / ID / All)
+- Group primary → `organization`; secondary → `entity`
+- GA4 user properties: `organization_id`, `organization_slug`, `entity_code`, `org_role`
+- Admin analytics UI: org-scoped for customer admins; org picker (incl. All) for Manut platform
 
-**Only if** Manut becomes multi-customer SaaS later: add `Organization` (tenant) above Entity, migrate groups to `organization` + nested `entity`. That is a schema + RBAC project — **out of scope** for this analytics plan.
+**Until Organization ships:** keep emitting `entity` groups so historical PostHog data stays useful; add `organization_id` as soon as membership exists (backfill single home org for current TBH deployment).
 
 ### 1.3 Consent / privacy
 
@@ -160,12 +170,14 @@ Emit `*.started` + `*.submitted` (+ `*.failed` where useful). No UI redesign req
 
 ### 4.1 Placement
 
-New Expo + legacy Next surface under **Admin**, not Marketing:
+Two consoles (do not merge):
 
-- Expo: `apps/app/app/(dashboard)/admin/analytics/`  
-- Mirror Next: `apps/web/src/app/(dashboard)/admin/analytics/` (parity until Next retired)  
-- Nav: Admin → **Product analytics**  
-- Permission: reuse / extend `admin:usage-report` **or** mint `admin:analytics` (seed Admin role only). Prefer **one** code; don’t invent a parallel gate without need.
+| Console | Route | Audience | Scope |
+|---|---|---|---|
+| **Org product analytics** | `/admin/analytics` (org context) | Org Admin / Super Admin | Active `organizationId` only |
+| **Platform analytics** | `/platform/analytics` | Manut Platform Admin | All orgs + org filter |
+
+Expo-first; Next parity optional. Gates follow org tenancy plan (org role pack vs `platformRole`), not today’s global Admin bypass alone.
 
 ### 4.2 Information architecture (one job per tab)
 
@@ -256,6 +268,6 @@ Gate: `requirePermission("admin:usage-report")` or `admin:analytics` + System Ad
 ## 8. Open questions for stakeholders
 
 1. Keep **all three** destinations long-term, or is GA4 optional (traffic only)?  
-2. New permission `admin:analytics` vs reuse `admin:usage-report`?  
-3. Is **Entity** the correct “org” grain, or is a future multi-customer tenant required in the same program?  
-4. Should Mixpanel/GA replace any PostHog admin Usage features, or only extend them?
+2. Ship **Organization RBAC** before analytics admin UI, or analytics-on-entity first with org keys stubbed? (Recommendation: schema + `/me` org context first, then analytics.)  
+3. Should Mixpanel/GA replace any PostHog admin Usage features, or only extend them?  
+4. Multi-org membership per user in v1, or one org per user?
