@@ -1,16 +1,14 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useTheme } from "next-themes";
 
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { AccountMenuItems } from "@/components/layout/account-menu";
 import { CompanySwitcher } from "@/components/layout/company-switcher";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { NAV_GROUPS } from "@/components/layout/sidebar";
+import { ThemeSwitcher } from "@/components/layout/theme-switcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -89,36 +87,6 @@ function resolveTitle(pathname: string): string {
   return PAGE_TITLES[bestHref] ?? bestLabel;
 }
 
-function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
-
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className={`
-        text-muted-foreground relative size-7
-        hover:text-foreground
-      `}
-    >
-      <Sun
-        className={`
-          size-4 scale-100 rotate-0 transition-all
-          dark:scale-0 dark:-rotate-90
-        `}
-      />
-      <Moon
-        className={`
-          absolute size-4 scale-0 rotate-90 transition-all
-          dark:scale-100 dark:rotate-0
-        `}
-      />
-      <span className="sr-only">Toggle theme</span>
-    </Button>
-  );
-}
-
 export function Topbar() {
   // `?? ""` is main's guard (#1189, nullable Next navigation hooks) and is
   // still required: dev's resolveTitle takes a non-nullable string. Empty
@@ -192,7 +160,7 @@ export function Topbar() {
             void updateMyProfile({ locale });
           }}
         />
-        <ThemeToggle />
+        <ThemeSwitcher />
       </div>
       <NotificationBell />
       {/* The avatar opens the account menu rather than linking straight to

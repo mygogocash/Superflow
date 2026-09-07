@@ -63,8 +63,9 @@ function Slider({
           data-slot="slider-thumb"
           key={index}
           className={`
-            border-ring ring-ring/50 relative block size-3 shrink-0 rounded-full
-            border bg-white transition-[color,box-shadow] select-none
+            border-ring ring-ring/50 bg-background relative block size-3
+            shrink-0 rounded-full border transition-[color,box-shadow]
+            select-none
             after:absolute after:-inset-2
             hover:ring-3
             focus-visible:ring-3 focus-visible:outline-hidden
