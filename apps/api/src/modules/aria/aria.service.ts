@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Response } from "express";
 
@@ -71,6 +73,30 @@ function writeNdjson(res: Response, line: NdjsonLine) {
 }
 
 const TITLE_MAX_LEN = 72;
+
+// Training-data capture (Phase 1). Full-turn traces are written best-effort,
+// only when ARIA_TRACE_CAPTURE === "true" (fail-closed: unset = off).
+const ARIA_TRACE_CAPTURE_FLAG = "ARIA_TRACE_CAPTURE";
+// Short digest of the system prompt in force, so each trace is attributable to
+// an exact prompt revision without inlining the whole prompt every turn.
+const ARIA_PROMPT_VERSION = createHash("sha256")
+  .update(AI_PROMPTS.ARIA_SYSTEM)
+  .digest("hex")
+  .slice(0, 12);
+// Cap each captured tool-result payload so a large result can't bloat the row.
+const TRACE_TOOL_RESULT_CAP = 8000;
+
+function isTraceCaptureEnabled(): boolean {
+  return process.env[ARIA_TRACE_CAPTURE_FLAG] === "true";
+}
+
+type TraceToolCall = {
+  name: string;
+  input: unknown;
+  ok: boolean;
+  isError: boolean;
+  resultPreview: string;
+};
 
 function sanitizeConversationTitle(raw: string): string {
   const oneLine = raw.replace(/\s+/g, " ").trim();
@@ -1011,7 +1037,8 @@ export const ariaService = {
       );
       await linkAttachments(userMsg.id);
       // Feed a sensible embedding/title seed when the turn is attachments-only.
-      effectiveMessage = input.message ?? "(shared file for Manut AI to review)";
+      effectiveMessage =
+        input.message ?? "(shared file for Manut AI to review)";
     }
 
     beginStream();
@@ -1045,6 +1072,14 @@ export const ariaService = {
     let cacheReadTokens: number | null = null;
     let cacheCreateTokens: number | null = null;
     const toolUsage: Array<{ name: string; ok: boolean; summary: string }> = [];
+    // Trace-only accumulators (Phase 1). Captured every turn but persisted only
+    // when the capture flag is on; hoisted to function scope so the post-stream
+    // emit (which needs the assistant message id) can read them.
+    const traceToolCalls: TraceToolCall[] = [];
+    let tracePerms: string[] = [];
+    let traceOfferedTools: string[] = [];
+    let traceStopReason: string | null = null;
+    let traceMaxTokens: number | null = null;
 
     try {
       const anthropic = getAnthropicClient();
@@ -1155,6 +1190,10 @@ export const ariaService = {
       const CHAT_MAX_TOKENS = 8192;
       const toolContext = await loadToolContext(userId, conversationId);
       const allowedTools = toolDefinitionsFor(toolContext.perms);
+      // Snapshot the RBAC context + offered tools for the training trace.
+      tracePerms = Array.from(toolContext.perms);
+      traceOfferedTools = allowedTools.map((t) => t.name);
+      traceMaxTokens = CHAT_MAX_TOKENS;
       let iterations = 0;
       let lastStopReason: string | null = null;
 
@@ -1281,6 +1320,18 @@ export const ariaService = {
             ok: result.ok,
             summary: result.summary,
           });
+          // Full tool detail (args + result) for the training trace — the
+          // signal the aggregate query log discards. Result payload is capped.
+          traceToolCalls.push({
+            name: block.name,
+            input: (block.input ?? {}) as Record<string, unknown>,
+            ok: result.ok,
+            isError: !result.ok,
+            resultPreview: (result.resultJson ?? "").slice(
+              0,
+              TRACE_TOOL_RESULT_CAP,
+            ),
+          });
           writeNdjson(res, {
             t: "tool_use",
             id: block.id,
@@ -1303,6 +1354,7 @@ export const ariaService = {
       tokensOut = aggOut > 0 ? aggOut : null;
       cacheReadTokens = aggCacheRead > 0 ? aggCacheRead : null;
       cacheCreateTokens = aggCacheCreate > 0 ? aggCacheCreate : null;
+      traceStopReason = lastStopReason;
 
       if (iterations >= MAX_TOOL_ITERATIONS && lastStopReason === "tool_use") {
         logger.warn("ARIA tool loop hit iteration ceiling", {
@@ -1429,6 +1481,57 @@ export const ariaService = {
         accumulated,
       );
       await ariaRepository.updateConversationTimestamp(conversationId);
+
+      // Training-data trace (Phase 1). Full, replayable capture of the turn —
+      // gated behind the fail-closed ARIA_TRACE_CAPTURE flag and best-effort so
+      // it never affects chat. Links to the assistant message id so feedback
+      // (thumbs / correction) joins at dataset-build time.
+      if (isTraceCaptureEnabled()) {
+        try {
+          const turnKind = input.editMessageId
+            ? "edit"
+            : input.retryAssistantMessageId
+              ? "retry"
+              : "send";
+          await ariaRepository.recordInteractionTrace({
+            conversationId,
+            userId,
+            assistantMessageId: assistantMsg.id,
+            turnKind,
+            promptVersion: ARIA_PROMPT_VERSION,
+            model: ANTHROPIC_MODELS.CHAT,
+            maxTokens: traceMaxTokens,
+            userMessage: effectiveMessage,
+            permissionsSnapshot: tracePerms,
+            offeredTools: traceOfferedTools,
+            retrievedArticleIds: retrieval.injectedIds,
+            retrievedDistances: retrieval.injectedDistances.map((d) =>
+              Number.isFinite(d) ? d : 0,
+            ),
+            topDistance: retrieval.topDistance,
+            retrievalMode: retrieval.mode,
+            workspaceBytes,
+            knowledgeBytes,
+            assistantText: accumulated,
+            stopReason: traceStopReason,
+            toolCalls: traceToolCalls,
+            toolUseCount: toolUsage.length,
+            toolNames: toolUsage.map((t) => t.name),
+            tokensIn,
+            tokensOut,
+            cacheReadTokens,
+            cacheCreateTokens,
+            latencyMs: Date.now() - startedAt,
+            error: streamErrored,
+            errorMessage: streamErrorMessage,
+          });
+        } catch (traceErr) {
+          logger.warn("ARIA interaction trace write failed", {
+            err:
+              traceErr instanceof Error ? traceErr.message : String(traceErr),
+          });
+        }
+      }
 
       if (isNewConversation) {
         const messageCount = await ariaRepository.countMessages(conversationId);

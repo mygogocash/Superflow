@@ -178,6 +178,7 @@ model AriaConversation {
   user       User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages   AriaMessage[]
   queryLogs  AriaQueryLog[]
+  traces     AriaInteractionTrace[]
   summary    AriaConversationSummary?
   memory     AriaConversationMemory[]
 
@@ -237,6 +238,7 @@ model AriaMessage {
   conversation AriaConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   feedback     AriaFeedback[]
   attachments  AriaAttachment[]
+  traces       AriaInteractionTrace[]
 
   @@index([conversationId])
   @@map("aria_messages")
@@ -388,6 +390,91 @@ model AriaQueryLog {
   @@index([userId, createdAt])
   @@index([conversationId])
   @@map("aria_query_logs")
+}
+
+// Training-data substrate — one immutable, replayable record per assistant
+// turn, the atomic unit every future training method (RAG tuning, eval sets,
+// DPO from feedback, SFT, tool-use fine-tuning) is built from. Distinct from
+// AriaQueryLog (which powers the admin insights page and keeps only
+// aggregates): this captures the full turn — the versioned prompt, the RBAC
+// snapshot the turn ran under, the retrieved context, the tool calls WITH
+// their args + results, and the produced output — so a turn can be
+// reconstructed and graded offline.
+//
+// Written best-effort and gated behind the fail-closed ARIA_TRACE_CAPTURE
+// flag, so it never affects chat and stays off until explicitly enabled.
+// `userMessage` / `assistantText` / `toolCalls` carry PII; `piiRedacted`
+// tracks whether the redaction transform has run (Phase 2), and retention is
+// enforced by cron like aria_query_logs. Feedback is NOT copied here — it is
+// joined at dataset-build time via `assistantMessageId` → AriaFeedback so the
+// trace stays immutable.
+model AriaInteractionTrace {
+  id                 String   @id @default(uuid()) @db.Uuid
+  conversationId     String?  @map("conversation_id") @db.Uuid
+  userId             String   @map("user_id") @db.Uuid
+  // The persisted assistant message this turn produced — the join key to
+  // AriaFeedback (thumbs / correction) at dataset-build time.
+  assistantMessageId String?  @map("assistant_message_id") @db.Uuid
+  // "send" | "edit" | "retry" — retry/edit turns are valuable negative /
+  // preference signal (the prior answer was rejected).
+  turnKind           String   @default("send") @map("turn_kind")
+
+  // ── Versioning / model ───────────────────────────────────────────
+  // Short digest of the system prompt in force, so a trace is attributable to
+  // an exact prompt revision without inlining the whole prompt every turn.
+  promptVersion      String   @map("prompt_version")
+  model              String
+  maxTokens          Int?     @map("max_tokens")
+
+  // ── Input ────────────────────────────────────────────────────────
+  userMessage        String   @map("user_message")
+  // The actor's permission codes at turn time — lets the dataset builder
+  // filter to what the acting role could legitimately see (RBAC-aware
+  // training), and reproduce which tools were even offered.
+  permissionsSnapshot String[] @default([]) @map("permissions_snapshot")
+  offeredTools        String[] @default([]) @map("offered_tools")
+  // Retrieved knowledge (ids + aligned cosine distances). Content snapshots /
+  // hashes are Phase 2; ids + the corpus are enough to reconstruct v1.
+  retrievedArticleIds String[] @default([]) @map("retrieved_article_ids") @db.Uuid
+  retrievedDistances  Float[]  @default([]) @map("retrieved_distances")
+  topDistance         Float?   @map("top_distance")
+  retrievalMode       String   @default("vector") @map("retrieval_mode")
+  workspaceBytes      Int      @default(0) @map("workspace_bytes")
+  knowledgeBytes      Int      @default(0) @map("knowledge_bytes")
+
+  // ── Output ───────────────────────────────────────────────────────
+  assistantText      String   @map("assistant_text")
+  stopReason         String?  @map("stop_reason")
+  // Full tool trace: [{ name, input, ok, isError, resultPreview }]. The
+  // args + results are the tool-use training signal AriaQueryLog throws away
+  // (it keeps only count + names). Result payloads are capped on write.
+  toolCalls          Json     @default("[]") @map("tool_calls")
+  toolUseCount       Int      @default(0) @map("tool_use_count")
+  toolNames          String[] @default([]) @map("tool_names")
+
+  // ── Cost / latency / status ──────────────────────────────────────
+  tokensIn           Int?     @map("tokens_in")
+  tokensOut          Int?     @map("tokens_out")
+  cacheReadTokens    Int?     @map("cache_read_tokens")
+  cacheCreateTokens  Int?     @map("cache_create_tokens")
+  latencyMs          Int      @map("latency_ms")
+  error              Boolean  @default(false)
+  errorMessage       String?  @map("error_message")
+
+  // ── Governance ───────────────────────────────────────────────────
+  piiRedacted        Boolean  @default(false) @map("pii_redacted")
+
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  user             User              @relation("AriaInteractionTraceUser", fields: [userId], references: [id], onDelete: Cascade)
+  conversation     AriaConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  assistantMessage AriaMessage?      @relation(fields: [assistantMessageId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([conversationId])
+  @@index([piiRedacted, createdAt])
+  @@map("aria_interaction_traces")
 }
 
 // Phase 8 — proactive daily brief.
