@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Platform, useWindowDimensions } from "react-native";
 
+export { DESKTOP_MIN, TABLET_MIN } from "@/lib/breakpoints";
+
 /** RN `useWindowDimensions` is often wrong on Expo web; prefer `window.innerWidth`. */
 export function useViewportWidth() {
   const { width } = useWindowDimensions();
@@ -18,6 +20,3 @@ export function useViewportWidth() {
 
   return Platform.OS === "web" ? webWidth : width;
 }
-
-export const TABLET_MIN = 768;
-export const DESKTOP_MIN = 1100;

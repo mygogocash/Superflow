@@ -1,22 +1,27 @@
 import { usePathname, useRouter, type Href } from "expo-router";
+import { X } from "lucide-react-native";
 import { useMemo, useState, type ReactNode } from "react";
 import { Platform, Pressable, ScrollView, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AppDock } from "@/components/app-dock";
+import { AppRail } from "@/components/app-rail";
 import { ManutSymbol } from "@/components/brand/manut-symbol";
+import { GlassSurface } from "@/components/ui/glass-surface";
 import { Text } from "@/components/ui/text";
-import { TABLET_MIN, useViewportWidth } from "@/hooks/use-viewport-width";
-import { cn } from "@/lib/utils";
+import { useLayoutMode } from "@/hooks/use-layout-mode";
+import { BRAND } from "@/lib/brand";
+import { buildTabletRail, DOCK_DESTINATIONS, filterDockDestinations } from "@/lib/dock-nav";
+import { DOCK_CONTENT_HEIGHT, SIDEBAR_WIDTH } from "@/lib/glass";
 import { EMPLOYEE_NAV_GROUPS, NAV_GROUPS, filterNavGroups, navItemActive } from "@/lib/nav";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth";
-
-const SIDEBAR_WIDTH = 260;
 
 export function DashboardShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const viewportWidth = useViewportWidth();
-  const isWide = viewportWidth >= TABLET_MIN;
-  const sidebarWidth = isWide ? SIDEBAR_WIDTH : Math.min(240, Math.max(200, viewportWidth - 72));
-  const [open, setOpen] = useState(false);
+  const mode = useLayoutMode();
+  const insets = useSafeAreaInsets();
+  const [sheetOpen, setSheetOpen] = useState(false);
   const { user, hasPermission, isEmployeeOnly, logout } = useAuth();
 
   const groups = useMemo(
@@ -24,65 +29,83 @@ export function DashboardShell({ children }: { children: ReactNode }) {
     [hasPermission, isEmployeeOnly],
   );
 
+  const dockItems = useMemo(
+    () => filterDockDestinations(DOCK_DESTINATIONS, hasPermission),
+    [hasPermission],
+  );
+
+  const railItems = useMemo(() => buildTabletRail(hasPermission), [hasPermission]);
+
   function go(href: string) {
-    setOpen(false);
+    setSheetOpen(false);
     router.push(href as Href);
   }
 
+  const sidebarWidth = SIDEBAR_WIDTH;
+
+  const navList = (
+    <ScrollView className="min-h-0 flex-1" contentContainerClassName="px-3 pb-6">
+      {groups.map((group) => (
+        <View key={group.label} className="mb-4">
+          <Text className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground">
+            {group.label}
+          </Text>
+          <View className="gap-0.5">
+            {group.items.map((item) => {
+              const active = navItemActive(pathname, item.href);
+              return (
+                <Pressable
+                  key={item.href}
+                  accessibilityRole="link"
+                  accessibilityLabel={`${item.label} navigation`}
+                  accessibilityState={{ selected: active }}
+                  onPress={() => go(item.href)}
+                  className={cn(
+                    "rounded-lg px-2.5 py-2",
+                    active ? "bg-intelligence-50/90" : undefined,
+                    Platform.select({ web: active ? undefined : "hover:bg-accent/50 transition-colors duration-fast ease-manut" }),
+                  )}
+                >
+                  <Text
+                    className={cn(
+                      "text-[13px] leading-5",
+                      active ? "font-semibold text-intelligence-600" : "text-sidebar-strong",
+                    )}
+                  >
+                    {item.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ))}
+    </ScrollView>
+  );
+
   const sidebar = (
-    <View
-      className="h-full shrink-0 overflow-hidden border-r border-sidebar-border bg-sidebar"
+    <GlassSurface
+      tone="chrome"
+      accessibilityLabel="Main navigation"
+      className="h-full shrink-0 overflow-hidden border-b-0 border-l-0 border-t-0"
       style={{ width: sidebarWidth, maxWidth: sidebarWidth, flexBasis: sidebarWidth }}
+      {...(Platform.OS === "web" ? ({ role: "navigation" } as object) : {})}
     >
       <View className="flex-row items-center gap-3 px-5 pb-4 pt-6">
         <ManutSymbol size={38} />
         <View className="min-w-0 flex-1">
-          <Text className="text-[15px] font-bold text-sidebar-strong">Manut</Text>
+          <Text className="font-display text-[22px] leading-6 text-sidebar-strong">Manut</Text>
           <Text className="text-[11px] text-sidebar-foreground" numberOfLines={1}>
-            {user?.name ?? user?.email}
+            {user?.name ?? user?.email ?? "Intelligence workspace"}
           </Text>
         </View>
       </View>
-      <ScrollView className="min-h-0 flex-1" contentContainerClassName="px-3 pb-6">
-        {groups.map((group) => (
-          <View key={group.label} className="mb-4">
-            <Text className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground">
-              {group.label}
-            </Text>
-            <View className="gap-0.5">
-              {group.items.map((item) => {
-                const active = navItemActive(pathname, item.href);
-                return (
-                  <Pressable
-                    key={item.href}
-                    accessibilityRole="link"
-                    accessibilityLabel={`${item.label} navigation`}
-                    onPress={() => go(item.href)}
-                    className={cn(
-                      "rounded-md px-2.5 py-2",
-                      active ? "bg-accent" : undefined,
-                      Platform.select({ web: active ? undefined : "hover:bg-accent/60" }),
-                    )}
-                  >
-                    <Text
-                      className={cn(
-                        "text-[13px] leading-5",
-                        active ? "font-semibold text-sidebar-primary" : "text-sidebar-strong",
-                      )}
-                    >
-                      {item.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        ))}
-      </ScrollView>
-      <View className="border-t border-sidebar-border px-3 py-3">
+      {navList}
+      <View className="border-t border-border/60 px-3 py-3">
         <Pressable
           accessibilityRole="button"
-          className={cn("rounded-md px-2.5 py-2", Platform.select({ web: "hover:bg-white/5" }))}
+          accessibilityLabel="Sign out"
+          className={cn("rounded-lg px-2.5 py-2", Platform.select({ web: "hover:bg-accent/50" }))}
           onPress={async () => {
             await logout();
             router.replace("/(auth)/login");
@@ -91,8 +114,73 @@ export function DashboardShell({ children }: { children: ReactNode }) {
           <Text className="text-[13px] text-sidebar-foreground">Sign out</Text>
         </Pressable>
       </View>
-    </View>
+    </GlassSurface>
   );
+
+  const sheet = sheetOpen ? (
+    <View className="absolute inset-0 z-40 flex-row">
+      <GlassSurface
+        tone="sheet"
+        className="h-full overflow-hidden border-b-0 border-l-0 border-t-0"
+        style={{ width: Math.min(sidebarWidth, 300) }}
+      >
+        <View className="flex-row items-center justify-between gap-3 px-5 pb-3 pt-6">
+          <View className="min-w-0 flex-1 flex-row items-center gap-3">
+            <ManutSymbol size={32} />
+            <Text className="font-display text-[20px] text-sidebar-strong">Manut</Text>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close menu"
+            onPress={() => setSheetOpen(false)}
+            className="h-10 w-10 items-center justify-center rounded-lg border border-border/70 bg-background/50"
+          >
+            <X size={18} color={BRAND.ink} />
+          </Pressable>
+        </View>
+        {navList}
+        <View className="border-t border-border/60 px-3 py-3">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Sign out"
+            className="rounded-lg px-2.5 py-2"
+            onPress={async () => {
+              await logout();
+              router.replace("/(auth)/login");
+            }}
+          >
+            <Text className="text-[13px] text-sidebar-foreground">Sign out</Text>
+          </Pressable>
+        </View>
+      </GlassSurface>
+      <Pressable
+        accessibilityLabel="Close menu overlay"
+        className="min-w-0 flex-1 bg-black/35"
+        onPress={() => setSheetOpen(false)}
+      />
+    </View>
+  ) : null;
+
+  const phoneTopBar = (
+    <GlassSurface
+      tone="chrome"
+      accessibilityLabel="Top bar"
+      className="z-10 flex-row items-center gap-3 border-b border-l-0 border-r-0 border-t-0 px-4 py-3"
+      style={{ paddingTop: Math.max(insets.top, 12) }}
+    >
+      <ManutSymbol size={30} />
+      <View className="min-w-0 flex-1">
+        <Text className="text-[15px] font-semibold text-foreground" numberOfLines={1}>
+          Manut
+        </Text>
+        <Text className="text-[11px] text-muted-foreground" numberOfLines={1}>
+          {user?.name ? `Hello, ${user.name.split(" ")[0]}` : "Stay clear."}
+        </Text>
+      </View>
+    </GlassSurface>
+  );
+
+  const dockBottomInset = DOCK_CONTENT_HEIGHT + Math.max(insets.bottom, 8);
 
   return (
     <View
@@ -102,28 +190,36 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         default: { flex: 1 },
       })}
     >
-      {isWide ? sidebar : null}
+      {mode === "desktop" ? sidebar : null}
+      {mode === "tablet" ? (
+        <AppRail
+          items={railItems}
+          activeHref={pathname}
+          onNavigate={go}
+          onMore={() => setSheetOpen(true)}
+        />
+      ) : null}
+
       <View className="relative min-w-0 flex-1 overflow-hidden bg-background">
-        {isWide ? null : (
-          <View className="flex-row items-center gap-3 border-b border-border bg-card px-4 py-3">
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setOpen((v) => !v)}
-              className="h-9 items-center justify-center rounded-md border border-border bg-background px-3"
-            >
-              <Text className="text-sm font-medium text-foreground">{open ? "Close" : "Menu"}</Text>
-            </Pressable>
-            <ManutSymbol size={30} />
-            <Text className="text-base font-bold text-foreground">Manut</Text>
-          </View>
-        )}
-        <View className="min-h-0 flex-1">{children}</View>
-        {!isWide && open ? (
-          <View className="absolute inset-0 z-20 flex-row">
-            {sidebar}
-            <Pressable className="min-w-0 flex-1 bg-black/40" onPress={() => setOpen(false)} />
-          </View>
+        {mode === "phone" ? phoneTopBar : null}
+        <View
+          className="min-h-0 flex-1"
+          style={mode === "phone" ? { paddingBottom: dockBottomInset } : undefined}
+          {...(Platform.OS === "web" ? ({ role: "main" } as object) : {})}
+        >
+          {children}
+        </View>
+
+        {mode === "phone" ? (
+          <AppDock
+            items={dockItems}
+            activeHref={pathname}
+            onNavigate={go}
+            onMore={() => setSheetOpen(true)}
+          />
         ) : null}
+
+        {mode !== "desktop" ? sheet : null}
       </View>
     </View>
   );

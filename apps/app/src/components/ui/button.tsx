@@ -33,10 +33,20 @@ const buttonVariants = cva(
           }),
         ),
         outline: cn(
-          "border border-border bg-background active:bg-accent dark:border-input dark:bg-input/30 dark:active:bg-input/50",
-          Platform.select({ web: "hover:bg-accent dark:hover:bg-input/50" }),
+          "border border-border bg-background/80 active:bg-accent dark:border-input dark:bg-input/30 dark:active:bg-input/50",
+          Platform.select({
+            web: "hover:bg-accent/80 dark:hover:bg-input/50 backdrop-blur-[12px]",
+          }),
         ),
-        secondary: cn("bg-secondary active:bg-secondary/80", Platform.select({ web: "hover:bg-secondary/80" })),
+        secondary: cn(
+          "border border-border/60 bg-secondary/80 active:bg-secondary/90",
+          Platform.select({ web: "hover:bg-secondary/90 backdrop-blur-[12px]" }),
+        ),
+        /** Floating frosted control — toolbars / chrome, not primary CTAs. */
+        glass: cn(
+          "border border-border/70 bg-card/70 active:bg-accent/80",
+          Platform.select({ web: "hover:bg-card/85 backdrop-blur-[12px]" }),
+        ),
         ghost: cn("active:bg-accent dark:active:bg-accent/50", Platform.select({ web: "hover:bg-accent dark:hover:bg-accent/50" })),
         link: "",
       },
@@ -64,6 +74,7 @@ const buttonTextVariants = cva(
         destructive: "text-destructive-foreground",
         outline: cn("group-active:text-accent-foreground", Platform.select({ web: "group-hover:text-accent-foreground" })),
         secondary: "text-secondary-foreground",
+        glass: "text-foreground",
         ghost: "group-active:text-accent-foreground",
         link: cn(
           "text-primary group-active:underline",
