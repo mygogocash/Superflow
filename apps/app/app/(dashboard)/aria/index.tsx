@@ -6,6 +6,7 @@ import { PageScreen } from "@/components/page-screen";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { TABLET_MIN, useViewportWidth } from "@/hooks/use-viewport-width";
@@ -19,6 +20,7 @@ import {
   type AriaConversation,
   type AriaMessage,
   type ChatAction,
+  type ConfirmAction,
   type ToolUseTrace,
 } from "@/lib/aria-chat";
 import { ApiError } from "@/lib/api-client";
@@ -34,16 +36,92 @@ type LocalMessage = AriaMessage & {
   error?: string;
 };
 
+function formatParamValue(v: unknown): string {
+  if (v === null || v === undefined) return "—";
+  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") return String(v);
+  try {
+    return JSON.stringify(v);
+  } catch {
+    return String(v);
+  }
+}
+
+function ConfirmCard({
+  confirm,
+  confirming,
+  confirmed,
+  disabled,
+  onConfirm,
+}: {
+  confirm: ConfirmAction;
+  confirming: boolean;
+  confirmed: boolean;
+  disabled: boolean;
+  onConfirm: (token: string) => void;
+}) {
+  const params = confirm.signedParams ?? confirm.fenceParams;
+  const actionLabel = confirm.signedAction ?? confirm.action;
+  const signedMismatch =
+    confirm.signedAction != null &&
+    confirm.signedAction !== confirm.action;
+
+  return (
+    <View className="mt-2 rounded-xl border border-border bg-muted/50 px-3 py-2.5">
+      <Text className="text-[12px] font-semibold uppercase tracking-wide text-muted-foreground">
+        Action requires approval
+      </Text>
+      <Text className="mt-1 text-[13px] leading-5 text-foreground">{confirm.summary}</Text>
+      {signedMismatch ? (
+        <Text className="mt-1 text-[12px] text-destructive">
+          Signed action differs from the chat summary — review the details below carefully.
+        </Text>
+      ) : null}
+      {Object.keys(params).length > 0 ? (
+        <View className="mt-2 gap-1 rounded-lg border border-border bg-card px-2.5 py-2">
+          <Text className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            {confirm.signedParams ? "Token details (verify before confirm)" : "Draft details"}
+          </Text>
+          <Text className="text-[12px] text-muted-foreground">Action: {actionLabel}</Text>
+          {Object.entries(params).map(([k, v]) => (
+            <Text key={k} className="text-[12px] text-foreground">
+              {k.replace(/[_-]/g, " ")}: {formatParamValue(v)}
+            </Text>
+          ))}
+        </View>
+      ) : (
+        <Text className="mt-1 text-[12px] text-muted-foreground">Action: {actionLabel}</Text>
+      )}
+      {confirmed ? (
+        <Text className="mt-2 text-[13px] font-medium text-success">Submitted.</Text>
+      ) : (
+        <Button
+          size="sm"
+          variant="ai"
+          className="mt-2 self-start"
+          disabled={confirming || disabled}
+          onPress={() => onConfirm(confirm.token)}
+        >
+          <Text>{confirming ? "Confirming…" : "Confirm"}</Text>
+        </Button>
+      )}
+    </View>
+  );
+}
+
 function MessageBubble({
   message,
   onAction,
   onConfirm,
   confirming,
+  actionsDisabled,
+  confirmedTokens,
 }: {
   message: LocalMessage;
   onAction: (prompt: string) => void;
   onConfirm: (token: string) => void;
   confirming: boolean;
+  actionsDisabled: boolean;
+  confirmedTokens: Set<string>;
 }) {
   const isUser = message.role === "user";
   const { display, actions, confirm } = extractChatActions(message.content);
@@ -61,14 +139,26 @@ function MessageBubble({
             {message.toolUses.map((t) => (
               <View
                 key={t.id}
-                className="flex-row items-center gap-2 rounded-lg bg-intelligence-50 px-2.5 py-1.5"
+                className={cn(
+                  "flex-row items-center gap-2 rounded-lg px-2.5 py-1.5",
+                  t.status === "error" ? "bg-destructive/10" : "bg-intelligence-50",
+                )}
               >
                 {t.status === "running" ? (
                   <ActivityIndicator size="small" color={BRAND.intelligence} />
                 ) : (
-                  <Sparkles size={12} color={BRAND.intelligence} />
+                  <Sparkles
+                    size={12}
+                    color={t.status === "error" ? "#B42318" : BRAND.intelligence}
+                  />
                 )}
-                <Text className="flex-1 text-[12px] text-intelligence-900" numberOfLines={2}>
+                <Text
+                  className={cn(
+                    "flex-1 text-[12px]",
+                    t.status === "error" ? "text-destructive" : "text-intelligence-900",
+                  )}
+                  numberOfLines={2}
+                >
                   {t.summary || t.name}
                 </Text>
               </View>
@@ -85,7 +175,10 @@ function MessageBubble({
             {display}
           </Text>
         ) : message.pending ? (
-          <ActivityIndicator color={isUser ? BRAND.paper : BRAND.intelligence} />
+          <View className="gap-2 py-0.5">
+            <Skeleton className="h-3 w-40" />
+            <Skeleton className="h-3 w-28" />
+          </View>
         ) : null}
         {message.error ? (
           <Text className="mt-1 text-[13px] text-destructive">{message.error}</Text>
@@ -94,25 +187,26 @@ function MessageBubble({
       {!isUser && actions.length > 0 ? (
         <View className="mt-2 flex-row flex-wrap gap-2">
           {actions.map((a: ChatAction) => (
-            <Button key={`${a.label}-${a.prompt}`} size="sm" variant="outline" onPress={() => onAction(a.prompt)}>
+            <Button
+              key={`${a.label}-${a.prompt}`}
+              size="sm"
+              variant="outline"
+              disabled={actionsDisabled}
+              onPress={() => onAction(a.prompt)}
+            >
               <Text>{a.label}</Text>
             </Button>
           ))}
         </View>
       ) : null}
       {!isUser && confirm ? (
-        <View className="mt-2 rounded-xl border border-border bg-muted/50 px-3 py-2.5">
-          <Text className="text-[13px] leading-5 text-foreground">{confirm.summary}</Text>
-          <Button
-            size="sm"
-            variant="ai"
-            className="mt-2 self-start"
-            disabled={confirming}
-            onPress={() => onConfirm(confirm.token)}
-          >
-            <Text>{confirming ? "Confirming…" : "Confirm"}</Text>
-          </Button>
-        </View>
+        <ConfirmCard
+          confirm={confirm}
+          confirming={confirming}
+          confirmed={confirmedTokens.has(confirm.token)}
+          disabled={actionsDisabled}
+          onConfirm={onConfirm}
+        />
       ) : null}
     </View>
   );
@@ -130,11 +224,13 @@ export default function ManutAiPage() {
   const [listError, setListError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [confirmedTokens, setConfirmedTokens] = useState<Set<string>>(() => new Set());
   const [historyOpen, setHistoryOpen] = useState(!compact);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const confirmLockRef = useRef(false);
 
   const scrollToBottom = useCallback(() => {
     requestAnimationFrame(() => {
@@ -171,17 +267,27 @@ export default function ManutAiPage() {
 
   const startNew = useCallback(() => {
     abortRef.current?.abort();
+    abortRef.current = null;
+    setSending(false);
     setActiveId(null);
     setMessages([]);
     setInput("");
+    setConfirmedTokens(new Set());
     if (compact) setHistoryOpen(false);
   }, [compact]);
 
   const loadConversation = useCallback(
     async (id: string) => {
+      abortRef.current?.abort();
+      abortRef.current = null;
+      setSending(false);
+      setMessages((prev) =>
+        prev.map((m) => (m.pending ? { ...m, pending: false, content: m.content || "(Stopped)" } : m)),
+      );
       setActiveId(id);
       setMessages([]);
       setInput("");
+      setConfirmedTokens(new Set());
       if (compact) setHistoryOpen(false);
       try {
         const convo = await getConversation(id);
@@ -216,8 +322,10 @@ export default function ManutAiPage() {
       }
       setDeleteId(null);
       toast("Conversation deleted", "success");
-    } catch {
-      setListError("Failed to delete conversation");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Failed to delete conversation";
+      setListError(msg);
+      toast(msg, "error");
     } finally {
       setDeleting(false);
     }
@@ -264,6 +372,7 @@ export default function ManutAiPage() {
           conversationId: activeId ?? undefined,
           signal: controller.signal,
           onEvent: (ev) => {
+            if (controller.signal.aborted) return;
             if (ev.t === "meta") {
               if (wasNewChat) {
                 setActiveId(ev.conversationId);
@@ -333,41 +442,79 @@ export default function ManutAiPage() {
           },
         });
       } catch (e) {
-        if (controller.signal.aborted) return;
+        if (controller.signal.aborted) {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === pendingAssistantId && m.pending
+                ? { ...m, pending: false, content: m.content || "(Stopped)" }
+                : m,
+            ),
+          );
+          return;
+        }
         const msg =
           e instanceof ApiError ? e.message : e instanceof Error ? e.message : "Chat failed";
         setMessages((prev) =>
           prev.map((m) =>
-            m.id === pendingAssistantId ? { ...m, pending: false, error: msg, content: m.content || msg } : m,
+            m.id === pendingAssistantId
+              ? { ...m, pending: false, error: msg, content: m.content || msg }
+              : m,
           ),
         );
+        toast(msg, "error");
       } finally {
-        setSending(false);
+        // Only the active stream may clear sending — an aborted prior send must not.
+        if (abortRef.current === controller) {
+          abortRef.current = null;
+          setSending(false);
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === pendingAssistantId && m.pending
+                ? {
+                    ...m,
+                    pending: false,
+                    content: m.content || "(No reply)",
+                    error: m.error ?? "Stream ended without a reply",
+                  }
+                : m,
+            ),
+          );
+        }
       }
     },
     [activeId, canUse, refreshConversations, scrollToBottom, sending],
   );
 
-  const onConfirm = useCallback(async (token: string) => {
-    setConfirming(true);
-    try {
-      await confirmAriaAction(token);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `confirm-${Date.now()}`,
-          conversationId: activeId ?? "local",
-          role: "assistant",
-          content: "Action confirmed.",
-          createdAt: new Date().toISOString(),
-        },
-      ]);
-    } catch (e) {
-      setListError(e instanceof Error ? e.message : "Confirm failed");
-    } finally {
-      setConfirming(false);
-    }
-  }, [activeId]);
+  const onConfirm = useCallback(
+    async (token: string) => {
+      if (confirmedTokens.has(token) || confirmLockRef.current) return;
+      confirmLockRef.current = true;
+      setConfirming(true);
+      try {
+        await confirmAriaAction(token);
+        setConfirmedTokens((prev) => new Set(prev).add(token));
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `confirm-${Date.now()}`,
+            conversationId: activeId ?? "local",
+            role: "assistant",
+            content: "Action confirmed.",
+            createdAt: new Date().toISOString(),
+          },
+        ]);
+        toast("Action submitted", "success");
+      } catch (e) {
+        const msg = e instanceof ApiError ? e.message : e instanceof Error ? e.message : "Confirm failed";
+        setListError(msg);
+        toast(msg, "error");
+      } finally {
+        confirmLockRef.current = false;
+        setConfirming(false);
+      }
+    },
+    [activeId, confirmedTokens],
+  );
 
   if (!canUse) {
     return (
@@ -398,8 +545,13 @@ export default function ManutAiPage() {
         </Button>
       </View>
       {loadingList ? (
-        <View className="flex-1 items-center justify-center py-8">
-          <ActivityIndicator color={BRAND.ink} />
+        <View className="gap-2 p-3">
+          {Array.from({ length: 6 }, (_, index) => (
+            <View key={index} className="gap-1.5 rounded-lg px-2.5 py-2">
+              <Skeleton className="h-3.5 w-36" />
+              <Skeleton className="h-2.5 w-20" />
+            </View>
+          ))}
         </View>
       ) : (
         <ScrollView className="flex-1" contentContainerClassName="gap-0.5 p-2">
@@ -515,7 +667,15 @@ export default function ManutAiPage() {
                   key={m.id}
                   message={m}
                   confirming={confirming}
-                  onAction={(prompt) => void send(prompt)}
+                  actionsDisabled={sending || confirming}
+                  confirmedTokens={confirmedTokens}
+                  onAction={(prompt) => {
+                    if (sending) {
+                      toast("Wait for the current reply", "default");
+                      return;
+                    }
+                    void send(prompt);
+                  }}
                   onConfirm={(token) => void onConfirm(token)}
                 />
               ))
@@ -526,8 +686,8 @@ export default function ManutAiPage() {
             {sending ? (
               <View className="mb-2 flex-row items-center justify-between gap-2">
                 <View className="flex-row items-center gap-2">
-                  <Badge variant="intelligence">Thinking</Badge>
-                  <Text className="text-[12px] text-muted-foreground">Manut AI is working…</Text>
+                  <Badge variant="intelligence">Responding</Badge>
+                  <Text className="text-[12px] text-muted-foreground">Composing a reply…</Text>
                 </View>
                 <Button size="sm" variant="outline" onPress={stopStreaming} accessibilityLabel="Stop generating">
                   <Square size={12} color={BRAND.ink} />
@@ -558,7 +718,13 @@ export default function ManutAiPage() {
         </View>
       </View>
 
-      <Dialog open={Boolean(deleteId)} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <Dialog
+        open={Boolean(deleteId)}
+        dismissible={!deleting}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setDeleteId(null);
+        }}
+      >
         <DialogContent
           title="Delete conversation?"
           description="This removes the chat from your history. You can’t undo this."

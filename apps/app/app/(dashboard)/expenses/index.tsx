@@ -2,10 +2,11 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react-native";
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { Platform, View } from "react-native";
 import { DataTable } from "@/components/data-table";
 import { EmptyState } from "@/components/empty-state";
 import { Field } from "@/components/field";
+import { PageListSkeleton } from "@/components/page-list-skeleton";
 import { PageScreen } from "@/components/page-screen";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -131,14 +132,16 @@ function CreateExpenseReportDialog({
       toast("Expense report created", "success");
       onCreated();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : e instanceof Error ? e.message : "Create failed");
+      const msg = e instanceof ApiError ? e.message : e instanceof Error ? e.message : "Create failed";
+      setError(msg);
+      toast(msg, "error");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} dismissible={!busy} onOpenChange={onOpenChange}>
       <DialogContent
         title="New expense report"
         description="Create a report for this period, then add line items from the web portal or a follow-up."
@@ -171,6 +174,7 @@ function CreateExpenseReportDialog({
             accessibilityLabel="Period"
             autoCapitalize="none"
             placeholder="2026-09"
+            {...Platform.select({ web: { type: "month" as const } })}
             value={period}
             onChangeText={setPeriod}
           />
@@ -195,9 +199,55 @@ function CreateExpenseReportDialog({
   );
 }
 
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="gap-0.5">
+      <Text className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</Text>
+      <Text className="text-[14px] text-foreground">{value}</Text>
+    </View>
+  );
+}
+
+function ExpenseDetailDialog({
+  report,
+  open,
+  onOpenChange,
+}: {
+  report: ExpenseReport | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        title={report?.title ?? "Expense report"}
+        description="Report summary. Line items stay on the full expense portal for now."
+        footer={
+          <DialogFooter>
+            <Button variant="outline" onPress={() => onOpenChange(false)}>
+              <Text>Close</Text>
+            </Button>
+          </DialogFooter>
+        }
+      >
+        {report ? (
+          <View className="gap-3">
+            <DetailRow label="Status" value={report.status} />
+            <DetailRow label="Period" value={report.period} />
+            <DetailRow label="Category" value={report.category ?? "general"} />
+            <DetailRow label="Employee" value={report.employee?.name ?? "—"} />
+          </View>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function ExpensesPage() {
   const queryClient = useQueryClient();
+  const canCreate = useAuth((s) => s.hasPermission("expense:create"));
   const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<ExpenseReport | null>(null);
   const query = useApiQuery<{ data: ExpenseReport[] }>(
     queryKeys.expenses.reports(),
     "/expenses/reports",
@@ -205,11 +255,7 @@ export default function ExpensesPage() {
   const items = unwrapList<ExpenseReport>(query.data);
 
   if (query.isLoading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator color={BRAND.ink} />
-      </View>
-    );
+    return <PageListSkeleton title="Expenses" />;
   }
 
   if (query.error) {
@@ -237,24 +283,44 @@ export default function ExpensesPage() {
         subtitle="Create reports and track reimbursement status."
         scroll={false}
         actions={
-          <Button size="sm" onPress={() => setOpen(true)}>
-            <Plus size={14} color={BRAND.paper} />
-            <Text>New report</Text>
-          </Button>
+          canCreate ? (
+            <Button size="sm" onPress={() => setOpen(true)}>
+              <Plus size={14} color={BRAND.paper} />
+              <Text>New report</Text>
+            </Button>
+          ) : undefined
         }
       >
         <DataTable
           columns={columns}
           data={items}
           empty="No expense reports yet"
-          emptyDescription="Tap New report to start your first period."
+          emptyDescription={
+            canCreate ? "Tap New report to start your first period." : "No expense reports to show."
+          }
+          onRowPress={setSelected}
         />
       </PageScreen>
-      <CreateExpenseReportDialog
-        open={open}
-        onOpenChange={setOpen}
-        onCreated={() => {
-          void queryClient.invalidateQueries({ queryKey: queryKeys.expenses.reports() });
+      {canCreate ? (
+        <CreateExpenseReportDialog
+          open={open}
+          onOpenChange={setOpen}
+          onCreated={() => {
+            void (async () => {
+              try {
+                await queryClient.invalidateQueries({ queryKey: queryKeys.expenses.reports() });
+              } catch {
+                toast("Created, but the list failed to refresh", "error");
+              }
+            })();
+          }}
+        />
+      ) : null}
+      <ExpenseDetailDialog
+        report={selected}
+        open={selected != null}
+        onOpenChange={(next) => {
+          if (!next) setSelected(null);
         }}
       />
     </>

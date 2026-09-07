@@ -131,4 +131,12 @@ export const api = {
       }),
     );
   },
+  async put<T>(path: string, body?: unknown): Promise<T> {
+    return parseJson<T>(
+      await apiRequest(path, {
+        method: "PUT",
+        body: body != null ? JSON.stringify(body) : undefined,
+      }),
+    );
+  },
 };

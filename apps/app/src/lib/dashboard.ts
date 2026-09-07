@@ -92,6 +92,19 @@ export function dashboardRecap(stats: Pick<DashboardStats, "pendingActions" | "u
   return `Since you last checked: ${parts.join(" and ")}.`;
 }
 
+/**
+ * Urgent items from the API are label-only (no href). Infer a sensible
+ * destination from the copy so attention rows don't all dump to /leave.
+ */
+export function urgentItemHref(label: string): string {
+  const lower = label.toLowerCase();
+  if (lower.includes("visa")) return "/visa";
+  if (lower.includes("expense")) return "/expenses";
+  if (lower.includes("travel")) return "/travel";
+  if (lower.includes("leave")) return "/leave";
+  return "/dashboard";
+}
+
 function asArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
 }

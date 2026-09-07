@@ -5,7 +5,7 @@ import {
   type ColumnDef,
 } from "@tanstack/react-table";
 import type { ReactNode } from "react";
-import { ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { EmptyState } from "@/components/empty-state";
 import { Text } from "@/components/ui/text";
 import { BRAND } from "@/lib/brand";
@@ -24,12 +24,14 @@ export function DataTable<TData>({
   empty = "No rows.",
   emptyDescription,
   className,
+  onRowPress,
 }: {
   columns: ColumnDef<TData, unknown>[];
   data: TData[];
   empty?: string;
   emptyDescription?: string;
   className?: string;
+  onRowPress?: (row: TData) => void;
 }) {
   const table = useReactTable({
     data,
@@ -73,15 +75,31 @@ export function DataTable<TData>({
                 ))}
               </View>
             ))}
-            {table.getRowModel().rows.map((row) => (
-              <View key={row.id} className="flex-row border-b border-border last:border-b-0">
-                {row.getVisibleCells().map((cell) => (
-                  <View key={cell.id} className="min-w-[160px] flex-1 justify-center px-4 py-3.5">
-                    <CellValue value={flexRender(cell.column.columnDef.cell, cell.getContext())} />
-                  </View>
-                ))}
-              </View>
-            ))}
+            {table.getRowModel().rows.map((row) => {
+              const cells = row.getVisibleCells().map((cell) => (
+                <View key={cell.id} className="min-w-[160px] flex-1 justify-center px-4 py-3.5">
+                  <CellValue value={flexRender(cell.column.columnDef.cell, cell.getContext())} />
+                </View>
+              ));
+              if (onRowPress) {
+                return (
+                  <Pressable
+                    key={row.id}
+                    accessibilityRole="button"
+                    className="flex-row border-b border-border active:bg-muted/60"
+                    style={{ minWidth: "100%", width: "100%" }}
+                    onPress={() => onRowPress(row.original)}
+                  >
+                    {cells}
+                  </Pressable>
+                );
+              }
+              return (
+                <View key={row.id} className="flex-row border-b border-border last:border-b-0">
+                  {cells}
+                </View>
+              );
+            })}
           </View>
         </ScrollView>
       </ScrollView>

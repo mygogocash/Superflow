@@ -6,6 +6,7 @@ import {
   formatRelativeTime,
   greetingForHour,
   unwrapDashboardStats,
+  urgentItemHref,
 } from "./dashboard";
 
 describe("dashboard helpers", () => {
@@ -59,5 +60,13 @@ describe("dashboard helpers", () => {
     expect(stats?.kpis.totalEmployees).toBe(0);
     expect(stats?.pendingActions).toEqual([]);
     expect(unwrapDashboardStats(null)).toBeNull();
+  });
+
+  it("maps urgent labels to module routes", () => {
+    expect(urgentItemHref("2 visas expiring within 30 days")).toBe("/visa");
+    expect(urgentItemHref("3 pending expense claims ($120)")).toBe("/expenses");
+    expect(urgentItemHref("1 travel request awaiting approval")).toBe("/travel");
+    expect(urgentItemHref("4 leave requests awaiting approval")).toBe("/leave");
+    expect(urgentItemHref("Something else")).toBe("/dashboard");
   });
 });

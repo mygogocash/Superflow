@@ -43,15 +43,68 @@ export type ToolUseTrace = {
 
 export type ChatAction = { label: string; prompt: string };
 
+export type ConfirmAction = {
+  action: string;
+  token: string;
+  /** Model-authored one-liner — untrusted; prefer signedParams for truth. */
+  summary: string;
+  /** Model-authored params from the fence (may diverge from signed body). */
+  fenceParams: Record<string, unknown>;
+  /** Params from the HMAC token body when decodable (authoritative for UI). */
+  signedParams: Record<string, unknown> | null;
+  signedAction: string | null;
+};
+
 function isNdjsonContentType(ct: string | null): boolean {
   if (!ct) return false;
   return ct.includes("application/x-ndjson") || ct.includes("application/ndjson");
 }
 
-function parseStreamLine(line: string): AriaStreamEvent | null {
+/**
+ * Decode the unsigned body of a `v1:<b64>:<sig>` confirm token for display.
+ * Does not verify the HMAC (key stays server-side) — the POST still verifies.
+ */
+export function peekConfirmTokenBody(token: string): {
+  action: string;
+  params: Record<string, unknown>;
+  exp: number;
+} | null {
+  const parts = token.split(":");
+  if (parts.length !== 3 || parts[0] !== "v1" || !parts[1]) return null;
+  try {
+    let json: string;
+    if (typeof Buffer !== "undefined") {
+      json = Buffer.from(parts[1], "base64").toString("utf-8");
+    } else if (typeof atob === "function") {
+      const binary = atob(parts[1]);
+      const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+      json = new TextDecoder().decode(bytes);
+    } else {
+      return null;
+    }
+    const body = JSON.parse(json) as Record<string, unknown>;
+    if (typeof body.action !== "string" || !body.action.trim()) return null;
+    if (typeof body.exp !== "number" || !Number.isFinite(body.exp)) return null;
+    const params =
+      body.params && typeof body.params === "object" && !Array.isArray(body.params)
+        ? (body.params as Record<string, unknown>)
+        : {};
+    return { action: body.action.trim(), params, exp: body.exp };
+  } catch {
+    return null;
+  }
+}
+
+function parseStreamLine(line: string): AriaStreamEvent | "skip" | null {
   const trimmed = line.trim();
-  if (!trimmed) return null;
-  const obj = JSON.parse(trimmed) as Record<string, unknown>;
+  if (!trimmed) return "skip";
+  let obj: Record<string, unknown>;
+  try {
+    obj = JSON.parse(trimmed) as Record<string, unknown>;
+  } catch {
+    // Soft skip — a single bad line must not terminate the stream.
+    return "skip";
+  }
   const t = obj.t;
   if (t === "meta" && typeof obj.conversationId === "string") {
     return { t: "meta", conversationId: obj.conversationId };
@@ -79,6 +132,7 @@ function parseStreamLine(line: string): AriaStreamEvent | null {
         },
       };
     }
+    return "skip";
   }
   if (t === "tool_use") {
     if (
@@ -95,11 +149,12 @@ function parseStreamLine(line: string): AriaStreamEvent | null {
         summary: obj.summary,
       };
     }
+    return "skip";
   }
   if (t === "error" && typeof obj.message === "string") {
     return { t: "error", message: obj.message };
   }
-  return null;
+  return "skip";
 }
 
 export async function listConversations(): Promise<AriaConversation[]> {
@@ -118,6 +173,19 @@ export async function deleteConversation(id: string): Promise<void> {
 
 export async function confirmAriaAction(token: string): Promise<void> {
   await api.post("/aria/confirm-action", { token });
+}
+
+function emitParsedLines(text: string, onEvent: (event: AriaStreamEvent) => void): {
+  sawTerminal: boolean;
+} {
+  let sawTerminal = false;
+  for (const line of text.split("\n")) {
+    const event = parseStreamLine(line);
+    if (!event || event === "skip") continue;
+    if (event.t === "done" || event.t === "error") sawTerminal = true;
+    onEvent(event);
+  }
+  return { sawTerminal };
 }
 
 /**
@@ -157,12 +225,19 @@ export async function streamAriaChat(
     throw new ApiError(res.status, "STREAM_ERROR", "Expected NDJSON chat stream");
   }
 
+  let sawTerminal = false;
+  const track = (event: AriaStreamEvent) => {
+    if (event.t === "done" || event.t === "error") sawTerminal = true;
+    opts.onEvent(event);
+  };
+
   const reader = res.body?.getReader?.();
   if (!reader) {
     const text = await res.text();
-    for (const line of text.split("\n")) {
-      const event = parseStreamLine(line);
-      if (event) opts.onEvent(event);
+    const result = emitParsedLines(text, track);
+    sawTerminal = result.sawTerminal || sawTerminal;
+    if (!sawTerminal) {
+      throw new ApiError(502, "STREAM_ERROR", "Chat stream ended without a reply");
     }
     return;
   }
@@ -177,12 +252,15 @@ export async function streamAriaChat(
     buffer = lines.pop() ?? "";
     for (const line of lines) {
       const event = parseStreamLine(line);
-      if (event) opts.onEvent(event);
+      if (event && event !== "skip") track(event);
     }
   }
   if (buffer.trim()) {
     const event = parseStreamLine(buffer);
-    if (event) opts.onEvent(event);
+    if (event && event !== "skip") track(event);
+  }
+  if (!sawTerminal) {
+    throw new ApiError(502, "STREAM_ERROR", "Chat stream ended without a reply");
   }
 }
 
@@ -190,10 +268,10 @@ export async function streamAriaChat(
 export function extractChatActions(content: string): {
   display: string;
   actions: ChatAction[];
-  confirm?: { action: string; token: string; summary: string };
+  confirm?: ConfirmAction;
 } {
   const actions: ChatAction[] = [];
-  let confirm: { action: string; token: string; summary: string } | undefined;
+  let confirm: ConfirmAction | undefined;
   let display = content;
 
   const fenceRe = /```(aria-actions|aria-confirm)\s*([\s\S]*?)```/gi;
@@ -214,6 +292,7 @@ export function extractChatActions(content: string): {
             });
           }
         }
+        return "";
       }
       if (
         lang.toLowerCase() === "aria-confirm" &&
@@ -221,17 +300,27 @@ export function extractChatActions(content: string): {
         typeof parsed.summary === "string" &&
         typeof parsed.action === "string"
       ) {
+        const peeked = peekConfirmTokenBody(parsed.token);
+        const fenceParams =
+          parsed.params && typeof parsed.params === "object" && !Array.isArray(parsed.params)
+            ? (parsed.params as Record<string, unknown>)
+            : {};
         confirm = {
           action: parsed.action,
           token: parsed.token,
           summary: parsed.summary,
+          fenceParams,
+          signedParams: peeked?.params ?? null,
+          signedAction: peeked?.action ?? null,
         };
+        return "";
       }
+      // Valid JSON but wrong shape — keep the fence visible rather than stripping.
+      return _full;
     } catch {
       // leave fence text if JSON is incomplete mid-stream
       return _full;
     }
-    return "";
   });
 
   display = display.replace(/\n{3,}/g, "\n\n").trim();

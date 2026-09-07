@@ -26,13 +26,21 @@ function readStoredCollapse(): Record<string, boolean> {
     const raw = localStorage.getItem(COLLAPSE_STORAGE_KEY);
     if (!raw) return {};
     const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      localStorage.removeItem(COLLAPSE_STORAGE_KEY);
+      return {};
+    }
     const out: Record<string, boolean> = {};
     for (const [k, v] of Object.entries(parsed as Record<string, unknown>)) {
       if (typeof v === "boolean") out[k] = v;
     }
     return out;
   } catch {
+    try {
+      localStorage.removeItem(COLLAPSE_STORAGE_KEY);
+    } catch {
+      // ignore
+    }
     return {};
   }
 }

@@ -1,5 +1,6 @@
 import { Pressable, View } from "react-native";
 import { Text } from "@/components/ui/text";
+import { shadowMd } from "@/lib/shadow";
 import { useToastStore } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +20,7 @@ export function ToastHost() {
           accessibilityRole="button"
           accessibilityLabel={item.message}
           onPress={() => dismiss(item.id)}
+          style={shadowMd}
           className={cn(
             "max-w-md rounded-xl border px-4 py-3",
             item.variant === "error"

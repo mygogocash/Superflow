@@ -1,7 +1,8 @@
 import { useRouter, type Href } from "expo-router";
 import type { ReactNode } from "react";
-import { ActivityIndicator, Pressable, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { EmptyState } from "@/components/empty-state";
+import { CenteredPageSkeleton } from "@/components/page-list-skeleton";
 import { PageScreen } from "@/components/page-screen";
 import { Text } from "@/components/ui/text";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -13,11 +14,11 @@ import {
   formatRelativeTime,
   greetingForHour,
   unwrapDashboardStats,
+  urgentItemHref,
   type DashboardStats,
 } from "@/lib/dashboard";
 import { DASHBOARD_HOME, EMPLOYEE_NAV_GROUPS, NAV_GROUPS, filterNavGroups } from "@/lib/nav";
 import { queryKeys } from "@/lib/query-keys";
-import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth";
 
@@ -86,11 +87,7 @@ export default function DashboardHome() {
   const hour = new Date().getHours();
 
   if (query.isLoading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator color={BRAND.ink} />
-      </View>
-    );
+    return <CenteredPageSkeleton />;
   }
 
   if (query.error || !stats) {
@@ -153,7 +150,7 @@ function DashboardBody({
       key: `urgent-${item.label}`,
       title: item.label,
       meta: item.severity === "urgent" ? "Urgent" : "Pending",
-      href: "/leave",
+      href: urgentItemHref(item.label),
     })),
     ...stats.pendingActions.map((item) => ({
       key: item.id,

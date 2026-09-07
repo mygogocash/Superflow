@@ -8,23 +8,31 @@ function Dialog({
   open,
   onOpenChange,
   children,
+  dismissible = true,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: ReactNode;
+  /** When false, backdrop / Android back cannot close (e.g. while submitting). */
+  dismissible?: boolean;
 }) {
   return (
     <Modal
       visible={open}
       transparent
       animationType="fade"
-      onRequestClose={() => onOpenChange(false)}
+      onRequestClose={() => {
+        if (dismissible) onOpenChange(false);
+      }}
     >
       <View className="flex-1 items-center justify-center bg-black/40 px-4 py-8">
         <Pressable
           accessibilityLabel="Dismiss dialog"
           className="absolute inset-0"
-          onPress={() => onOpenChange(false)}
+          disabled={!dismissible}
+          onPress={() => {
+            if (dismissible) onOpenChange(false);
+          }}
         />
         {children}
       </View>

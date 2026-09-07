@@ -1,9 +1,9 @@
-import { ActivityIndicator, View } from "react-native";
+import { View } from "react-native";
 import { EmptyState } from "@/components/empty-state";
+import { PageListSkeleton } from "@/components/page-list-skeleton";
 import { PageScreen } from "@/components/page-screen";
 import { Text } from "@/components/ui/text";
 import { useResourceList } from "@/hooks/use-resource-list";
-import { BRAND } from "@/lib/brand";
 import { defaultResourceRow, type ResourceRow } from "@/lib/resource-row";
 import { cn } from "@/lib/utils";
 
@@ -29,11 +29,7 @@ export function ResourceList<T>({
   retry?: () => void;
 }) {
   if (loading) {
-    return (
-      <View className="flex-1 items-center justify-center bg-background">
-        <ActivityIndicator color={BRAND.ink} />
-      </View>
-    );
+    return <PageListSkeleton title={title} />;
   }
 
   return (
