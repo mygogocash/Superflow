@@ -268,6 +268,8 @@ model User {
   ariaKnowledgeArticles        AriaKnowledgeArticle[]    @relation("AriaKnowledgeArticleAuthor")
   ariaQueryLogs                AriaQueryLog[]
   ariaInteractionTraces        AriaInteractionTrace[]    @relation("AriaInteractionTraceUser")
+  ariaTrainingDatasets         AriaTrainingDataset[]     @relation("AriaTrainingDatasetAuthor")
+  ariaModelVersions            AriaModelVersion[]        @relation("AriaModelVersionAuthor")
   ariaFeedback                 AriaFeedback[]            @relation("AriaFeedbackAuthor")
   ariaFeedbackReviewed         AriaFeedback[]            @relation("AriaFeedbackReviewer")
   ariaAttachments              AriaAttachment[]          @relation("AriaAttachmentUploader")
