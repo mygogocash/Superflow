@@ -119,7 +119,11 @@ export const travel = new Hono<AppEnv>()
     return c.json({ data });
   })
   .delete("/requests/:id/permanent", requirePermission(PERMISSIONS.TRAVEL_HR_READ), async (c) => {
-    const data = await travelService.permanentDeleteRequest(c.var.db, c.req.param("id"));
+    const data = await travelService.permanentDeleteRequest(
+      c.var.db,
+      c.req.param("id"),
+      c.var.user!.permissions,
+    );
     return c.json({ data });
   })
   .post("/requests/:id/forward", zValidator("json", forwardTravelRequestSchema), async (c) => {

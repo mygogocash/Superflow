@@ -259,10 +259,18 @@ export async function restoreExpense(db: Db,
   return repo.restoreExpense(db, expenseId);
 }
 
-export async function permanentDeleteExpense(db: Db, expenseId: string) {
-  const expense = await repo.findExpenseById(db, expenseId);
+export async function permanentDeleteExpense(
+  db: Db,
+  expenseId: string,
+  permissions: string[],
+) {
+  // Soft-deleted rows are the normal purge target; the live finder would 404 them.
+  const expense = await repo.findExpenseByIdIncludingDeleted(db, expenseId);
   if (!expense) {
     throw new NotFoundException("Expense not found");
+  }
+  if (!permissions.includes(PERMISSIONS.EXPENSE_HR_DELETE)) {
+    throw new ForbiddenException("Only HR can permanently delete expenses");
   }
   return repo.permanentDeleteExpense(db, expenseId);
 }
@@ -1068,10 +1076,20 @@ export async function restoreReport(db: Db,
   return repo.restoreReport(db, id);
 }
 
-export async function permanentDeleteReport(db: Db, id: string) {
-  const report = await repo.findReportById(db, id);
+export async function permanentDeleteReport(
+  db: Db,
+  id: string,
+  permissions: string[],
+) {
+  // Soft-deleted rows are the normal purge target; the live finder would 404 them.
+  const report = await repo.findReportByIdIncludingDeleted(db, id);
   if (!report) {
     throw new NotFoundException("Expense report not found");
+  }
+  if (!permissions.includes(PERMISSIONS.EXPENSE_HR_DELETE)) {
+    throw new ForbiddenException(
+      "Only HR can permanently delete expense reports",
+    );
   }
   return repo.permanentDeleteReport(db, id);
 }

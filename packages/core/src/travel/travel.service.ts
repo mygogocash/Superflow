@@ -918,10 +918,20 @@ export async function restoreRequest(
   return repo.restoreRequest(db, id);
 }
 
-export async function permanentDeleteRequest(db: Db, id: string) {
-  const request = await repo.findRequestById(db, id);
+export async function permanentDeleteRequest(
+  db: Db,
+  id: string,
+  permissions: string[],
+) {
+  // Soft-deleted rows are the normal purge target; the live finder would 404 them.
+  const request = await repo.findRequestByIdIncludingDeleted(db, id);
   if (!request) {
     throw new NotFoundException("Travel request not found");
+  }
+  if (!permissions.includes(PERMISSIONS.TRAVEL_HR_READ)) {
+    throw new ForbiddenException(
+      "Only HR can permanently delete travel requests",
+    );
   }
   return repo.permanentDeleteRequest(db, id);
 }

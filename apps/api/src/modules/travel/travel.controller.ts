@@ -216,7 +216,10 @@ router.delete(
   requirePermission(PERMISSIONS.TRAVEL_HR_READ),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
-    const data = await travelService.permanentDeleteRequest(id);
+    const data = await travelService.permanentDeleteRequest(
+      id,
+      req.user!.permissions,
+    );
     res.json({ data });
   }),
 );

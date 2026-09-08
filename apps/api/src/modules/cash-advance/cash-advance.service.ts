@@ -356,10 +356,17 @@ export class CashAdvanceService {
     return cashAdvanceRepository.restore(id);
   }
 
-  async permanentDelete(id: string) {
-    const existing = await cashAdvanceRepository.findById(id);
+  async permanentDelete(id: string, permissions: string[]) {
+    // Soft-deleted rows are the normal purge target; the live finder would 404 them.
+    const existing =
+      await cashAdvanceRepository.findByIdIncludingDeleted(id);
     if (!existing) {
       throw new NotFoundException("Cash advance request not found");
+    }
+    if (!permissions.includes(PERMISSIONS.CASH_ADVANCE_APPROVE)) {
+      throw new ForbiddenException(
+        "Only approvers can permanently delete cash advance requests",
+      );
     }
     return cashAdvanceRepository.permanentDelete(id);
   }

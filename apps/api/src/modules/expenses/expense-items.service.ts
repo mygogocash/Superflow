@@ -311,10 +311,18 @@ async function restoreExpense(
   return expensesRepository.restoreExpense(expenseId);
 }
 
-async function permanentDeleteExpense(expenseId: string) {
-  const expense = await expensesRepository.findExpenseById(expenseId);
+async function permanentDeleteExpense(
+  expenseId: string,
+  permissions: string[],
+) {
+  // Soft-deleted rows are the normal purge target; the live finder would 404 them.
+  const expense =
+    await expensesRepository.findExpenseByIdIncludingDeleted(expenseId);
   if (!expense) {
     throw new NotFoundException("Expense not found");
+  }
+  if (!permissions.includes(PERMISSIONS.EXPENSE_HR_DELETE)) {
+    throw new ForbiddenException("Only HR can permanently delete expenses");
   }
   return expensesRepository.permanentDeleteExpense(expenseId);
 }

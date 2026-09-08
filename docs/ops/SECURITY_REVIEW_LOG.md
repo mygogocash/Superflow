@@ -19,7 +19,7 @@ Allowlist for intentional public / alt-auth surfaces: `scripts/security/allowlis
 | SEC-001 | 0 | P3 | HTML sinks without nearby sanitizer | open | 4 REVIEW rows: print CSS, chart CSS, Expo `RichHtml` (caller-must-sanitize) — Wave 5 | |
 | SEC-002 | 0 | P2 | Workflow email-action public controller | open | `projects/workflow/workflow-public.controller.ts` uses `verifyActionToken`. Wave 4: replay/expiry/binding audit | |
 | SEC-003 | 0 | P2 | Expo session in web storage | mitigated | Wave 1: logout clears `intranet.session.v1` + legacy keys; residual XSS blast radius remains (Bearer-in-storage for Expo) | |
-| SEC-004 | 0 | P1 | Soft-delete restore IDOR pattern | open | Wave 2: owner-or-HR service checks | |
+| SEC-004 | 0 | P1 | Soft-delete restore IDOR pattern | done | Wave 2: owner-or-HR/read-all in service for accounting restore + permanent delete IncludingDeleted | |
 | SEC-005 | 0 | P0/P1 | Org tenancy incomplete on ERP rows | open | Wave 3; see `docs/ORG_TENANCY_RBAC_PLAN.md` | |
 | SEC-006 | 0 | P1 | Cron/webhook secret compare | open | Wave 4: timing-safe + fail-closed empty secret | |
 | SEC-007 | 0 | P2 | CF Access fail-open when AUD unset | accepted | Wave 1: documented residual risk + compensating controls; set `CF_ACCESS_AUD` when Zero Trust is cut over | |
@@ -88,3 +88,24 @@ Do **not** use `*` origins. Add any new Expo web preview host explicitly before 
 | Workflow email-action | Signed token (`verifyActionToken`) |
 | Helpdesk / legal public webhooks | Provider HMAC |
 | PostHog `/ingest` proxy | Unauthenticated by design (`app.ts`) |
+
+## Wave 2 — authz / soft-delete IDOR (2026-09-08)
+
+### Findings closed
+
+| Module | Gap | Fix |
+|--------|-----|-----|
+| Accounting journals/invoices | Restore lacked owner-or-read-all (esp. edge `ACCOUNTING_CREATE`) | `assertJournalAccess` / `assertInvoiceAccess` on restore; API + core + edge pass `actorId` + `permissions` |
+| Travel / cash-advance / expenses | Permanent delete used live finder (404 on soft-deleted) and weak service authz | `*IncludingDeleted` lookup + HR/approver permission check in service; controllers pass `permissions` |
+
+### Tests
+
+- Accounting restore: owner OK, foreign actor 403, read-all OK, missing 404.
+- Cash-advance permanent delete: approve OK, create-only 403.
+
+### Residual
+
+- Leave/visa restore paths were already owner-or-HR; spot-checked, no change.
+- Approval-chain `assertCanActOnStep` identity checks unchanged this wave (already service-enforced).
+- Cross-tenant IDOR remains Wave 3 (ERP rows still globally scoped).
+

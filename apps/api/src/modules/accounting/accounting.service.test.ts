@@ -474,6 +474,12 @@ describe("AccountingService corporate finance overview", () => {
   });
 });
 
+// Own-document RBAC tokens used by soft-delete restore IDOR tests below and
+// by the Chunk 5 scoping suite further down.
+const READ_ALL = ["accounting:read", "accounting:read-all"];
+const ADMIN_ONLY = ["accounting:admin"];
+const OWN_ONLY = ["accounting:read", "accounting:create"]; // Sales / Purchasing
+
 describe("AccountingService soft delete + restore (Rule 3)", () => {
   it("soft-deletes a draft journal instead of hard-deleting it", async () => {
     findJournalById.mockResolvedValue(journal("draft"));
@@ -497,18 +503,48 @@ describe("AccountingService soft delete + restore (Rule 3)", () => {
     });
     restoreJournal.mockResolvedValue({ ...journal("draft"), deletedAt: null });
 
-    const result = await accountingService.restoreJournal("journal-1");
+    const result = await accountingService.restoreJournal(
+      "journal-1",
+      "creator-1",
+      OWN_ONLY,
+    );
 
     expect(findJournalByIdIncludingDeleted).toHaveBeenCalledWith("journal-1");
     expect(restoreJournal).toHaveBeenCalledWith("journal-1");
     expect((result as { deletedAt: Date | null }).deletedAt).toBeNull();
   });
 
+  it("blocks restoring another user's journal without read-all", async () => {
+    findJournalByIdIncludingDeleted.mockResolvedValue({
+      ...journal("draft", "owner-a"),
+      deletedAt: new Date(),
+    });
+
+    await expect(
+      accountingService.restoreJournal("journal-1", "owner-b", OWN_ONLY),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(restoreJournal).not.toHaveBeenCalled();
+  });
+
+  it("allows read-all callers to restore another user's journal", async () => {
+    findJournalByIdIncludingDeleted.mockResolvedValue({
+      ...journal("draft", "owner-a"),
+      deletedAt: new Date(),
+    });
+    restoreJournal.mockResolvedValue({
+      ...journal("draft", "owner-a"),
+      deletedAt: null,
+    });
+
+    await accountingService.restoreJournal("journal-1", "admin-1", READ_ALL);
+    expect(restoreJournal).toHaveBeenCalledWith("journal-1");
+  });
+
   it("404s when restoring a journal absent even including deleted rows", async () => {
     findJournalByIdIncludingDeleted.mockResolvedValue(null);
 
     await expect(
-      accountingService.restoreJournal("missing"),
+      accountingService.restoreJournal("missing", "creator-1", OWN_ONLY),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(restoreJournal).not.toHaveBeenCalled();
   });
@@ -550,22 +586,52 @@ describe("AccountingService soft delete + restore (Rule 3)", () => {
   it("restores a soft-deleted invoice via the include-deleted lookup", async () => {
     findInvoiceByIdIncludingDeleted.mockResolvedValue({
       id: "inv-1",
+      createdBy: "creator-1",
       deletedAt: new Date(),
     });
     restoreInvoice.mockResolvedValue({ id: "inv-1", deletedAt: null });
 
-    const result = await accountingService.restoreInvoice("inv-1");
+    const result = await accountingService.restoreInvoice(
+      "inv-1",
+      "creator-1",
+      OWN_ONLY,
+    );
 
     expect(findInvoiceByIdIncludingDeleted).toHaveBeenCalledWith("inv-1");
     expect(restoreInvoice).toHaveBeenCalledWith("inv-1");
     expect((result as { deletedAt: Date | null }).deletedAt).toBeNull();
   });
 
+  it("blocks restoring another user's invoice without read-all", async () => {
+    findInvoiceByIdIncludingDeleted.mockResolvedValue({
+      id: "inv-1",
+      createdBy: "owner-a",
+      deletedAt: new Date(),
+    });
+
+    await expect(
+      accountingService.restoreInvoice("inv-1", "owner-b", OWN_ONLY),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(restoreInvoice).not.toHaveBeenCalled();
+  });
+
+  it("allows read-all callers to restore another user's invoice", async () => {
+    findInvoiceByIdIncludingDeleted.mockResolvedValue({
+      id: "inv-1",
+      createdBy: "owner-a",
+      deletedAt: new Date(),
+    });
+    restoreInvoice.mockResolvedValue({ id: "inv-1", deletedAt: null });
+
+    await accountingService.restoreInvoice("inv-1", "admin-1", READ_ALL);
+    expect(restoreInvoice).toHaveBeenCalledWith("inv-1");
+  });
+
   it("404s when restoring an invoice absent even including deleted rows", async () => {
     findInvoiceByIdIncludingDeleted.mockResolvedValue(null);
 
     await expect(
-      accountingService.restoreInvoice("missing"),
+      accountingService.restoreInvoice("missing", "creator-1", OWN_ONLY),
     ).rejects.toBeInstanceOf(NotFoundException);
     expect(restoreInvoice).not.toHaveBeenCalled();
   });
@@ -575,10 +641,6 @@ describe("AccountingService soft delete + restore (Rule 3)", () => {
 // Non-breaking safety rule: a caller with `accounting:read-all` (or
 // `accounting:admin`) sees/acts on every document; everyone else is scoped to
 // documents they created. These tests pin the enforcement in the service.
-
-const READ_ALL = ["accounting:read", "accounting:read-all"];
-const ADMIN_ONLY = ["accounting:admin"];
-const OWN_ONLY = ["accounting:read", "accounting:create"]; // Sales / Purchasing
 
 describe("AccountingService own-document scoping — reads", () => {
   it("a read-all caller lists every invoice (no owner filter)", async () => {

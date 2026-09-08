@@ -1709,10 +1709,13 @@ export class AccountingService {
     return accountingRepository.softDeleteJournal(journalId, actorId);
   }
 
-  async restoreJournal(journalId: string) {
+  async restoreJournal(journalId: string, actorId: string, permissions: string[]) {
     const journal =
       await accountingRepository.findJournalByIdIncludingDeleted(journalId);
     if (!journal) throw new NotFoundException("Journal entry not found");
+    // Defense-in-depth: restore is admin-gated on API, but edge still uses
+    // accounting:create — enforce owner-or-read-all in the service.
+    assertInvoiceAccess(journal, actorId, permissions);
     const restored = await accountingRepository.restoreJournal(journalId);
     return decorateJournalTotals(restored);
   }
@@ -7096,10 +7099,11 @@ export class AccountingService {
     return accountingRepository.softDeleteInvoice(id, actorId);
   }
 
-  async restoreInvoice(id: string) {
+  async restoreInvoice(id: string, actorId: string, permissions: string[]) {
     const invoice =
       await accountingRepository.findInvoiceByIdIncludingDeleted(id);
     if (!invoice) throw new NotFoundException("Invoice not found");
+    assertInvoiceAccess(invoice, actorId, permissions);
     return accountingRepository.restoreInvoice(id);
   }
 

@@ -76,7 +76,13 @@ export const cashAdvance = new Hono<AppEnv>()
     c.json({ data: await cashAdvanceService.restore(c.var.db, c.req.param("id"), c.var.user!.id, c.var.user!.permissions) }),
   )
   .delete("/:id/permanent", requirePermission(PERMISSIONS.CASH_ADVANCE_APPROVE), async (c) =>
-    c.json({ data: await cashAdvanceService.permanentDelete(c.var.db, c.req.param("id")) }),
+    c.json({
+      data: await cashAdvanceService.permanentDelete(
+        c.var.db,
+        c.req.param("id"),
+        c.var.user!.permissions,
+      ),
+    }),
   )
   .post("/:id/submit", requirePermission(PERMISSIONS.CASH_ADVANCE_CREATE), async (c) =>
     c.json(await cashAdvanceService.submit(c.var.db, c.req.param("id"), c.var.user!.id)),

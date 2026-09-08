@@ -892,10 +892,16 @@ async function restoreReport(
   return expensesRepository.restoreReport(id);
 }
 
-async function permanentDeleteReport(id: string) {
-  const report = await expensesRepository.findReportById(id);
+async function permanentDeleteReport(id: string, permissions: string[]) {
+  // Soft-deleted rows are the normal purge target; the live finder would 404 them.
+  const report = await expensesRepository.findReportByIdIncludingDeleted(id);
   if (!report) {
     throw new NotFoundException("Expense report not found");
+  }
+  if (!permissions.includes(PERMISSIONS.EXPENSE_HR_DELETE)) {
+    throw new ForbiddenException(
+      "Only HR can permanently delete expense reports",
+    );
   }
   return expensesRepository.permanentDeleteReport(id);
 }
