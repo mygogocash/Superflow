@@ -11,6 +11,10 @@ import {
   ForbiddenException,
   NotFoundException,
 } from "../http-exception";
+import {
+  listActiveMemberUserIds,
+  resolveActorOrgScope,
+} from "../organizations/organizations.service";
 import * as repo from "./repository";
 
 function optionalDate(v: Date | null | undefined): string | null | undefined {
@@ -66,8 +70,37 @@ function detailDTO(user: NonNullable<Awaited<ReturnType<typeof repo.findById>>>)
   };
 }
 
-export async function list(db: Db, query: ListUsersQuery) {
-  const { users, total } = await repo.findMany(db, query);
+/**
+ * List users. When `actorId` is provided, non–platform-admins are scoped to
+ * active members of their active organization (template for org tenancy).
+ * Platform admins may optionally filter with `organizationId`.
+ */
+export async function list(db: Db, query: ListUsersQuery, actorId?: string) {
+  const scoped: ListUsersQuery = { ...query };
+
+  if (actorId) {
+    const scope = await resolveActorOrgScope(db, actorId);
+    if (!scope.isPlatformAdmin) {
+      const orgId = scope.activeOrganizationId;
+      if (!orgId) {
+        return {
+          data: [],
+          meta: {
+            page: query.page,
+            limit: query.limit,
+            total: 0,
+            totalPages: 0,
+          },
+        };
+      }
+      scoped.userIds = await listActiveMemberUserIds(db, orgId);
+      delete scoped.organizationId;
+    } else if (query.organizationId) {
+      scoped.userIds = await listActiveMemberUserIds(db, query.organizationId);
+    }
+  }
+
+  const { users, total } = await repo.findMany(db, scoped);
   return {
     data: users,
     meta: {

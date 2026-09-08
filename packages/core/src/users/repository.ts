@@ -38,6 +38,14 @@ function buildListWhere(query: ListUsersQuery): SQL | undefined {
   if (query.department) parts.push(eq(schema.users.department, query.department));
   if (query.employmentType) parts.push(eq(schema.users.employmentType, query.employmentType));
   if (query.isActive !== undefined) parts.push(eq(schema.users.isActive, query.isActive));
+  if (query.userIds) {
+    if (query.userIds.length === 0) {
+      // Force empty result without a bogus IN ().
+      parts.push(sql`false`);
+    } else {
+      parts.push(inArray(schema.users.id, query.userIds));
+    }
+  }
   if (!query.includePlaceholders) {
     parts.push(not(ilike(schema.users.email, sql`'%@placeholder.local'`)));
   }

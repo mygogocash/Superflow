@@ -3,7 +3,8 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { schema } from "@nexora/db";
-import { generateAndSetAvatar, getMe } from "@nexora/core";
+import { generateAndSetAvatar, getMe, organizationsService } from "@nexora/core";
+import { setActiveOrganizationSchema } from "@nexora/contracts/modules/organizations/organizations.validation";
 import type { AppEnv } from "../lib/context";
 import { requireAuth } from "../middleware/auth";
 import { UnauthorizedException } from "../lib/errors";
@@ -30,6 +31,7 @@ function avatarStorage(c: { env: AppEnv["Bindings"] }) {
  * Expo AuthProvider / useAuth().refreshUser ports unchanged.
  *
  * Extra authenticated profile actions live under the same mount:
+ *   PUT  /api/auth/me/active-organization
  *   POST /api/auth/me/line-link-code
  *   POST /api/auth/me/line-unlink
  *   POST /api/auth/me/avatar/generate
@@ -47,6 +49,19 @@ export const me = new Hono<AppEnv>()
       throw e;
     }
   })
+  .put(
+    "/active-organization",
+    requireAuth,
+    zValidator("json", setActiveOrganizationSchema),
+    async (c) => {
+      const result = await organizationsService.setActiveOrganization(
+        c.var.db,
+        c.var.user!.id,
+        c.req.valid("json").organizationId,
+      );
+      return c.json({ data: result });
+    },
+  )
   .post("/line-link-code", requireAuth, async (c) => {
     if (!c.env.LINE_MESSAGING_CHANNEL_ACCESS_TOKEN?.trim()) {
       return c.json(

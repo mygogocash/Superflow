@@ -10,6 +10,23 @@ export {
   SYSTEM_ADMIN_ROLE,
 } from "./rbac";
 export type { RoleRow } from "./rbac";
+export {
+  ORG_ROLES,
+  PLATFORM_ROLES,
+  HOME_ORG_SLUG,
+  HOME_ORG_ID,
+  isOrgRole,
+  isPlatformRole,
+  isPlatformAdmin,
+  isPlatformOperator,
+  isOrgAdminRole,
+  isOrgSuperAdminRole,
+  orgRolePermissionCodes,
+  mergeOrgAwarePermissions,
+  orgRoleRank,
+  canAssignOrgRole,
+} from "./org-rbac";
+export type { OrgRole, PlatformRole } from "./org-rbac";
 export { isMagicLinkEligible } from "./magic-link";
 export type { MagicLinkRole } from "./magic-link";
 export { applyManagerImplicitPerms, MANAGER_IMPLICIT_PERMS } from "./manager-implicit-perms";

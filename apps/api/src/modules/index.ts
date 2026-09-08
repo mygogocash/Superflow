@@ -68,6 +68,7 @@ import { newsRoutes } from "@/modules/news";
 import { ninetyDayRoutes } from "@/modules/ninety-day";
 import { officeRoutes } from "@/modules/office";
 import { opportunitiesRoutes } from "@/modules/opportunities";
+import { organizationsRoutes } from "@/modules/organizations";
 import { partnersRoutes } from "@/modules/partners";
 import { payrollRoutes } from "@/modules/payroll";
 import { performanceRoutes } from "@/modules/performance";
@@ -99,6 +100,7 @@ import { wallRoutes } from "@/modules/wall";
 export function registerModules(app: Express) {
   app.use("/api/cron", cronRoutes);
   app.use("/api/auth", authRoutes);
+  app.use("/api/organizations", organizationsRoutes);
   app.use("/api/admin/users", usersRoutes);
   app.use("/api/roles", rolesRoutes);
   app.use("/api/leave", leaveRoutes);

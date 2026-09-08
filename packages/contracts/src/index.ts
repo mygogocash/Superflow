@@ -84,6 +84,7 @@ export * as table_layouts_table_layouts from "./modules/table-layouts/table-layo
 export * as travel_travel from "./modules/travel/travel.validation";
 export * as uploads_uploads from "./modules/uploads/uploads.validation";
 export * as users_users from "./modules/users/users.validation";
+export * as organizations_organizations from "./modules/organizations/organizations.validation";
 export * as validator_monitor_validator_monitor from "./modules/validator-monitor/validator-monitor.validation";
 export * as vendors_vendors from "./modules/vendors/vendors.validation";
 export * as visa_checklist_visa_checklist from "./modules/visa-checklist/visa-checklist.validation";

@@ -28,10 +28,15 @@ model Entity {
   enabledCurrencies     String[]  @default([]) @map("enabled_currencies") // Postgres text[]; default empty
   setupState            String    @default("active") @map("setup_state") // active | setup — default "active" grandfathers existing rows
 
+  // Multi-org tenancy: legal company belongs to one Organization tenant.
+  // Nullable until backfill; required after org tenancy migration.
+  organizationId String? @map("organization_id")
+
   deletedAt     DateTime? @map("deleted_at")
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
+  organization       Organization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   users              User[]
   userMemberships    UserEntityMembership[]
   chartOfAccounts    ChartOfAccount[]
@@ -68,6 +73,7 @@ model Entity {
   documentSequences      DocumentSequence[]
   fiscalPeriods          FiscalPeriod[]
 
+  @@index([organizationId])
   @@map("entities")
 }
 
@@ -86,6 +92,11 @@ model User {
   // an entity delete can't cascade into users — membership is validated
   // in the service. `entityId` above stays the user's home entity.
   activeEntityId     String?   @map("active_entity_id")
+  // Multi-org: selected Organization (session). Validated against membership.
+  activeOrganizationId String? @map("active_organization_id")
+  // Manut platform role: platform_admin | platform_operator | null.
+  // Cross-org power — never grant via org Super Admin.
+  platformRole       String?   @map("platform_role")
   department         String?
   jobTitle           String?   @map("job_title")
   employeeId         String?   @unique @map("employee_id")
@@ -121,6 +132,8 @@ model User {
 
   entity        Entity? @relation(fields: [entityId], references: [id], onDelete: SetNull)
   entityMemberships UserEntityMembership[]
+  organizationMemberships OrganizationMembership[] @relation("OrgMembershipUser")
+  organizationMembershipsInvited OrganizationMembership[] @relation("OrgMembershipInviter")
   manager       User?   @relation("UserManager", fields: [reportingTo], references: [id], onDelete: SetNull)
   directReports User[]  @relation("UserManager")
 
@@ -352,6 +365,8 @@ model User {
   @@index([email])
   @@index([isActive])
   @@index([deletedAt])
+  @@index([activeOrganizationId])
+  @@index([platformRole])
   @@map("users")
 }
 

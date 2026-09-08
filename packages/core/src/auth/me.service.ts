@@ -2,6 +2,11 @@ import { and, eq, isNull } from "drizzle-orm";
 import type { Db } from "@nexora/db";
 import { schema } from "@nexora/db";
 import { countActiveDirectReports, resolvePermissions, type RoleRow } from "@nexora/auth/rbac";
+import {
+  isOrgRole,
+  mergeOrgAwarePermissions,
+  type OrgRole,
+} from "@nexora/auth/org-rbac";
 import { applyManagerImplicitPerms } from "@nexora/auth/manager-implicit-perms";
 import { isValidPermissionCode } from "@nexora/contracts/common/constants/permissions";
 
@@ -9,6 +14,13 @@ export type MeMembership = {
   entityId: string;
   roleId: string | null;
   entity: { id: string; name: string; code: string };
+};
+
+export type MeOrgMembership = {
+  organizationId: string;
+  orgRole: OrgRole;
+  isActive: boolean;
+  organization: { id: string; name: string; slug: string; status: string };
 };
 
 export type MePayload = {
@@ -21,6 +33,7 @@ export type MePayload = {
     jobTitle: string | null;
     entity: { id: string; name: string; code: string } | null;
     mustChangePassword: boolean;
+    platformRole: string | null;
     /** True when users.line_user_id is set (Messaging and/or Login linked). */
     lineLinked: boolean;
   };
@@ -28,6 +41,9 @@ export type MePayload = {
   permissions: string[];
   memberships: MeMembership[];
   activeEntityId: string | null;
+  organizationMemberships: MeOrgMembership[];
+  activeOrganizationId: string | null;
+  orgRole: OrgRole | null;
 };
 
 /** Port of apps/api auth.service.getMe — same wire shape for the Expo client. */
@@ -42,6 +58,8 @@ export async function getMe(db: Db, userId: string): Promise<MePayload> {
       jobTitle: schema.users.jobTitle,
       entityId: schema.users.entityId,
       activeEntityId: schema.users.activeEntityId,
+      activeOrganizationId: schema.users.activeOrganizationId,
+      platformRole: schema.users.platformRole,
       mustChangePassword: schema.users.mustChangePassword,
       lineUserId: schema.users.lineUserId,
     })
@@ -87,9 +105,9 @@ export async function getMe(db: Db, userId: string): Promise<MePayload> {
     byRole.set(r.id, existing);
   }
   const roles = [...byRole.values()];
-  const permissionSet = new Set(resolvePermissions(roles));
+  const legacyPermissionSet = new Set(resolvePermissions(roles));
   const directReports = await countActiveDirectReports(db, userId);
-  applyManagerImplicitPerms(permissionSet, directReports > 0);
+  applyManagerImplicitPerms(legacyPermissionSet, directReports > 0);
 
   const membershipRows = await db
     .select({
@@ -103,6 +121,53 @@ export async function getMe(db: Db, userId: string): Promise<MePayload> {
     .innerJoin(schema.entities, eq(schema.entities.id, schema.userEntityMemberships.entityId))
     .where(and(eq(schema.userEntityMemberships.userId, userId), eq(schema.userEntityMemberships.isActive, true)));
 
+  const orgMembershipRows = await db
+    .select({
+      organizationId: schema.organizationMemberships.organizationId,
+      orgRole: schema.organizationMemberships.orgRole,
+      isActive: schema.organizationMemberships.isActive,
+      id: schema.organizations.id,
+      name: schema.organizations.name,
+      slug: schema.organizations.slug,
+      status: schema.organizations.status,
+    })
+    .from(schema.organizationMemberships)
+    .innerJoin(
+      schema.organizations,
+      eq(schema.organizations.id, schema.organizationMemberships.organizationId),
+    )
+    .where(
+      and(
+        eq(schema.organizationMemberships.userId, userId),
+        eq(schema.organizationMemberships.isActive, true),
+        isNull(schema.organizations.deletedAt),
+      ),
+    );
+
+  const organizationMemberships: MeOrgMembership[] = orgMembershipRows
+    .filter((m) => isOrgRole(m.orgRole))
+    .map((m) => ({
+      organizationId: m.organizationId,
+      orgRole: m.orgRole as OrgRole,
+      isActive: m.isActive,
+      organization: { id: m.id, name: m.name, slug: m.slug, status: m.status },
+    }));
+
+  const activeOrganizationId =
+    user.activeOrganizationId &&
+    organizationMemberships.some((m) => m.organizationId === user.activeOrganizationId)
+      ? user.activeOrganizationId
+      : (organizationMemberships[0]?.organizationId ?? null);
+
+  const orgRole =
+    organizationMemberships.find((m) => m.organizationId === activeOrganizationId)?.orgRole ?? null;
+
+  const permissions = mergeOrgAwarePermissions({
+    legacyPermissionCodes: [...legacyPermissionSet],
+    orgRole,
+    platformRole: user.platformRole,
+  });
+
   return {
     user: {
       id: user.id,
@@ -113,6 +178,7 @@ export async function getMe(db: Db, userId: string): Promise<MePayload> {
       jobTitle: user.jobTitle,
       entity,
       mustChangePassword: user.mustChangePassword,
+      platformRole: user.platformRole ?? null,
       lineLinked: Boolean(user.lineUserId),
     },
     roles: roles.map((r) => ({
@@ -121,12 +187,15 @@ export async function getMe(db: Db, userId: string): Promise<MePayload> {
       defaultRoute: r.defaultRoute,
       isSystem: r.isSystem,
     })),
-    permissions: [...permissionSet].filter(isValidPermissionCode),
+    permissions: permissions.filter(isValidPermissionCode),
     memberships: membershipRows.map((m) => ({
       entityId: m.entityId,
       roleId: m.roleId,
       entity: { id: m.id, name: m.name, code: m.code },
     })),
     activeEntityId: user.activeEntityId ?? null,
+    organizationMemberships,
+    activeOrganizationId,
+    orgRole,
   };
 }

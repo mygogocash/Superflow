@@ -10,10 +10,18 @@ export type AuthUser = {
   name: string;
   avatarUrl?: string | null;
   mustChangePassword?: boolean;
+  platformRole?: string | null;
   lineLinked?: boolean;
 };
 
 type AuthRole = { id: string; name: string; isSystem: boolean; defaultRoute: string | null };
+
+type OrgMembership = {
+  organizationId: string;
+  orgRole: "user" | "admin" | "super_admin";
+  isActive: boolean;
+  organization: { id: string; name: string; slug: string; status: string };
+};
 
 type AuthState = {
   user: AuthUser | null;
@@ -23,6 +31,9 @@ type AuthState = {
   isEmployeeOnly: boolean;
   memberships: Array<{ entityId: string; entity: { id: string; name: string; code: string } }>;
   activeEntityId: string | null;
+  organizationMemberships: OrgMembership[];
+  activeOrganizationId: string | null;
+  orgRole: OrgMembership["orgRole"] | null;
   setSession: (payload: {
     user: AuthUser | null;
     roles?: AuthRole[];
@@ -30,6 +41,9 @@ type AuthState = {
     isSystemAdmin?: boolean;
     memberships?: AuthState["memberships"];
     activeEntityId?: string | null;
+    organizationMemberships?: OrgMembership[];
+    activeOrganizationId?: string | null;
+    orgRole?: OrgMembership["orgRole"] | null;
   }) => void;
   hasPermission: (code: string) => boolean;
   hasRole: (name: string) => boolean;
@@ -47,6 +61,9 @@ const empty = {
   isEmployeeOnly: false,
   memberships: [] as AuthState["memberships"],
   activeEntityId: null as string | null,
+  organizationMemberships: [] as OrgMembership[],
+  activeOrganizationId: null as string | null,
+  orgRole: null as OrgMembership["orgRole"] | null,
 };
 
 type MeResponse = {
@@ -55,6 +72,9 @@ type MeResponse = {
   permissions: string[];
   memberships?: AuthState["memberships"];
   activeEntityId?: string | null;
+  organizationMemberships?: OrgMembership[];
+  activeOrganizationId?: string | null;
+  orgRole?: OrgMembership["orgRole"] | null;
   session?: ExpoSession;
 };
 
@@ -67,6 +87,9 @@ function applyMe(get: () => AuthState, data: MeResponse) {
     isSystemAdmin,
     memberships: data.memberships ?? [],
     activeEntityId: data.activeEntityId ?? null,
+    organizationMemberships: data.organizationMemberships ?? [],
+    activeOrganizationId: data.activeOrganizationId ?? null,
+    orgRole: data.orgRole ?? null,
   });
 }
 
@@ -117,9 +140,23 @@ export const useAuth = create<AuthState>((set, get) => ({
     isSystemAdmin = false,
     memberships = [],
     activeEntityId = null,
+    organizationMemberships = [],
+    activeOrganizationId = null,
+    orgRole = null,
   }) => {
     const isEmployeeOnly = roles.length > 0 && roles.every((r) => r.name === "Employee");
-    set({ user, roles, permissions, isSystemAdmin, memberships, activeEntityId, isEmployeeOnly });
+    set({
+      user,
+      roles,
+      permissions,
+      isSystemAdmin,
+      memberships,
+      activeEntityId,
+      organizationMemberships,
+      activeOrganizationId,
+      orgRole,
+      isEmployeeOnly,
+    });
   },
   hasPermission: (code) => get().isSystemAdmin || get().permissions.includes(code),
   hasRole: (name) => get().roles.some((r) => r.name === name),
