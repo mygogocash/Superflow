@@ -1,8 +1,8 @@
+import { PERMISSIONS } from "@/common/constants/permissions";
 import {
   BadRequestException,
   NotFoundException,
 } from "@/common/exceptions/http-exception";
-import { PERMISSIONS } from "@/common/constants/permissions";
 import { investorUpdateRepository } from "@/modules/investor-updates/investor-updates.repository";
 import type {
   CreateUpdateInput,

@@ -3,7 +3,6 @@ import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
   NotFoundException,
 } from "@/common/exceptions/http-exception";
 import { sendWelcomeTemplateEmail } from "@/infrastructure/email/email.service";
