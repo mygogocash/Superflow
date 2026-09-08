@@ -27,6 +27,14 @@ const IT_READ = [
   PERMISSIONS.PROJECTS_READ_ALL,
 ] as const;
 
+// Org-wide surfaces only — bare *:crm:read / projects:read are membership-scoped.
+const IT_ORG_READ = [
+  PERMISSIONS.IT_CRM_READ_ALL,
+  PERMISSIONS.IT_CRM_MANAGE,
+  PERMISSIONS.PROJECTS_READ_ALL,
+  PERMISSIONS.PROJECTS_MANAGE,
+] as const;
+
 const IT_WRITE = [
   PERMISSIONS.IT_CRM_UPDATE,
   PERMISSIONS.IT_CRM_MANAGE,
@@ -62,10 +70,10 @@ export const itCrm = new Hono<AppEnv>()
     zValidator("json", reorderItProjectsSchema),
     async (c) => c.json({ data: await itCrmService.reorder(c.var.db, c.req.valid("json")) }),
   )
-  .get("/dashboard", requirePermission(...IT_READ), async (c) =>
+  .get("/dashboard", requirePermission(...IT_ORG_READ), async (c) =>
     c.json({ data: await itCrmService.dashboard(c.var.db) }),
   )
-  .get("/reminder-settings", requirePermission(...IT_READ), async (c) =>
+  .get("/reminder-settings", requirePermission(...IT_ORG_READ), async (c) =>
     c.json({ data: await itCrmService.getReminderRecipients(c.var.db) }),
   )
   .put(

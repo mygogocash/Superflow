@@ -21,6 +21,14 @@ import { requirePermission } from "../middleware/rbac";
 
 const CRM_READ = [PERMISSIONS.QA_CRM_READ, PERMISSIONS.QA_CRM_READ_ALL, PERMISSIONS.PROJECTS_READ, PERMISSIONS.PROJECTS_READ_ALL] as const;
 
+// Org-wide surfaces only — bare *:crm:read / projects:read are membership-scoped.
+const CRM_ORG_READ = [
+  PERMISSIONS.QA_CRM_READ_ALL,
+  PERMISSIONS.QA_CRM_MANAGE,
+  PERMISSIONS.PROJECTS_READ_ALL,
+  PERMISSIONS.PROJECTS_MANAGE,
+] as const;
+
 const CRM_WRITE = [PERMISSIONS.QA_CRM_UPDATE, PERMISSIONS.QA_CRM_MANAGE, PERMISSIONS.PROJECTS_UPDATE, PERMISSIONS.PROJECTS_MANAGE] as const;
 
 export const qaCrm = new Hono<AppEnv>()
@@ -42,10 +50,10 @@ export const qaCrm = new Hono<AppEnv>()
     zValidator("json", reorderQaProjectsSchema),
     async (c) => c.json({ data: await qaCrmService.reorder(c.var.db, c.req.valid("json")) }),
   )
-  .get("/dashboard", requirePermission(...CRM_READ), async (c) =>
+  .get("/dashboard", requirePermission(...CRM_ORG_READ), async (c) =>
     c.json({ data: await qaCrmService.dashboard(c.var.db) }),
   )
-  .get("/reminder-settings", requirePermission(...CRM_READ), async (c) =>
+  .get("/reminder-settings", requirePermission(...CRM_ORG_READ), async (c) =>
     c.json({ data: await qaCrmService.getReminderRecipients(c.var.db) }),
   )
   .put(

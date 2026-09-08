@@ -39,6 +39,14 @@ const IT_READ_PERMS = [
   PERMISSIONS.PROJECTS_READ_ALL,
 ];
 
+// Org-wide dashboard / reminder settings — projects:read alone must not unlock these.
+const IT_ORG_READ_PERMS = [
+  PERMISSIONS.IT_CRM_READ_ALL,
+  PERMISSIONS.IT_CRM_MANAGE,
+  PERMISSIONS.PROJECTS_READ_ALL,
+  PERMISSIONS.PROJECTS_MANAGE,
+];
+
 const IT_WRITE_PERMS = [
   PERMISSIONS.IT_CRM_UPDATE,
   PERMISSIONS.IT_CRM_MANAGE,
@@ -106,7 +114,7 @@ router.put(
 // (CLAUDE.md "Express route order" pitfall).
 router.get(
   "/dashboard",
-  requirePermission(...IT_READ_PERMS),
+  requirePermission(...IT_ORG_READ_PERMS),
   asyncHandler(async (_req, res) => {
     const data = await itCrmService.dashboard();
     res.json({ data });
@@ -117,7 +125,7 @@ router.get(
 // reader; write is manager/admin only. Literal routes before "/:id".
 router.get(
   "/reminder-settings",
-  requirePermission(...IT_READ_PERMS),
+  requirePermission(...IT_ORG_READ_PERMS),
   asyncHandler(async (_req, res) => {
     const data = await itCrmService.getReminderRecipients();
     res.json({ data });

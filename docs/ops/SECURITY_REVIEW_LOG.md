@@ -283,3 +283,27 @@ Do **not** claim multi-org ERP is done until debt rows above carry `organization
 ### Verify
 
 - `pnpm --filter @nexora/api exec vitest run src/modules/travel/travel.service.test.ts` (Wave 8 manager/approver/stranger getRequestById cases).
+
+## Wave 8 — CRM / projects deep-dive (2026-09-08)
+
+### Findings fixed
+
+| id | Sev | Finding | Fix |
+|----|-----|---------|-----|
+| SEC-026 | P0 | Team CRM `/dashboard` + `/reminder-settings` GET accepted `*:crm:read` / `projects:read` (employee seed) while services return org-wide aggregates/settings | Edge (it/product/legal/accounting/qa): org-read gate = `*:crm:read-all` \| `*:crm:manage` \| `projects:read-all` \| `projects:manage`; Express IT CRM same; Express shared CRM reminder settings drop bare module/`projects:read` (sales → `crm:settings-manage` only) |
+| SEC-027 | P0 | `investor-updates:read` (employee seed) listed/fetched **drafts** with no create/send check | Edge (`@nexora/core`) + Express: bare read forces `status=sent` on list; draft get → 404; update/delete/send go through scoped get |
+| SEC-028 | P1 | Approval-chain GET used `projects:read` while writes were system-admin — leaked approver identities / step order to every employee | Edge: GET `/` and `/:scope` require `requireSystemAdmin` |
+
+### Residual (CRM batch)
+
+| id | Finding | Disposition |
+|----|---------|-------------|
+| SEC-029 | Deals `canSeeAll` uses `crm:team-read` (manager seed) rather than `deals:manage` — intentional team visibility; tightening to manage-only would regress managers | accepted; document, do not flip without product sign-off |
+| SEC-030 | Partners / dataroom permission-only (no owner scope); proposals already pass actor in places | follow-up if product wants owner-scoped partners/dataroom |
+| SEC-031 | CRM / project tables still lack `organizationId` | deferred — Wave 3 org tenancy debt |
+
+### Verify
+
+- Manual: employee with only `projects:read` / `*:crm:read` → 403 on team CRM dashboard + reminder-settings GET; 200 on membership-scoped list.
+- Manual: `investor-updates:read` only → list/get drafts 404/empty; create/send holders still see drafts.
+- Manual: non-admin → 403 on approval-chain GET.

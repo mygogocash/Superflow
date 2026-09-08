@@ -23,7 +23,10 @@ router.get(
   requirePermission(PERMISSIONS.INVESTOR_UPDATES_READ),
   asyncHandler(async (req, res) => {
     const query = listUpdatesSchema.parse(req.query);
-    const result = await investorUpdateService.list(query);
+    const result = await investorUpdateService.list(
+      query,
+      req.user!.permissions,
+    );
     res.json(result);
   }),
 );
@@ -42,7 +45,10 @@ router.get(
   "/:id",
   requirePermission(PERMISSIONS.INVESTOR_UPDATES_READ),
   asyncHandler(async (req, res) => {
-    const data = await investorUpdateService.getById(req.params.id as string);
+    const data = await investorUpdateService.getById(
+      req.params.id as string,
+      req.user!.permissions,
+    );
     res.json({ data });
   }),
 );
@@ -55,6 +61,7 @@ router.put(
     const data = await investorUpdateService.update(
       req.params.id as string,
       input,
+      req.user!.permissions,
     );
     res.json({ data });
   }),
@@ -64,7 +71,10 @@ router.delete(
   "/:id",
   requirePermission(PERMISSIONS.INVESTOR_UPDATES_CREATE),
   asyncHandler(async (req, res) => {
-    await investorUpdateService.delete(req.params.id as string);
+    await investorUpdateService.delete(
+      req.params.id as string,
+      req.user!.permissions,
+    );
     res.json({ data: { success: true } });
   }),
 );
@@ -76,6 +86,7 @@ router.post(
     const data = await investorUpdateService.send(
       req.params.id as string,
       req.user!.id,
+      req.user!.permissions,
     );
     res.json({ data });
   }),
