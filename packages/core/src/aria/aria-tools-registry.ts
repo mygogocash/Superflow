@@ -10,7 +10,7 @@ export const ARIA_TOOLS_REGISTRY: AriaToolMeta[] = [
   // handler checks — the chat loop filters advertised tools the same way.
   { name: "lookup_employee", description: "Find an employee by name or email", requiredPermissions: ["directory:read"] },
   { name: "lookup_visa", description: "Look up visa details for an employee", requiredPermissions: ["visa:read"] },
-  { name: "list_expiring_visas", description: "List visas expiring soon", requiredPermissions: ["visa:read"] },
+  { name: "list_expiring_visas", description: "List visas expiring soon", requiredPermissions: ["visa:hr-read", "visa:manage"] },
   { name: "lookup_leave_balance", description: "Check leave balances", requiredPermissions: [] },
   { name: "list_my_pending_approvals", description: "List pending approvals for the caller", requiredPermissions: [] },
   { name: "lookup_expense_report", description: "Look up an expense report", requiredPermissions: [] },

@@ -218,6 +218,7 @@ describe("ARIA tool registry shape", () => {
     const full = new Set([
       "directory:read",
       "visa:read",
+      "visa:hr-read",
       "partners:read",
       "projects:read",
       "crm:read",
@@ -229,6 +230,13 @@ describe("ARIA tool registry shape", () => {
         .map((t) => t.name)
         .sort(),
     );
+  });
+
+  it("list_expiring_visas is not advertised for visa:read alone", () => {
+    const names = toolDefinitionsFor(new Set(["visa:read"])).map((t) => t.name);
+    expect(names).not.toContain("list_expiring_visas");
+    const hr = toolDefinitionsFor(new Set(["visa:hr-read"])).map((t) => t.name);
+    expect(hr).toContain("list_expiring_visas");
   });
 });
 

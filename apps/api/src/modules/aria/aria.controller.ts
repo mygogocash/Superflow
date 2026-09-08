@@ -3,7 +3,11 @@ import multer from "multer";
 
 import { PERMISSIONS } from "@/common/constants/permissions";
 import { getRequiredParam } from "@/common/utils/params";
-import { authenticate, requirePermission } from "@/core/guards/auth.guard";
+import {
+  authenticate,
+  requirePermission,
+  requireSystemAdmin,
+} from "@/core/guards/auth.guard";
 import { asyncHandler } from "@/core/middleware/async-handler";
 import { prisma } from "@/infrastructure/database/prisma";
 import { ariaService } from "@/modules/aria/aria.service";
@@ -298,10 +302,13 @@ router.delete(
   }),
 );
 
+// Insights / improvement queue / draft+review expose other users'
+// chat text. Gate on system admin (same bar as aria-training) — not
+// aria:knowledge-manage, which a custom role can hold.
 router.get(
   "/insights",
   authenticate,
-  requirePermission(PERMISSIONS.ARIA_KNOWLEDGE_MANAGE),
+  requireSystemAdmin(),
   asyncHandler(async (req, res) => {
     const { days } = insightsQuerySchema.parse(req.query);
     const result = await ariaService.getInsights(days);
@@ -337,11 +344,12 @@ router.post(
   }),
 );
 
-// Admin improvement queue — open thumbs-down feedback.
+// Admin improvement queue — open thumbs-down feedback (contains other
+// users' messages). System admin only.
 router.get(
   "/improvement-queue",
   authenticate,
-  requirePermission(PERMISSIONS.ARIA_KNOWLEDGE_MANAGE),
+  requireSystemAdmin(),
   asyncHandler(async (_req, res) => {
     const result = await ariaService.getImprovementQueue();
     res.json(result);
@@ -350,11 +358,11 @@ router.get(
 
 // Admin draft-article generator. Returns a Haiku-drafted article
 // payload that the admin reviews + posts through the standard
-// `POST /aria/knowledge` create route.
+// `POST /aria/knowledge` create route. Reads feedback chat context.
 router.post(
   "/feedback/:id/draft-article",
   authenticate,
-  requirePermission(PERMISSIONS.ARIA_KNOWLEDGE_MANAGE),
+  requireSystemAdmin(),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
     const result = await ariaService.draftArticleFromFeedback(id);
@@ -368,7 +376,7 @@ router.post(
 router.post(
   "/feedback/:id/review",
   authenticate,
-  requirePermission(PERMISSIONS.ARIA_KNOWLEDGE_MANAGE),
+  requireSystemAdmin(),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
     const input = reviewFeedbackSchema.parse(req.body);

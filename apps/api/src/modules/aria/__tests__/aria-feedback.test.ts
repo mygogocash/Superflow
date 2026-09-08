@@ -97,7 +97,7 @@ describe("ariaService.recordFeedback", () => {
         messageId: MSG_ID,
         rating: "down",
       }),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    ).rejects.toBeInstanceOf(NotFoundException);
     expect(repositoryMock.upsertFeedback).not.toHaveBeenCalled();
   });
 
