@@ -397,7 +397,7 @@ const listExpiringVisas: ToolEntry<{
     description: [
       "List visa records expiring within the next N days (default 90).",
       "Optional `country` (substring match) and `visaTypeQuery` (natural-language, see lookup_visa) filters.",
-      "Requires visa:read, visa:hr-read, or visa:manage.",
+      "Requires visa:hr-read or visa:manage (org-wide expiry scan — not available to visa:read alone).",
       "Returns JSON string {windowDays, total, results: [...]} where each result carries `visaType`, `visaTypeLabel`, country, expiry date, holder info, and the sponsoring employee.",
     ].join(" "),
     input_schema: {
@@ -430,14 +430,15 @@ const listExpiringVisas: ToolEntry<{
       visaTypeQuery: z.string().min(1).max(80).optional(),
     }),
     async run({ days, country, visaTypeQuery }, { perms }) {
+      // Match daily-brief gate: visa:read is self-only elsewhere; this
+      // tool scans the whole org, so advertise/run only for HR/manage.
       if (
-        !perms.has(PERMISSIONS.VISA_READ) &&
         !perms.has(PERMISSIONS.VISA_HR_READ) &&
         !perms.has(PERMISSIONS.VISA_MANAGE)
       ) {
         return {
           error: "permission_denied",
-          message: "Requires visa:read or visa:hr-read.",
+          message: "Requires visa:hr-read or visa:manage.",
         };
       }
       const windowDays = days ?? VISA_DEFAULT_WINDOW_DAYS;
@@ -907,7 +908,7 @@ const lookupProject: ToolEntry<{ query?: string }> = {
   definition: {
     name: "lookup_project",
     description:
-      "Find a project by name fragment, slug, or id, or — when no query is given — list the most recently updated projects (use for 'how many projects', 'show recent projects', etc.). Requires projects:read. Returns JSON string {results: [...]} with name, status, owner, partner, start/end dates, progress.",
+      "Find a project by name fragment, slug, or id, or — when no query is given — list the most recently updated projects (use for 'how many projects', 'show recent projects', etc.). Requires projects:read; callers without projects:read-all only see projects they own or are a member of. Returns JSON string {results: [...]} with name, status, owner, partner, start/end dates, progress.",
     input_schema: {
       type: "object",
       properties: {
@@ -922,20 +923,37 @@ const lookupProject: ToolEntry<{ query?: string }> = {
   },
   handler: {
     schema: z.object({ query: z.string().min(1).max(120).optional() }),
-    async run({ query }, { perms }) {
+    async run({ query }, { userId, perms }) {
       if (!perms.has(PERMISSIONS.PROJECTS_READ)) {
         return { error: "permission_denied" };
       }
       const trimmed = query?.trim();
-      const where = trimmed
-        ? {
-            OR: [
-              { id: trimmed },
-              { slug: trimmed },
-              { name: { contains: trimmed, mode: "insensitive" as const } },
-            ],
-          }
-        : {};
+      const filters: Record<string, unknown>[] = [];
+      if (trimmed) {
+        filters.push({
+          OR: [
+            { id: trimmed },
+            { slug: trimmed },
+            { name: { contains: trimmed, mode: "insensitive" as const } },
+          ],
+        });
+      }
+      // Mirror ProjectService.list: projects:read is own/assigned;
+      // projects:read-all unlocks the org-wide board.
+      if (!perms.has(PERMISSIONS.PROJECTS_READ_ALL)) {
+        filters.push({
+          OR: [
+            { ownerId: userId },
+            { members: { some: { userId } } },
+          ],
+        });
+      }
+      const where =
+        filters.length === 0
+          ? {}
+          : filters.length === 1
+            ? filters[0]
+            : { AND: filters };
       const [rows, total] = await Promise.all([
         prisma.project.findMany({
           where,
@@ -1708,7 +1726,6 @@ const TOOL_REQUIRED_ANY_OF: Record<string, readonly string[]> = {
     PERMISSIONS.VISA_MANAGE,
   ],
   list_expiring_visas: [
-    PERMISSIONS.VISA_READ,
     PERMISSIONS.VISA_HR_READ,
     PERMISSIONS.VISA_MANAGE,
   ],

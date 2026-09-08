@@ -247,7 +247,7 @@ Run as **separate PRs** per domain, using Wave 0–2 checklists:
 2. **HR:** leave, travel, visa, attendance, certificates, ESOP/agreements — **done** (certificates own-or-manage; travel manager/approver view; attendance read≠org-wide)  
 3. **CRM / projects:** sales, investors, IT/legal CRM, proposals, approval-chains — **done** (team CRM org-read gates; investor-updates sent-only for bare read; approval-chain GET admin-only; deals/partners/dataroom residual)  
 4. **Content / comms:** wall, news, survey, docs, uploads — **done** (news author-or-moderate update; docs unpublished gate; policies + legal entity/publish on get/download/ack; edge legal stub residual)  
-5. **AI / ARIA:** tools RBAC, PII in logs, prompt injection notes in `ai-prompts.ts`  
+5. **AI / ARIA:** tools RBAC, PII in logs, prompt injection notes in `ai-prompts.ts` — **done** (list_expiring_visas HR-only; lookup_project membership scope; insights/queue/draft/review system-admin; conversation/knowledge ACL → 404; edge chat stub residual)  
 6. **Admin / telemetry / push:** ensure no PII over-exposure
 
 ### Per-module checklist (copy into each PR)

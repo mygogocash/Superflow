@@ -515,8 +515,10 @@ export const ariaService = {
     const conversation =
       await ariaRepository.findConversationWithMessages(conversationId);
     if (!conversation) throw new NotFoundException("Conversation not found");
+    // Ownership miss → 404 (not 403) so conversation ids are not
+    // distinguishable from missing rows.
     if (conversation.userId !== userId) {
-      throw new ForbiddenException("Access denied");
+      throw new NotFoundException("Conversation not found");
     }
     return { data: conversation };
   },
@@ -532,7 +534,7 @@ export const ariaService = {
       await ariaRepository.findConversationById(conversationId);
     if (!conversation) throw new NotFoundException("Conversation not found");
     if (conversation.userId !== userId) {
-      throw new ForbiddenException("Access denied");
+      throw new NotFoundException("Conversation not found");
     }
     await ariaRepository.deleteConversation(conversationId);
     return { success: true };
@@ -561,9 +563,9 @@ export const ariaService = {
         required.some((code) => viewerPerms.has(code)) ||
         viewerPerms.has(PERMISSIONS.ARIA_KNOWLEDGE_MANAGE);
       if (!allowed) {
-        throw new ForbiddenException(
-          "You do not have permission to view this knowledge article",
-        );
+        // ACL miss → 404 so permission-walled article ids are not
+        // distinguishable from missing rows.
+        throw new NotFoundException("Knowledge article not found");
       }
     }
     return { data: article };
@@ -734,7 +736,7 @@ export const ariaService = {
     );
     if (!conversation) throw new NotFoundException("Conversation not found");
     if (conversation.userId !== userId) {
-      throw new ForbiddenException("Access denied");
+      throw new NotFoundException("Conversation not found");
     }
     const row = await ariaRepository.upsertFeedback({
       messageId: input.messageId,
@@ -925,7 +927,7 @@ export const ariaService = {
         await ariaRepository.findConversationById(conversationId);
       if (!existing) throw new NotFoundException("Conversation not found");
       if (existing.userId !== userId) {
-        throw new ForbiddenException("Access denied");
+        throw new NotFoundException("Conversation not found");
       }
     } else {
       // Plain send only. Schema rejects edit/retry without a

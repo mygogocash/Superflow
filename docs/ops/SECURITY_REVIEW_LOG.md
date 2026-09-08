@@ -334,3 +334,31 @@ Do **not** claim multi-org ERP is done until debt rows above carry `organization
 - Manual: `policy:read` on entity A → get/download entity B policy → 404.
 - Manual: legal announcement-read on entity A → get/download/ack entity B or draft → 404.
 - `pnpm --filter @nexora/core --filter @nexora/api --filter @nexora/edge exec tsc --noEmit`
+
+## Wave 8 — AI / ARIA deep-dive (2026-09-08)
+
+### Findings fixed
+
+| id | Sev | Finding | Fix |
+|----|-----|---------|-----|
+| SEC-039 | P0 | `list_expiring_visas` ARIA tool advertised/ran with only `visa:read` (self-scoped elsewhere) → org-wide visa expiry dump | Advertise + run only for `visa:hr-read` \| `visa:manage` (Express tools + `@nexora/core` registry) |
+| SEC-040 | P0 | `lookup_project` returned unscoped org projects to any `projects:read` holder | Mirror ProjectService.list: without `projects:read-all`, filter to owner **or** membership |
+| SEC-041 | P1 | `/insights`, `/improvement-queue`, draft-article, feedback review under `aria:knowledge-manage` exposed other users' chat text | Gate those four routes with `requireSystemAdmin()` (same bar as aria-training) |
+| SEC-042 | P2 | Conversation get/delete/chat + knowledge ACL miss returned **403** (existence oracle) | Ownership / ACL miss → **404** (parity with edge conversation helpers) |
+
+### Residual (AI batch)
+
+| id | Finding | Disposition |
+|----|---------|-------------|
+| SEC-043 | Edge `streamChat` still stubs until AI keys / runtime are wired; does not yet bind tool RBAC on the Worker path | follow-up when edge AI runtime lands — Express remains SoT for chat tools today |
+| SEC-044 | Knowledge corpus CRUD stays on `aria:knowledge-manage` (article bodies, not live chat) | accepted; chat-exposing admin surfaces are system-admin only (SEC-041) |
+| SEC-045 | Prompt-injection / PII-in-logs review deferred to `ai-prompts.ts` hardening pass | follow-up; not a new IDOR this batch |
+
+### Verify
+
+- Manual / eval: `visa:read` only → `list_expiring_visas` not advertised; handler denies; `visa:hr-read` can run.
+- Manual: `projects:read` without `projects:read-all` → `lookup_project` only returns owned/member projects.
+- Manual: non-system-admin with `aria:knowledge-manage` → 403 on insights / improvement-queue / draft-article / review.
+- Manual: stranger conversation id → 404 on get/delete/chat; knowledge ACL miss → 404.
+- `pnpm --filter @nexora/core --filter @nexora/api --filter @nexora/edge exec tsc --noEmit`
+- `pnpm --filter @nexora/api exec vitest run src/modules/aria/__tests__/aria-tools.eval.test.ts src/modules/aria/__tests__/aria-feedback.test.ts`
