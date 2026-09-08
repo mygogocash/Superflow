@@ -1,4 +1,5 @@
 import { z } from "zod";
+
 import { ORG_ROLES } from "@/modules/auth/org-rbac";
 
 export const createOrganizationSchema = z.object({
@@ -29,5 +30,9 @@ export const updateOrgMembershipSchema = z.object({
 
 export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>;
 export type UpdateOrganizationInput = z.infer<typeof updateOrganizationSchema>;
-export type UpsertOrgMembershipInput = z.infer<typeof upsertOrgMembershipSchema>;
-export type UpdateOrgMembershipInput = z.infer<typeof updateOrgMembershipSchema>;
+export type UpsertOrgMembershipInput = z.infer<
+  typeof upsertOrgMembershipSchema
+>;
+export type UpdateOrgMembershipInput = z.infer<
+  typeof updateOrgMembershipSchema
+>;

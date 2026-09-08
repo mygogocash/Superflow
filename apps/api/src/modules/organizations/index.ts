@@ -1,1 +1,1 @@
-export { organizationsRoutes } from "./organizations.controller";
+export { organizationsRoutes } from "@/modules/organizations/organizations.controller";

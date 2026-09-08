@@ -29,14 +29,21 @@ router.post(
   "/",
   asyncHandler(async (req, res) => {
     const input = createOrganizationSchema.parse(req.body);
-    res.status(201).json(await organizationsService.createOrganization(req.user!.id, input));
+    res
+      .status(201)
+      .json(await organizationsService.createOrganization(req.user!.id, input));
   }),
 );
 
 router.get(
   "/:id",
   asyncHandler(async (req, res) => {
-    res.json(await organizationsService.getOrganization(req.user!.id, req.params.id as string));
+    res.json(
+      await organizationsService.getOrganization(
+        req.user!.id,
+        req.params.id as string,
+      ),
+    );
   }),
 );
 
@@ -57,7 +64,12 @@ router.patch(
 router.get(
   "/:id/members",
   asyncHandler(async (req, res) => {
-    res.json(await organizationsService.listMembers(req.user!.id, req.params.id as string));
+    res.json(
+      await organizationsService.listMembers(
+        req.user!.id,
+        req.params.id as string,
+      ),
+    );
   }),
 );
 

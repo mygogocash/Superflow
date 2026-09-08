@@ -25,6 +25,7 @@ import {
   trackUserDeactivated,
 } from "@/lib/events";
 import { PORTAL_URL } from "@/lib/portal-url";
+import { isPlatformAdmin } from "@/modules/auth/org-rbac";
 import { usersRepository } from "@/modules/users/users.repository";
 import type {
   AssignRolesInput,
@@ -33,7 +34,6 @@ import type {
   ResetPasswordInput,
   UpdateUserInput,
 } from "@/modules/users/users.validation";
-import { isPlatformAdmin } from "@/modules/auth/org-rbac";
 
 // 12-char alphanumeric one-time password. Paired with
 // mustChangePassword=true so the user is forced to rotate it on first

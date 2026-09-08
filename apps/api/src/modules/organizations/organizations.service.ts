@@ -21,7 +21,10 @@ import type {
   UpsertOrgMembershipInput,
 } from "@/modules/organizations/organizations.validation";
 
-async function loadActorOrgContext(actorId: string, organizationId: string | null) {
+async function loadActorOrgContext(
+  actorId: string,
+  organizationId: string | null,
+) {
   const actor = await prisma.user.findFirst({
     where: { id: actorId, deletedAt: null },
     select: { id: true, platformRole: true, activeOrganizationId: true },
@@ -51,10 +54,15 @@ async function loadActorOrgContext(actorId: string, organizationId: string | nul
 }
 
 function assertPlatformAdmin(ctx: { isPlatformAdmin: boolean }) {
-  if (!ctx.isPlatformAdmin) throw new ForbiddenException("Platform admin required");
+  if (!ctx.isPlatformAdmin) {
+    throw new ForbiddenException("Platform admin required");
+  }
 }
 
-function assertOrgAdmin(ctx: { isPlatformAdmin: boolean; orgRole: OrgRole | null }) {
+function assertOrgAdmin(ctx: {
+  isPlatformAdmin: boolean;
+  orgRole: OrgRole | null;
+}) {
   if (ctx.isPlatformAdmin) return;
   if (!isOrgAdminRole(ctx.orgRole)) {
     throw new ForbiddenException("Organization admin required");
@@ -101,13 +109,17 @@ export class OrganizationsService {
 
     const slug = input.slug || slugifyFallback(input.name);
     const existing = await prisma.organization.findUnique({ where: { slug } });
-    if (existing) throw new ConflictException("Organization slug already exists");
+    if (existing) {
+      throw new ConflictException("Organization slug already exists");
+    }
 
     const superAdmin = await prisma.user.findFirst({
       where: { id: input.superAdminUserId, deletedAt: null },
       select: { id: true },
     });
-    if (!superAdmin) throw new BadRequestException("Super admin user not found");
+    if (!superAdmin) {
+      throw new BadRequestException("Super admin user not found");
+    }
 
     const id = `org_${randomUUID().replace(/-/g, "").slice(0, 20)}`;
     await prisma.organization.create({
@@ -180,7 +192,12 @@ export class OrganizationsService {
   ) {
     const ctx = await loadActorOrgContext(actorId, organizationId);
     assertOrgAdmin(ctx);
-    if (!canAssignOrgRole({ platformRole: ctx.platformRole, orgRole: ctx.orgRole }, input.orgRole)) {
+    if (
+      !canAssignOrgRole(
+        { platformRole: ctx.platformRole, orgRole: ctx.orgRole },
+        input.orgRole,
+      )
+    ) {
       throw new ForbiddenException("Cannot assign this organization role");
     }
 

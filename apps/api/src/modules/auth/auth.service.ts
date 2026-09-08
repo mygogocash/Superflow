@@ -57,9 +57,7 @@ const MAGIC_LINK_ALLOWED_ROLES = (process.env.MAGIC_LINK_ALLOWED_ROLES ?? "")
 
 type RecoveryRequestAction = (typeof RECOVERY_REQUEST_ACTIONS)[number];
 type AuthLogAction =
-  | RecoveryRequestAction
-  | "recover-password"
-  | "exchange-session";
+  RecoveryRequestAction | "recover-password" | "exchange-session";
 
 interface AuthRequestContext {
   ip?: string | null;
@@ -683,7 +681,13 @@ export class AuthService {
           orderBy: { createdAt: "asc" },
           include: {
             organization: {
-              select: { id: true, name: true, slug: true, status: true, deletedAt: true },
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                status: true,
+                deletedAt: true,
+              },
             },
           },
         },
@@ -729,13 +733,16 @@ export class AuthService {
 
     const activeOrganizationId =
       user.activeOrganizationId &&
-      organizationMemberships.some((m) => m.organizationId === user.activeOrganizationId)
+      organizationMemberships.some(
+        (m) => m.organizationId === user.activeOrganizationId,
+      )
         ? user.activeOrganizationId
         : (organizationMemberships[0]?.organizationId ?? null);
 
     const orgRole =
-      organizationMemberships.find((m) => m.organizationId === activeOrganizationId)?.orgRole ??
-      null;
+      organizationMemberships.find(
+        (m) => m.organizationId === activeOrganizationId,
+      )?.orgRole ?? null;
 
     const permissions = mergeOrgAwarePermissions({
       legacyPermissionCodes: [...legacyPermissions],
@@ -818,12 +825,22 @@ export class AuthService {
       },
       include: {
         organization: {
-          select: { id: true, name: true, slug: true, status: true, deletedAt: true },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            status: true,
+            deletedAt: true,
+          },
         },
       },
     });
 
-    if (!membership || !membership.isActive || membership.organization.deletedAt) {
+    if (
+      !membership ||
+      !membership.isActive ||
+      membership.organization.deletedAt
+    ) {
       throw new ForbiddenException(
         "You do not have an active membership in this organization",
       );
