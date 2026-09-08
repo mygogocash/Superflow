@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { type Request, Router } from "express";
 
 import { asyncHandler } from "@/core/middleware/async-handler";
@@ -24,10 +25,22 @@ import { visaService } from "@/modules/visa/visa.service";
 
 const router = Router();
 
+/** Align with `@nexora/auth` MIN_SHARED_SECRET_LENGTH — keep local to avoid api→auth dep. */
+const MIN_CRON_SECRET_LENGTH = 32;
+
+function timingSafeEqualString(a: string, b: string): boolean {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  if (left.length !== right.length) return false;
+  return timingSafeEqual(left, right);
+}
+
 function verifyCronSecret(provided: string | undefined): provided is string {
   const secret = process.env.CRON_SECRET;
-  if (!secret || secret.length < 8) return false;
-  return provided === secret;
+  // Fail-closed: unset/short secrets never authenticate.
+  if (!secret || secret.length < MIN_CRON_SECRET_LENGTH) return false;
+  if (!provided) return false;
+  return timingSafeEqualString(provided, secret);
 }
 
 function readSecret(req: Request): string | undefined {

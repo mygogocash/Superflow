@@ -31,6 +31,12 @@ export {
   isOrgTenancyEnforced,
 } from "./org-rbac";
 export type { OrgRole, PlatformRole } from "./org-rbac";
+export {
+  MIN_SHARED_SECRET_LENGTH,
+  timingSafeEqualString,
+  verifySharedSecret,
+} from "./secrets";
+export type { VerifySharedSecretOptions } from "./secrets";
 export { isMagicLinkEligible } from "./magic-link";
 export type { MagicLinkRole } from "./magic-link";
 export { applyManagerImplicitPerms, MANAGER_IMPLICIT_PERMS } from "./manager-implicit-perms";

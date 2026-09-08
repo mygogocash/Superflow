@@ -1,16 +1,20 @@
 import { Hono } from "hono";
+import { verifySharedSecret } from "@nexora/auth";
 import { cronService } from "@nexora/core";
 import type { AppEnv } from "../lib/context";
 import { UnauthorizedException } from "../lib/errors";
 
 function verifyCron(c: { req: { header: (n: string) => string | undefined }; env: AppEnv["Bindings"] }) {
-  const secret = c.env.CRON_SECRET;
-  if (!secret || secret.length < 8) throw new UnauthorizedException("Cron not configured");
   const provided =
     c.req.header("x-cron-secret") ??
     c.req.header("authorization")?.replace(/^Bearer\s+/i, "") ??
     undefined;
-  if (provided !== secret) throw new UnauthorizedException("Unauthorized");
+  // Fail-closed: empty/short CRON_SECRET never authenticates (timing-safe compare).
+  if (!verifySharedSecret(provided, c.env.CRON_SECRET)) {
+    throw new UnauthorizedException(
+      c.env.CRON_SECRET ? "Unauthorized" : "Cron not configured",
+    );
+  }
 }
 
 function mountJob(app: Hono<AppEnv>, name: string) {

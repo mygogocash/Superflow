@@ -157,15 +157,15 @@ Each wave below is independently reviewable. Do not start Wave N+1 until Wave N�
 
 ### Tasks
 
-- [ ] Cron: require secret length ≥ 32 in prod guidance; compare with `crypto.timingSafeEqual` on equal-length buffers.
-- [ ] Fail-closed: empty webhook secret → 401/500, never process body.
-- [ ] Matrix in SECURITY_REVIEW_LOG: LINE, GitHub, DocuSign, Stripe (planned) — raw body, header, rotation owner.
-- [ ] Confirm edge-jobs only calls allowlisted cron paths with secret header.
-- [ ] Commit: `fix(security): timing-safe cron/webhook secret verification`
+- [x] Cron: require secret length ≥ 32 in prod guidance; compare with `crypto.timingSafeEqual` on equal-length buffers.
+- [x] Fail-closed: empty webhook secret → 401/500, never process body.
+- [x] Matrix in SECURITY_REVIEW_LOG: LINE, GitHub, DocuSign, Stripe (planned) — raw body, header, rotation owner.
+- [x] Confirm edge-jobs only calls allowlisted cron paths with secret header.
+- [x] Commit: `fix(security): timing-safe cron/webhook secret verification`
 
 ### Verify
 
-- [ ] Unit tests: wrong secret / missing secret / valid secret.
+- [x] Unit tests: wrong secret / missing secret / valid secret.
 - [ ] Staging dry-run of one cron with intentional bad secret → rejected.
 
 ---
@@ -278,7 +278,7 @@ Run as **separate PRs** per domain, using Wave 0–2 checklists:
 - [ ] SECURITY_REVIEW_LOG has no open P0/P1.  
 - [x] Org tenancy debt list is prioritized and linked to `ORG_TENANCY_RBAC_PLAN.md` implementation issues.  
 - [ ] CI runs audit + secret scan.  
-- [ ] Soft-delete and webhook/cron hardening tests are required and green.
+- [x] Soft-delete and webhook/cron hardening tests are required and green.
 
 ---
 

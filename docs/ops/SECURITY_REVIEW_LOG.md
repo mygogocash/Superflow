@@ -21,7 +21,7 @@ Allowlist for intentional public / alt-auth surfaces: `scripts/security/allowlis
 | SEC-003 | 0 | P2 | Expo session in web storage | mitigated | Wave 1: logout clears `intranet.session.v1` + legacy keys; residual XSS blast radius remains (Bearer-in-storage for Expo) | |
 | SEC-004 | 0 | P1 | Soft-delete restore IDOR pattern | done | Wave 2: owner-or-HR/read-all in service for accounting restore + permanent delete IncludingDeleted | |
 | SEC-005 | 0 | P0/P1 | Org tenancy incomplete on ERP rows | mitigated | Wave 3: `assertSameOrg` + users/membership scoping + `ORG_TENANCY_ENFORCED` fail-closed (users/org only). ERP column backfill still debt — see Wave 3 tenancy debt below | |
-| SEC-006 | 0 | P1 | Cron/webhook secret compare | open | Wave 4: timing-safe + fail-closed empty secret | |
+| SEC-006 | 0 | P1 | Cron/webhook secret compare | done | Wave 4: timing-safe + fail-closed empty/short secret (≥32) | |
 | SEC-007 | 0 | P2 | CF Access fail-open when AUD unset | accepted | Wave 1: documented residual risk + compensating controls; set `CF_ACCESS_AUD` when Zero Trust is cut over | |
 | SEC-008 | 0 | P3 | No CI audit/secret-scan gate | open | Wave 7 | |
 | SEC-009 | 1 | P2 | RBAC KV not invalidated on role assign | done | `PUT /api/users/:id/roles` now calls `invalidateUserPermissions` | |
@@ -145,4 +145,35 @@ Platform admin (`platform_admin`) bypasses org scope. Org Super Admin does **not
 | — | Auth / org tables | Already scoped | Membership + Entity only today |
 
 Do **not** claim multi-org ERP is done until debt rows above carry `organizationId` (or equivalent RLS) and handlers filter on active org.
+
+## Wave 4 — webhooks / cron secrets (2026-09-08)
+
+### Landed
+
+| Surface | Change |
+|---------|--------|
+| `@nexora/auth` `secrets` | `timingSafeEqualString` + `verifySharedSecret` (fail-closed empty/short, min 32) |
+| Edge cron | Uses `verifySharedSecret`; empty/short `CRON_SECRET` → 401 |
+| Express cron | Node `timingSafeEqual` + min length 32 (local copy; no api→auth dep) |
+| Edge-jobs HTTP cron | Refuses to call edge unless `CRON_SECRET.length >= 32` |
+| LINE / GitHub / DocuSign | Already HMAC + fail-closed when secret unset (spot-checked) |
+
+### Webhook verification matrix
+
+| Provider | Raw body | Signature header | Compare | Empty secret | Rotation owner |
+|----------|----------|------------------|---------|--------------|----------------|
+| Cron (edge + Express) | n/a (shared bearer) | `x-cron-secret` or `Authorization: Bearer` | Timing-safe string equal | Reject (401 / not configured) | Platform eng — Worker secret / Depot |
+| LINE Messaging | Request text | `x-line-signature` | HMAC-SHA256 → base64, const-time | 503 `NOT_CONFIGURED` | Platform eng — `LINE_MESSAGING_CHANNEL_SECRET` |
+| GitHub (helpdesk) | `req.rawBody` | `x-hub-signature-256` | HMAC-SHA256 hex, `timingSafeEqual` | 503 not configured | IT Helpdesk admin (per-workspace secret) |
+| DocuSign Connect | Raw body | `x-docusign-signature-1` | HMAC-SHA256 base64, const-time | 500 `DOCUSIGN_HMAC_SECRET` missing | Legal / platform eng |
+| Stripe (planned) | Raw body | `Stripe-Signature` | Stripe SDK constructEvent | Must fail-closed when unset | Billing — see `docs/STRIPE_BILLING_PLAN.md` |
+
+### Edge-jobs allowlist
+
+`apps/edge-jobs` HTTP cron consumer posts only to `/api/cron/<JobName>` for the fixed `ALL_JOBS` list with `X-Cron-Secret`. No arbitrary path fan-out.
+
+### Residual
+
+- Staging/prod operators must rotate any `CRON_SECRET` shorter than 32 chars before Wave 4 deploy (fail-closed).
+- Workflow email-action token replay/expiry audit remains SEC-002 (not cron HMAC).
 

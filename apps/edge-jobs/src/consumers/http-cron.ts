@@ -28,8 +28,11 @@ const ALL_JOBS: JobName[] = [
 function httpCronHandler(name: JobName): JobHandler {
   return async (_msg, env) => {
     const base = env.EDGE_API_URL?.replace(/\/$/, "");
-    if (!base || !env.CRON_SECRET) {
-      throw new Error("EDGE_API_URL and CRON_SECRET must be configured");
+    // Match edge verifySharedSecret floor (32) so jobs never call with a short secret.
+    if (!base || !env.CRON_SECRET || env.CRON_SECRET.length < 32) {
+      throw new Error(
+        "EDGE_API_URL and CRON_SECRET (>=32 chars) must be configured",
+      );
     }
     const res = await fetch(`${base}/api/cron/${name}`, {
       method: "POST",
