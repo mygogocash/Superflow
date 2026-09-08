@@ -518,7 +518,11 @@ router.get(
   requirePermission(PERMISSIONS.ACCOUNTING_READ),
   asyncHandler(async (req, res) => {
     const query = journalQuerySchema.parse(req.query);
-    const result = await accountingService.listJournals(query);
+    const result = await accountingService.listJournals(
+      query,
+      req.user!.id,
+      req.user!.permissions,
+    );
     res.json(result);
   }),
 );
@@ -617,7 +621,11 @@ router.get(
   requirePermission(PERMISSIONS.ACCOUNTING_READ),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
-    const data = await accountingService.getJournalById(id);
+    const data = await accountingService.getJournalByIdForActor(
+      id,
+      req.user!.id,
+      req.user!.permissions,
+    );
     res.json({ data });
   }),
 );
@@ -628,7 +636,12 @@ router.put(
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
     const input = updateJournalSchema.parse(req.body);
-    const data = await accountingService.updateJournal(id, input);
+    const data = await accountingService.updateJournal(
+      id,
+      input,
+      req.user!.id,
+      req.user!.permissions,
+    );
     res.json({ data });
   }),
 );
@@ -660,7 +673,11 @@ router.delete(
   requirePermission(PERMISSIONS.ACCOUNTING_ADMIN),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
-    await accountingService.deleteJournal(id, req.user!.id);
+    await accountingService.deleteJournal(
+      id,
+      req.user!.id,
+      req.user!.permissions,
+    );
     void logAudit({
       action: "soft_delete",
       resource: "journal_entry",
@@ -1642,7 +1659,11 @@ router.get(
   requirePermission(PERMISSIONS.ACCOUNTING_READ),
   asyncHandler(async (req, res) => {
     const query = quoteQuerySchema.parse(req.query);
-    const data = await accountingService.listQuotes(query);
+    const data = await accountingService.listQuotes(
+      query,
+      req.user!.id,
+      req.user!.permissions,
+    );
     res.json({ data });
   }),
 );
@@ -1662,7 +1683,11 @@ router.get(
   requirePermission(PERMISSIONS.ACCOUNTING_READ),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
-    const data = await accountingService.getQuoteById(id);
+    const data = await accountingService.getQuoteByIdForActor(
+      id,
+      req.user!.id,
+      req.user!.permissions,
+    );
     res.json({ data });
   }),
 );
@@ -1673,7 +1698,12 @@ router.put(
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
     const input = updateQuoteSchema.parse(req.body);
-    const data = await accountingService.updateQuote(id, input);
+    const data = await accountingService.updateQuote(
+      id,
+      input,
+      req.user!.id,
+      req.user!.permissions,
+    );
     res.json({ data });
   }),
 );
@@ -1683,7 +1713,11 @@ router.post(
   requirePermission(PERMISSIONS.ACCOUNTING_CREATE),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
-    const data = await accountingService.sendQuote(id);
+    const data = await accountingService.sendQuote(
+      id,
+      req.user!.id,
+      req.user!.permissions,
+    );
     res.json({ data });
   }),
 );
@@ -1693,7 +1727,11 @@ router.post(
   requirePermission(PERMISSIONS.ACCOUNTING_CREATE),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
-    const data = await accountingService.convertQuote(id);
+    const data = await accountingService.convertQuote(
+      id,
+      req.user!.id,
+      req.user!.permissions,
+    );
     void logAudit({
       action: "convert",
       resource: "quote",
@@ -1710,7 +1748,11 @@ router.delete(
   requirePermission(PERMISSIONS.ACCOUNTING_ADMIN),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
-    await accountingService.deleteQuote(id);
+    await accountingService.deleteQuote(
+      id,
+      req.user!.id,
+      req.user!.permissions,
+    );
     res.json({ data: { success: true } });
   }),
 );

@@ -86,6 +86,14 @@ function assertJournalAccess(
   assertDocumentAccess(journal, actorId, permissions, "journal entries");
 }
 
+function assertQuoteAccess(
+  quote: { createdBy: string | null },
+  actorId: string,
+  permissions: string[],
+) {
+  assertDocumentAccess(quote, actorId, permissions, "quotes");
+}
+
 function lineItemsToCalcInput(
   lineItems: CreateInvoiceInput["lineItems"],
   vatRate: number,
@@ -243,18 +251,33 @@ export async function deleteAccount(db: Db, id: string) {
 
 // ── Journals ────────────────────────────────────────────────────────────────
 
-export async function listJournals(db: Db, query: JournalQuery) {
+export async function listJournals(
+  db: Db,
+  actorId: string,
+  permissions: string[],
+  query: JournalQuery,
+) {
   const { page, limit, ...filters } = query;
-  const { data, total } = await repo.findJournals(db, filters, page, limit);
+  const scoped: Parameters<typeof repo.findJournals>[1] = { ...filters };
+  if (!canReadAllAccounting(permissions)) {
+    scoped.createdBy = actorId;
+  }
+  const { data, total } = await repo.findJournals(db, scoped, page, limit);
   return {
     data: data.map((j) => decorateJournalTotals(j)),
     meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
   };
 }
 
-export async function getJournalById(db: Db, id: string) {
+export async function getJournalById(
+  db: Db,
+  id: string,
+  actorId: string,
+  permissions: string[],
+) {
   const journal = await repo.findJournalById(db, id);
   if (!journal) throw new NotFoundException("Journal entry not found");
+  assertJournalAccess(journal, actorId, permissions);
   return decorateJournalTotals(journal);
 }
 
@@ -291,9 +314,16 @@ export async function createJournal(db: Db, actorId: string, input: CreateJourna
   });
 }
 
-export async function updateJournal(db: Db, id: string, input: UpdateJournalInput) {
+export async function updateJournal(
+  db: Db,
+  id: string,
+  actorId: string,
+  permissions: string[],
+  input: UpdateJournalInput,
+) {
   const existing = await repo.findJournalById(db, id);
   if (!existing) throw new NotFoundException("Journal entry not found");
+  assertJournalAccess(existing, actorId, permissions);
   if (existing.status !== "draft" && existing.status !== "rejected") {
     throw new BadRequestException(`Cannot edit journal with status "${existing.status}"`);
   }
@@ -331,9 +361,15 @@ export async function updateJournal(db: Db, id: string, input: UpdateJournalInpu
   });
 }
 
-export async function deleteJournal(db: Db, id: string, actorId: string) {
+export async function deleteJournal(
+  db: Db,
+  id: string,
+  actorId: string,
+  permissions: string[],
+) {
   const existing = await repo.findJournalById(db, id);
   if (!existing) throw new NotFoundException("Journal entry not found");
+  assertJournalAccess(existing, actorId, permissions);
   if (existing.status !== "draft" && existing.status !== "rejected") {
     throw new BadRequestException(`Cannot delete journal with status "${existing.status}"`);
   }
@@ -607,14 +643,29 @@ export async function updateInvoiceStatus(
 
 // ── Quotes ──────────────────────────────────────────────────────────────────
 
-export async function listQuotes(db: Db, query: QuoteQuery) {
-  const data = await repo.findQuotes(db, query);
+export async function listQuotes(
+  db: Db,
+  actorId: string,
+  permissions: string[],
+  query: QuoteQuery,
+) {
+  const scoped = {
+    ...query,
+    ...(!canReadAllAccounting(permissions) ? { createdBy: actorId } : {}),
+  };
+  const data = await repo.findQuotes(db, scoped);
   return { data };
 }
 
-export async function getQuoteById(db: Db, id: string) {
+export async function getQuoteById(
+  db: Db,
+  id: string,
+  actorId: string,
+  permissions: string[],
+) {
   const quote = await repo.findQuoteById(db, id);
   if (!quote) throw new NotFoundException("Quote not found");
+  assertQuoteAccess(quote, actorId, permissions);
   return quote;
 }
 
@@ -661,9 +712,16 @@ export async function createQuote(db: Db, actorId: string, input: CreateQuoteInp
   });
 }
 
-export async function updateQuote(db: Db, id: string, input: UpdateQuoteInput) {
+export async function updateQuote(
+  db: Db,
+  id: string,
+  actorId: string,
+  permissions: string[],
+  input: UpdateQuoteInput,
+) {
   const existing = await repo.findQuoteById(db, id);
   if (!existing) throw new NotFoundException("Quote not found");
+  assertQuoteAccess(existing, actorId, permissions);
   if (existing.status !== "draft") {
     throw new BadRequestException(`Cannot edit quote with status "${existing.status}"`);
   }
@@ -707,9 +765,15 @@ export async function updateQuote(db: Db, id: string, input: UpdateQuoteInput) {
   });
 }
 
-export async function deleteQuote(db: Db, id: string) {
+export async function deleteQuote(
+  db: Db,
+  id: string,
+  actorId: string,
+  permissions: string[],
+) {
   const existing = await repo.findQuoteById(db, id);
   if (!existing) throw new NotFoundException("Quote not found");
+  assertQuoteAccess(existing, actorId, permissions);
   if (existing.status !== "draft") {
     throw new BadRequestException(`Cannot delete quote with status "${existing.status}"`);
   }
@@ -717,9 +781,15 @@ export async function deleteQuote(db: Db, id: string) {
   return { success: true };
 }
 
-export async function sendQuote(db: Db, id: string) {
+export async function sendQuote(
+  db: Db,
+  id: string,
+  actorId: string,
+  permissions: string[],
+) {
   const existing = await repo.findQuoteById(db, id);
   if (!existing) throw new NotFoundException("Quote not found");
+  assertQuoteAccess(existing, actorId, permissions);
   if (existing.status !== "draft") {
     throw new BadRequestException(`Cannot send quote with status "${existing.status}"`);
   }
@@ -728,7 +798,7 @@ export async function sendQuote(db: Db, id: string) {
     .update(schema.quotes)
     .set({ status: "sent", updatedAt: now })
     .where(eq(schema.quotes.id, id));
-  return getQuoteById(db, id);
+  return getQuoteById(db, id, actorId, permissions);
 }
 
 // ── Fiscal periods ──────────────────────────────────────────────────────────

@@ -561,9 +561,14 @@ export async function searchAccounting(
 
 // ── Quote conversion ──────────────────────────────────────────────────────────
 
-export async function convertQuote(db: Db, id: string) {
-  const quote = await repo.findQuoteById(db, id);
-  if (!quote) throw new NotFoundException("Quote not found");
+export async function convertQuote(
+  db: Db,
+  id: string,
+  actorId: string,
+  permissions: string[],
+) {
+  // Ownership check (own-doc vs read-all) lives in getQuoteById.
+  const quote = await getQuoteById(db, id, actorId, permissions);
   if (!["sent", "accepted"].includes(quote.status)) {
     throw new BadRequestException("Only a sent or accepted quote can be converted.");
   }
@@ -627,7 +632,7 @@ export async function convertQuote(db: Db, id: string) {
     return invId;
   });
 
-  return { quote: await getQuoteById(db, id), invoiceId };
+  return { quote: await getQuoteById(db, id, actorId, permissions), invoiceId };
 }
 
 // ── Bank accounts (read) ────────────────────────────────────────────────────

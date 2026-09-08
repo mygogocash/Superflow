@@ -48,6 +48,9 @@ vi.mock("@/modules/accounting/accounting.repository", () => ({
     findInvoiceByEntityAndNo: vi.fn(),
     createInvoice: vi.fn(),
     findInvoices: vi.fn(),
+    findJournals: vi.fn(),
+    findQuotes: vi.fn(),
+    findQuoteById: vi.fn(),
     updateInvoice: vi.fn(),
     findPaymentsForInvoice: vi.fn(),
     findActiveLinkedUploads: vi.fn(),
@@ -102,6 +105,9 @@ const findInvoiceByEntityAndNo =
   accountingRepository.findInvoiceByEntityAndNo as Mock;
 const createInvoiceRepo = accountingRepository.createInvoice as Mock;
 const findInvoices = accountingRepository.findInvoices as Mock;
+const findJournals = accountingRepository.findJournals as Mock;
+const findQuotes = accountingRepository.findQuotes as Mock;
+const findQuoteById = accountingRepository.findQuoteById as Mock;
 const updateInvoiceRepo = accountingRepository.updateInvoice as Mock;
 const findPaymentsForInvoice =
   accountingRepository.findPaymentsForInvoice as Mock;
@@ -788,6 +794,104 @@ describe("AccountingService own-document scoping — mutations", () => {
       accountingService.deleteInvoice("inv-1", "sales-9", OWN_ONLY),
     ).resolves.toMatchObject({ id: "inv-1" });
     expect(softDeleteInvoice).toHaveBeenCalledWith("inv-1", "sales-9");
+  });
+});
+
+describe("AccountingService own-document scoping — journals & quotes (Wave 8)", () => {
+  it("a read-all caller lists every journal (no owner filter)", async () => {
+    findJournals.mockResolvedValue({ data: [{ id: "je-1", lines: [] }], total: 1 });
+
+    await accountingService.listJournals(
+      { page: 1, limit: 20 } as Parameters<typeof accountingService.listJournals>[0],
+      "actor-1",
+      READ_ALL,
+    );
+
+    expect(findJournals).toHaveBeenCalledWith(
+      expect.objectContaining({ createdBy: undefined }),
+      1,
+      20,
+    );
+  });
+
+  it("a non-read-all caller only lists their own journals", async () => {
+    findJournals.mockResolvedValue({ data: [], total: 0 });
+
+    await accountingService.listJournals(
+      { page: 1, limit: 20 } as Parameters<typeof accountingService.listJournals>[0],
+      "sales-9",
+      OWN_ONLY,
+    );
+
+    expect(findJournals).toHaveBeenCalledWith(
+      expect.objectContaining({ createdBy: "sales-9" }),
+      1,
+      20,
+    );
+  });
+
+  it("getJournalByIdForActor 403s a non-owner without read-all", async () => {
+    findJournalById.mockResolvedValue({
+      id: "je-1",
+      createdBy: "other-user",
+      lines: [],
+      status: "draft",
+    });
+
+    await expect(
+      accountingService.getJournalByIdForActor("je-1", "sales-9", OWN_ONLY),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it("getJournalByIdForActor returns the entry for its owner", async () => {
+    findJournalById.mockResolvedValue({
+      id: "je-1",
+      createdBy: "sales-9",
+      lines: [],
+      status: "draft",
+    });
+
+    await expect(
+      accountingService.getJournalByIdForActor("je-1", "sales-9", OWN_ONLY),
+    ).resolves.toMatchObject({ id: "je-1" });
+  });
+
+  it("a non-read-all caller only lists their own quotes", async () => {
+    findQuotes.mockResolvedValue([]);
+
+    await accountingService.listQuotes(
+      {} as Parameters<typeof accountingService.listQuotes>[0],
+      "sales-9",
+      OWN_ONLY,
+    );
+
+    expect(findQuotes).toHaveBeenCalledWith(
+      expect.objectContaining({ createdBy: "sales-9" }),
+    );
+  });
+
+  it("getQuoteByIdForActor 403s a non-owner without read-all", async () => {
+    findQuoteById.mockResolvedValue({
+      id: "q-1",
+      createdBy: "other-user",
+      status: "draft",
+    });
+
+    await expect(
+      accountingService.getQuoteByIdForActor("q-1", "sales-9", OWN_ONLY),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it("getQuoteByIdForActor returns the quote for its owner", async () => {
+    findQuoteById.mockResolvedValue({
+      id: "q-1",
+      createdBy: "sales-9",
+      status: "draft",
+    });
+
+    await expect(
+      accountingService.getQuoteByIdForActor("q-1", "sales-9", OWN_ONLY),
+    ).resolves.toMatchObject({ id: "q-1" });
   });
 });
 

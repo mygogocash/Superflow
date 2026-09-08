@@ -243,7 +243,7 @@ Prisma `$queryRaw` call sites (~aria, accounting, admin usage, CRM), Drizzle `sq
 
 Run as **separate PRs** per domain, using Wave 0–2 checklists:
 
-1. **Finance:** expenses, cash-advance, accounting, payroll, vendors  
+1. **Finance:** expenses, cash-advance, accounting, payroll, vendors — **in progress** (payroll P0 + journal/quote own-doc landed this PR; expenses/vendors org tenancy residual)  
 2. **HR:** leave, travel, visa, attendance, ESOP/agreements  
 3. **CRM / projects:** sales, investors, IT/legal CRM, proposals, approval-chains  
 4. **Content / comms:** wall, news, survey, docs, uploads  
@@ -252,12 +252,12 @@ Run as **separate PRs** per domain, using Wave 0–2 checklists:
 
 ### Per-module checklist (copy into each PR)
 
-- [ ] Every mutating route: auth + permission + service ownership/org check  
-- [ ] List endpoints: server-side scope (never trust client filter alone)  
-- [ ] Soft-delete restore/permanent IDOR test  
-- [ ] Email/notification paths escape user content  
-- [ ] No new ungated route without allowlist entry  
-- [ ] Parity: edge route exists if Express had it  
+- [x] Every mutating route: auth + permission + service ownership/org check _(Finance: payroll manager gate; journal/quote own-doc)_  
+- [x] List endpoints: server-side scope (never trust client filter alone) _(Finance: journals/quotes `createdBy`)_  
+- [x] Soft-delete restore/permanent IDOR test _(journals/invoices pre-existing; quotes N/A this batch)_  
+- [ ] Email/notification paths escape user content _(Finance: not re-audited this batch)_  
+- [x] No new ungated route without allowlist entry  
+- [x] Parity: edge route exists if Express had it _(payroll + accounting journals/quotes)_  
 
 ---
 

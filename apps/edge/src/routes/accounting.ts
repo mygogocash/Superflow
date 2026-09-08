@@ -270,7 +270,14 @@ export const accounting = new Hono<AppEnv>()
       c.json({ data: await accountingService.listJournalReversals(c.var.db, c.req.valid("query")) }),
   )
   .get("/journals", requirePermission(...accountingRead), zValidator("query", journalQuerySchema), async (c) =>
-    c.json(await accountingService.listJournals(c.var.db, c.req.valid("query"))),
+    c.json(
+      await accountingService.listJournals(
+        c.var.db,
+        c.var.user!.id,
+        c.var.user!.permissions,
+        c.req.valid("query"),
+      ),
+    ),
   )
   .post(
     "/journals",
@@ -283,17 +290,37 @@ export const accounting = new Hono<AppEnv>()
       ),
   )
   .get("/journals/:id", requirePermission(...accountingRead), async (c) =>
-    c.json({ data: await accountingService.getJournalById(c.var.db, c.req.param("id")) }),
+    c.json({
+      data: await accountingService.getJournalById(
+        c.var.db,
+        c.req.param("id"),
+        c.var.user!.id,
+        c.var.user!.permissions,
+      ),
+    }),
   )
   .put(
     "/journals/:id",
     requirePermission(PERMISSIONS.ACCOUNTING_CREATE),
     zValidator("json", updateJournalSchema),
     async (c) =>
-      c.json({ data: await accountingService.updateJournal(c.var.db, c.req.param("id"), c.req.valid("json")) }),
+      c.json({
+        data: await accountingService.updateJournal(
+          c.var.db,
+          c.req.param("id"),
+          c.var.user!.id,
+          c.var.user!.permissions,
+          c.req.valid("json"),
+        ),
+      }),
   )
   .delete("/journals/:id", requirePermission(PERMISSIONS.ACCOUNTING_CREATE), async (c) => {
-    await accountingService.deleteJournal(c.var.db, c.req.param("id"), c.var.user!.id);
+    await accountingService.deleteJournal(
+      c.var.db,
+      c.req.param("id"),
+      c.var.user!.id,
+      c.var.user!.permissions,
+    );
     return c.json({ data: { success: true } });
   })
   .post("/journals/:id/restore", requirePermission(PERMISSIONS.ACCOUNTING_CREATE), async (c) =>
@@ -512,7 +539,14 @@ export const accounting = new Hono<AppEnv>()
 
   // ── Quotes ────────────────────────────────────────────────────────────────
   .get("/quotes", requirePermission(...accountingRead), zValidator("query", quoteQuerySchema), async (c) =>
-    c.json(await accountingService.listQuotes(c.var.db, c.req.valid("query"))),
+    c.json(
+      await accountingService.listQuotes(
+        c.var.db,
+        c.var.user!.id,
+        c.var.user!.permissions,
+        c.req.valid("query"),
+      ),
+    ),
   )
   .post(
     "/quotes",
@@ -522,24 +556,58 @@ export const accounting = new Hono<AppEnv>()
       c.json({ data: await accountingService.createQuote(c.var.db, c.var.user!.id, c.req.valid("json")) }, 201),
   )
   .get("/quotes/:id", requirePermission(...accountingRead), async (c) =>
-    c.json({ data: await accountingService.getQuoteById(c.var.db, c.req.param("id")) }),
+    c.json({
+      data: await accountingService.getQuoteById(
+        c.var.db,
+        c.req.param("id"),
+        c.var.user!.id,
+        c.var.user!.permissions,
+      ),
+    }),
   )
   .put(
     "/quotes/:id",
     requirePermission(PERMISSIONS.ACCOUNTING_CREATE),
     zValidator("json", updateQuoteSchema),
     async (c) =>
-      c.json({ data: await accountingService.updateQuote(c.var.db, c.req.param("id"), c.req.valid("json")) }),
+      c.json({
+        data: await accountingService.updateQuote(
+          c.var.db,
+          c.req.param("id"),
+          c.var.user!.id,
+          c.var.user!.permissions,
+          c.req.valid("json"),
+        ),
+      }),
   )
   .delete("/quotes/:id", requirePermission(PERMISSIONS.ACCOUNTING_CREATE), async (c) => {
-    await accountingService.deleteQuote(c.var.db, c.req.param("id"));
+    await accountingService.deleteQuote(
+      c.var.db,
+      c.req.param("id"),
+      c.var.user!.id,
+      c.var.user!.permissions,
+    );
     return c.json({ data: { success: true } });
   })
   .post("/quotes/:id/send", requirePermission(PERMISSIONS.ACCOUNTING_CREATE), async (c) =>
-    c.json({ data: await accountingService.sendQuote(c.var.db, c.req.param("id")) }),
+    c.json({
+      data: await accountingService.sendQuote(
+        c.var.db,
+        c.req.param("id"),
+        c.var.user!.id,
+        c.var.user!.permissions,
+      ),
+    }),
   )
   .post("/quotes/:id/convert", requirePermission(PERMISSIONS.ACCOUNTING_CREATE), async (c) =>
-    c.json({ data: await accountingService.convertQuote(c.var.db, c.req.param("id")) }),
+    c.json({
+      data: await accountingService.convertQuote(
+        c.var.db,
+        c.req.param("id"),
+        c.var.user!.id,
+        c.var.user!.permissions,
+      ),
+    }),
   )
 
   // ── Bank accounts (read) ──────────────────────────────────────────────────

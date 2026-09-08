@@ -40,6 +40,15 @@ const payslipDocUpload = multer({
   limits: { fileSize: MULTIPART_UPLOAD_MAX_BYTES },
 });
 
+// Company-wide payslip list/export/download is HR-manager only. Every
+// employee seed role holds `payroll:read` for `/my-payslips*`, so gating
+// the flat HR surfaces on READ alone was a salary-PII IDOR (Wave 8).
+const payrollManage = [
+  PERMISSIONS.PAYROLL_CREATE,
+  PERMISSIONS.PAYROLL_APPROVE,
+  PERMISSIONS.PAYROLL_HR_ADMIN,
+] as const;
+
 // ── Employee-facing /my-portal payslip endpoints ──
 //
 // Mounted ahead of `/runs/...` so the literal `/my-payslips` prefix
@@ -73,14 +82,13 @@ router.get(
 
 // ── HR-facing flat payslip list (HRMS → Payslip Management) ──
 //
-// Same payroll:read perm as the run-level list — HR users who can see
-// runs can see the slips on those runs. Pagination intentionally
-// omitted in v1: the underlying table is small enough to ship the
-// whole filtered set, and the HRMS tab applies its own client-side
-// search on top.
+// Manager-gated (create/approve/hr-admin). Plain `payroll:read` is only
+// enough for `/my-payslips*`. Pagination intentionally omitted in v1:
+// the underlying table is small enough to ship the whole filtered set,
+// and the HRMS tab applies its own client-side search on top.
 router.get(
   "/payslips",
-  requirePermission(PERMISSIONS.PAYROLL_READ),
+  requirePermission(...payrollManage),
   asyncHandler(async (req, res) => {
     const query = hrPayslipQuerySchema.parse(req.query);
     const data = await payrollService.listPayslipsForHr(query);
@@ -124,12 +132,12 @@ router.put(
 );
 
 // HRMS "Export data" — flat payslip list as Excel / CSV, one row per payslip
-// with the full breakdown. Same `payroll:read` gate + filter schema as the
-// list it exports. Literal `export` registered BEFORE `/payslips/:id/...` so
-// Express doesn't route it into the `:id` param handler.
+// with the full breakdown. Same manager gate + filter schema as the list it
+// exports. Literal `export` registered BEFORE `/payslips/:id/...` so Express
+// doesn't route it into the `:id` param handler.
 router.get(
   "/payslips/export",
-  requirePermission(PERMISSIONS.PAYROLL_READ),
+  requirePermission(...payrollManage),
   asyncHandler(async (req, res) => {
     const query = hrPayslipQuerySchema.parse(req.query);
     const format = req.query.format === "csv" ? "csv" : "xlsx";
@@ -143,7 +151,7 @@ router.get(
 
 router.get(
   "/payslips/:id/download",
-  requirePermission(PERMISSIONS.PAYROLL_READ),
+  requirePermission(...payrollManage),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
     const data = await payrollService.getPayslipDownloadUrlForHr(id);
@@ -156,7 +164,7 @@ router.get(
 // query string so a single FE button can switch between Excel / PDF.
 router.get(
   "/payslips/:id/export",
-  requirePermission(PERMISSIONS.PAYROLL_READ),
+  requirePermission(...payrollManage),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
     const format = req.query.format === "pdf" ? "pdf" : "xlsx";
@@ -179,7 +187,7 @@ router.get(
 // files. HR clicks "Generate all" to ship a full month at once.
 router.get(
   "/runs/:runId/payslips/export",
-  requirePermission(PERMISSIONS.PAYROLL_READ),
+  requirePermission(...payrollManage),
   asyncHandler(async (req, res) => {
     const runId = getRequiredParam(req.params, "runId");
     const format = req.query.format === "pdf" ? "pdf" : "xlsx";

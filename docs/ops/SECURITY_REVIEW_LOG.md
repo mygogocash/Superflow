@@ -242,3 +242,23 @@ Do **not** claim multi-org ERP is done until debt rows above carry `organization
 
 - Local: `gitleaks detect --no-git --config .gitleaks.toml` → no leaks.
 - Local: `pnpm security:ungated-routes -- --fail` + `pnpm security:dangerously-html -- --fail` → clean.
+
+## Wave 8 — Finance deep-dive (2026-09-08)
+
+### Findings fixed
+
+| id | Sev | Finding | Fix |
+|----|-----|---------|-----|
+| SEC-017 | P0 | Company-wide payslip list/export/download gated only on `payroll:read`, which every employee seed role holds for `/my-payslips*` → salary-PII IDOR | Edge + Express: manager gate (`payroll:create` \| `payroll:approve` \| `payroll:hr-admin`) on flat HR payslip surfaces; `/my-payslips*` stays auth-only |
+| SEC-018 | P1 | Journals / quotes listed and mutated without own-document scoping (invoices already scoped) | Edge (`@nexora/core`) + Express: `createdBy` filter on list; assert access helpers on get/update/delete/send/convert |
+
+### Residual (Finance batch)
+
+| id | Finding | Disposition |
+|----|---------|-------------|
+| SEC-019 | Expenses / cash-advance / vendors still lack `organizationId` tenancy | deferred — org tenancy plan; Wave 3 debt |
+| SEC-020 | Soft-delete restore IDOR already covered for journals/invoices; quotes soft-delete path not separately audited this batch | follow-up in Finance residual or Wave 8 CRM if quotes gain soft-delete |
+
+### Verify
+
+- `pnpm --filter @nexora/api exec vitest run src/modules/accounting/accounting.service.test.ts` (own-doc + Wave 8 journal/quote cases).

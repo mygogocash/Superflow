@@ -276,6 +276,7 @@ export async function findJournals(
     startDate?: string;
     endDate?: string;
     descriptionLang?: "en" | "th";
+    createdBy?: string;
   },
   page: number,
   limit: number,
@@ -290,6 +291,7 @@ export async function findJournals(
     }
   }
   if (filters.entityId) conditions.push(eq(schema.journalEntries.entityId, filters.entityId));
+  if (filters.createdBy) conditions.push(eq(schema.journalEntries.createdBy, filters.createdBy));
   if (filters.startDate) conditions.push(gte(schema.journalEntries.date, filters.startDate));
   if (filters.endDate) conditions.push(lte(schema.journalEntries.date, filters.endDate));
   if (filters.descriptionLang === "en") {
@@ -716,11 +718,12 @@ async function mapQuoteRow(db: DbLike, quote: typeof schema.quotes.$inferSelect)
 
 export async function findQuotes(
   db: Db,
-  filters: { entityId?: string; status?: string },
+  filters: { entityId?: string; status?: string; createdBy?: string },
 ) {
   const conditions: SQL[] = [isNull(schema.quotes.deletedAt)];
   if (filters.entityId) conditions.push(eq(schema.quotes.entityId, filters.entityId));
   if (filters.status) conditions.push(eq(schema.quotes.status, filters.status));
+  if (filters.createdBy) conditions.push(eq(schema.quotes.createdBy, filters.createdBy));
 
   const rows = await db
     .select()

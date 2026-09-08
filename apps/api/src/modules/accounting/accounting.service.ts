@@ -1632,10 +1632,14 @@ export class AccountingService {
     };
   }
 
-  async listJournals(query: JournalQuery) {
+  async listJournals(query: JournalQuery, actorId: string, permissions: string[]) {
     const { page, limit, ...filters } = query;
+    const scoped = {
+      ...filters,
+      createdBy: canReadAllAccounting(permissions) ? undefined : actorId,
+    };
     const { data, total } = await accountingRepository.findJournals(
-      filters,
+      scoped,
       page,
       limit,
     );
@@ -1670,6 +1674,12 @@ export class AccountingService {
     return decorateJournalTotals(journal);
   }
 
+  async getJournalByIdForActor(id: string, actorId: string, permissions: string[]) {
+    const journal = await this.getJournalById(id);
+    assertInvoiceAccess(journal, actorId, permissions);
+    return journal;
+  }
+
   async createJournal(userId: string, input: CreateJournalInput) {
     const created = await accountingRepository.createJournal({
       entityId: input.entityId,
@@ -1682,9 +1692,17 @@ export class AccountingService {
     return decorateJournalTotals(created);
   }
 
-  async updateJournal(journalId: string, input: UpdateJournalInput) {
+  async updateJournal(
+    journalId: string,
+    input: UpdateJournalInput,
+    actorId?: string,
+    permissions?: string[],
+  ) {
     const journal = await accountingRepository.findJournalById(journalId);
     if (!journal) throw new NotFoundException("Journal entry not found");
+    if (actorId && permissions) {
+      assertInvoiceAccess(journal, actorId, permissions);
+    }
     if (!["draft", "rejected"].includes(journal.status)) {
       throw new BadRequestException(
         `Cannot update a journal with status "${journal.status}"`,
@@ -1698,9 +1716,16 @@ export class AccountingService {
     return decorateJournalTotals(updated);
   }
 
-  async deleteJournal(journalId: string, actorId?: string) {
+  async deleteJournal(
+    journalId: string,
+    actorId?: string,
+    permissions?: string[],
+  ) {
     const journal = await accountingRepository.findJournalById(journalId);
     if (!journal) throw new NotFoundException("Journal entry not found");
+    if (actorId && permissions) {
+      assertInvoiceAccess(journal, actorId, permissions);
+    }
     if (!["draft", "rejected"].includes(journal.status)) {
       throw new BadRequestException(
         `Cannot delete a journal with status "${journal.status}"`,
@@ -6675,13 +6700,20 @@ export class AccountingService {
     };
   }
 
-  async listQuotes(query: QuoteQuery) {
-    return accountingRepository.findQuotes(query);
+  async listQuotes(query: QuoteQuery, actorId: string, permissions: string[]) {
+    const createdBy = canReadAllAccounting(permissions) ? undefined : actorId;
+    return accountingRepository.findQuotes({ ...query, createdBy });
   }
 
   async getQuoteById(id: string) {
     const quote = await accountingRepository.findQuoteById(id);
     if (!quote) throw new NotFoundException("Quote not found");
+    return quote;
+  }
+
+  async getQuoteByIdForActor(id: string, actorId: string, permissions: string[]) {
+    const quote = await this.getQuoteById(id);
+    assertInvoiceAccess(quote, actorId, permissions);
     return quote;
   }
 
@@ -6712,9 +6744,15 @@ export class AccountingService {
     return this.getQuoteById(created.id);
   }
 
-  async updateQuote(id: string, input: UpdateQuoteInput) {
+  async updateQuote(
+    id: string,
+    input: UpdateQuoteInput,
+    actorId?: string,
+    permissions?: string[],
+  ) {
     const quote = await accountingRepository.findQuoteById(id);
     if (!quote) throw new NotFoundException("Quote not found");
+    if (actorId && permissions) assertInvoiceAccess(quote, actorId, permissions);
     if (quote.status !== "draft") {
       throw new BadRequestException("Only a draft quote can be edited.");
     }
@@ -6748,9 +6786,10 @@ export class AccountingService {
     return this.getQuoteById(id);
   }
 
-  async sendQuote(id: string) {
+  async sendQuote(id: string, actorId?: string, permissions?: string[]) {
     const quote = await accountingRepository.findQuoteById(id);
     if (!quote) throw new NotFoundException("Quote not found");
+    if (actorId && permissions) assertInvoiceAccess(quote, actorId, permissions);
     if (quote.status !== "draft") {
       throw new BadRequestException("Only a draft quote can be sent.");
     }
@@ -6761,9 +6800,10 @@ export class AccountingService {
   // Convert an accepted/sent quote into a draft AR invoice, copying the lines.
   // The invoice's blended VAT rate reproduces the quote's tax total, and its
   // amount is set from the quote grand total so nothing drifts on rounding.
-  async convertQuote(id: string) {
+  async convertQuote(id: string, actorId?: string, permissions?: string[]) {
     const quote = await accountingRepository.findQuoteById(id);
     if (!quote) throw new NotFoundException("Quote not found");
+    if (actorId && permissions) assertInvoiceAccess(quote, actorId, permissions);
     if (!["sent", "accepted"].includes(quote.status)) {
       throw new BadRequestException(
         "Only a sent or accepted quote can be converted.",
@@ -6830,9 +6870,10 @@ export class AccountingService {
     return { quote: await this.getQuoteById(id), invoiceId };
   }
 
-  async deleteQuote(id: string) {
+  async deleteQuote(id: string, actorId?: string, permissions?: string[]) {
     const quote = await accountingRepository.findQuoteById(id);
     if (!quote) throw new NotFoundException("Quote not found");
+    if (actorId && permissions) assertInvoiceAccess(quote, actorId, permissions);
     if (quote.status === "converted") {
       throw new BadRequestException(
         "A converted quote cannot be deleted; void its invoice instead.",

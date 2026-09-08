@@ -785,6 +785,7 @@ export class AccountingRepository {
       startDate?: string;
       endDate?: string;
       descriptionLang?: "en" | "th";
+      createdBy?: string;
       sortBy?:
         | "entryNo"
         | "reference"
@@ -808,6 +809,7 @@ export class AccountingRepository {
     }
     // Default list keeps deleted drafts visible with a Deleted badge.
     if (filters.entityId) where.entityId = filters.entityId;
+    if (filters.createdBy) where.createdBy = filters.createdBy;
     if (filters.startDate || filters.endDate) {
       where.date = {};
       if (filters.startDate) where.date.gte = new Date(filters.startDate);
@@ -3069,12 +3071,13 @@ export class AccountingRepository {
 
   // ── Quotes ────────────────────────────────────────────────────────────────
 
-  async findQuotes(filters: { entityId?: string; status?: string }) {
+  async findQuotes(filters: { entityId?: string; status?: string; createdBy?: string }) {
     return prisma.quote.findMany({
       where: {
         deletedAt: null,
         ...(filters.entityId ? { entityId: filters.entityId } : {}),
         ...(filters.status ? { status: filters.status } : {}),
+        ...(filters.createdBy ? { createdBy: filters.createdBy } : {}),
       },
       include: {
         entity: { select: { id: true, name: true } },

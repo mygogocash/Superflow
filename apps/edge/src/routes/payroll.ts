@@ -46,6 +46,15 @@ const diagnoseQuerySchema = z.object({
   email: z.string().min(1),
 });
 
+// Company-wide payslip list/export/download is HR-manager only. Every employee
+// seed role holds `payroll:read` for `/my-payslips*`, so gating the flat HR
+// surfaces on READ alone was a salary-PII IDOR (Wave 8).
+const payrollManage = [
+  PERMISSIONS.PAYROLL_CREATE,
+  PERMISSIONS.PAYROLL_APPROVE,
+  PERMISSIONS.PAYROLL_HR_ADMIN,
+] as const;
+
 export const payroll = new Hono<AppEnv>()
   .get("/my-payslips", requireAuth, async (c) => {
     const data = await payrollService.listMyPayslips(c.var.db, c.var.user!.id);
@@ -65,7 +74,7 @@ export const payroll = new Hono<AppEnv>()
   )
   .get(
     "/payslips",
-    requirePermission(PERMISSIONS.PAYROLL_READ),
+    requirePermission(...payrollManage),
     zValidator("query", hrPayslipQuerySchema),
     async (c) => {
       const data = await payrollService.listPayslipsForHr(c.var.db, c.req.valid("query"));
@@ -104,7 +113,7 @@ export const payroll = new Hono<AppEnv>()
   )
   .get(
     "/payslips/export",
-    requirePermission(PERMISSIONS.PAYROLL_READ),
+    requirePermission(...payrollManage),
     zValidator("query", hrPayslipQuerySchema),
     async (c) => {
       const query = c.req.valid("query");
@@ -124,7 +133,7 @@ export const payroll = new Hono<AppEnv>()
   )
   .get(
     "/payslips/:id/download",
-    requirePermission(PERMISSIONS.PAYROLL_READ),
+    requirePermission(...payrollManage),
     async (c) => {
       const data = await payrollService.getPayslipDownloadUrlForHr(c.var.db, c.req.param("id"));
       return c.json({ data });
@@ -132,7 +141,7 @@ export const payroll = new Hono<AppEnv>()
   )
   .get(
     "/payslips/:id/export",
-    requirePermission(PERMISSIONS.PAYROLL_READ),
+    requirePermission(...payrollManage),
     async (c) => {
       const id = c.req.param("id");
       const format = c.req.query("format") === "pdf" ? "pdf" : "xlsx";
@@ -154,7 +163,7 @@ export const payroll = new Hono<AppEnv>()
   )
   .get(
     "/payslips/:id/file",
-    requirePermission(PERMISSIONS.PAYROLL_READ),
+    requirePermission(...payrollManage),
     async (c) => {
       const { key, filename } = await payrollService.resolvePayslipDocumentStream(
         c.var.db,
@@ -172,7 +181,7 @@ export const payroll = new Hono<AppEnv>()
   )
   .get(
     "/runs/:runId/payslips/export",
-    requirePermission(PERMISSIONS.PAYROLL_READ),
+    requirePermission(...payrollManage),
     async (c) => {
       const runId = c.req.param("runId");
       const format = c.req.query("format") === "pdf" ? "pdf" : "xlsx";
