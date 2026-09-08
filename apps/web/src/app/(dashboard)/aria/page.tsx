@@ -41,7 +41,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
-import type { AriaConversation, AriaMessage } from "@/services/aria.service";
+import type { ManutAiConversation, ManutAiMessage } from "@/services/aria.service";
 import {
   deleteConversation,
   getConversation,
@@ -57,7 +57,7 @@ export default function AriaPage() {
 
   const [workspace, setWorkspace] = useState<"chat" | "documents">("chat");
 
-  const [conversations, setConversations] = useState<AriaConversation[]>([]);
+  const [conversations, setConversations] = useState<ManutAiConversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<LocalMessage[]>([]);
   const [input, setInput] = useState("");
@@ -126,7 +126,7 @@ export default function AriaPage() {
       try {
         const convo = await getConversation(id);
         setMessages(
-          convo.messages.map((m: AriaMessage) => ({
+          convo.messages.map((m: ManutAiMessage) => ({
             ...m,
             pending: false,
           })),

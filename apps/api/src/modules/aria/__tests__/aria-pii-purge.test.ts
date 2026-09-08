@@ -9,7 +9,7 @@ import { ariaService } from "@/modules/aria/aria.service";
  */
 
 const prismaMock = vi.hoisted(() => ({
-  ariaQueryLog: { updateMany: vi.fn() },
+  manutAiQueryLog: { updateMany: vi.fn() },
 }));
 
 vi.mock("@/infrastructure/database/prisma", () => ({
@@ -34,19 +34,19 @@ const ORIGINAL_ENV = process.env.ARIA_PII_RETENTION_DAYS;
 
 beforeEach(() => {
   vi.clearAllMocks();
-  prismaMock.ariaQueryLog.updateMany.mockResolvedValue({ count: 0 });
+  prismaMock.manutAiQueryLog.updateMany.mockResolvedValue({ count: 0 });
   process.env.ARIA_PII_RETENTION_DAYS = ORIGINAL_ENV;
 });
 
 describe("ariaService.runPiiPurge", () => {
   it("defaults to 30-day retention and redacts via sentinel", async () => {
     delete process.env.ARIA_PII_RETENTION_DAYS;
-    prismaMock.ariaQueryLog.updateMany.mockResolvedValue({ count: 4 });
+    prismaMock.manutAiQueryLog.updateMany.mockResolvedValue({ count: 4 });
 
     const result = await ariaService.runPiiPurge();
 
     expect(result.data).toEqual({ redacted: 4, retentionDays: 30 });
-    const call = prismaMock.ariaQueryLog.updateMany.mock.calls[0]?.[0] as {
+    const call = prismaMock.manutAiQueryLog.updateMany.mock.calls[0]?.[0] as {
       where: {
         createdAt: { lt: Date };
         NOT: { userMessage: string };
@@ -64,12 +64,12 @@ describe("ariaService.runPiiPurge", () => {
 
   it("honours ARIA_PII_RETENTION_DAYS env override", async () => {
     process.env.ARIA_PII_RETENTION_DAYS = "7";
-    prismaMock.ariaQueryLog.updateMany.mockResolvedValue({ count: 0 });
+    prismaMock.manutAiQueryLog.updateMany.mockResolvedValue({ count: 0 });
 
     const result = await ariaService.runPiiPurge();
 
     expect(result.data.retentionDays).toBe(7);
-    const call = prismaMock.ariaQueryLog.updateMany.mock.calls[0]?.[0] as {
+    const call = prismaMock.manutAiQueryLog.updateMany.mock.calls[0]?.[0] as {
       where: { createdAt: { lt: Date } };
     };
     const ageMs = Date.now() - call.where.createdAt.lt.getTime();

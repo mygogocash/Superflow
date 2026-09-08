@@ -17,8 +17,8 @@ import {
   getConversation,
   listConversations,
   streamAriaChat,
-  type AriaConversation,
-  type AriaMessage,
+  type ManutAiConversation,
+  type ManutAiMessage,
   type ChatAction,
   type ConfirmAction,
   type ToolUseTrace,
@@ -30,7 +30,7 @@ import { toast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/store/auth";
 
-type LocalMessage = AriaMessage & {
+type LocalMessage = ManutAiMessage & {
   pending?: boolean;
   toolUses?: ToolUseTrace[];
   error?: string;
@@ -216,7 +216,7 @@ export default function ManutAiPage() {
   const canUse = useAuth((s) => s.hasPermission("aria:use"));
   const compact = useViewportWidth() < TABLET_MIN;
 
-  const [conversations, setConversations] = useState<AriaConversation[]>([]);
+  const [conversations, setConversations] = useState<ManutAiConversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<LocalMessage[]>([]);
   const [input, setInput] = useState("");

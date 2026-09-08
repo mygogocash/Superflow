@@ -27,7 +27,7 @@ export const ariaTrainingRepository = {
     batchSize = 1000,
   ): Promise<number> {
     const cutoff = new Date(Date.now() - olderThanDays * 24 * 60 * 60 * 1000);
-    const pending = await prisma.ariaInteractionTrace.findMany({
+    const pending = await prisma.manutAiInteractionTrace.findMany({
       where: { piiRedacted: false, createdAt: { lt: cutoff } },
       select: {
         id: true,
@@ -44,7 +44,7 @@ export const ariaTrainingRepository = {
         assistantText: t.assistantText,
         toolCalls: t.toolCalls,
       });
-      await prisma.ariaInteractionTrace.update({
+      await prisma.manutAiInteractionTrace.update({
         where: { id: t.id },
         data: {
           userMessage: r.userMessage,
@@ -70,7 +70,7 @@ export const ariaTrainingRepository = {
     requirePermission?: string;
     limit?: number;
   }): Promise<TraceExampleInput[]> {
-    const rows = await prisma.ariaInteractionTrace.findMany({
+    const rows = await prisma.manutAiInteractionTrace.findMany({
       where: {
         piiRedacted: true,
         createdAt: { lte: opts.until },
@@ -122,7 +122,7 @@ export const ariaTrainingRepository = {
 
   // ── Phase 2: dataset registry ───────────────────────────────────
   async nextDatasetVersion(kind: string): Promise<number> {
-    const latest = await prisma.ariaTrainingDataset.findFirst({
+    const latest = await prisma.manutAiTrainingDataset.findFirst({
       where: { kind },
       orderBy: { version: "desc" },
       select: { version: true },
@@ -139,11 +139,11 @@ export const ariaTrainingRepository = {
     checksum: string;
     createdById: string | null;
   }) {
-    return prisma.ariaTrainingDataset.create({ data: input });
+    return prisma.manutAiTrainingDataset.create({ data: input });
   },
 
   async listDatasets(kind?: string) {
-    return prisma.ariaTrainingDataset.findMany({
+    return prisma.manutAiTrainingDataset.findMany({
       where: kind ? { kind } : undefined,
       orderBy: { createdAt: "desc" },
       take: 200,
@@ -151,7 +151,7 @@ export const ariaTrainingRepository = {
   },
 
   async getDataset(id: string) {
-    return prisma.ariaTrainingDataset.findUnique({ where: { id } });
+    return prisma.manutAiTrainingDataset.findUnique({ where: { id } });
   },
 
   // ── Phase 4: model-version registry ─────────────────────────────
@@ -164,15 +164,15 @@ export const ariaTrainingRepository = {
     notes: string | null;
     createdById: string | null;
   }) {
-    return prisma.ariaModelVersion.create({ data: input });
+    return prisma.manutAiModelVersion.create({ data: input });
   },
 
   async getModelVersion(id: string) {
-    return prisma.ariaModelVersion.findUnique({ where: { id } });
+    return prisma.manutAiModelVersion.findUnique({ where: { id } });
   },
 
   async listModelVersions(status?: string) {
-    return prisma.ariaModelVersion.findMany({
+    return prisma.manutAiModelVersion.findMany({
       where: status ? { status } : undefined,
       orderBy: { createdAt: "desc" },
       take: 200,
@@ -185,7 +185,7 @@ export const ariaTrainingRepository = {
     evalSummary: unknown,
     promotedAt: Date | null,
   ) {
-    return prisma.ariaModelVersion.update({
+    return prisma.manutAiModelVersion.update({
       where: { id },
       data: {
         status,
@@ -199,16 +199,16 @@ export const ariaTrainingRepository = {
   async trainingMetrics(sinceDays: number) {
     const since = new Date(Date.now() - sinceDays * 24 * 60 * 60 * 1000);
     const [agg, errorCount, feedback, distance] = await Promise.all([
-      prisma.ariaInteractionTrace.aggregate({
+      prisma.manutAiInteractionTrace.aggregate({
         where: { createdAt: { gte: since } },
         _count: { _all: true },
         _avg: { tokensIn: true, tokensOut: true, latencyMs: true },
         _sum: { toolUseCount: true },
       }),
-      prisma.ariaInteractionTrace.count({
+      prisma.manutAiInteractionTrace.count({
         where: { createdAt: { gte: since }, error: true },
       }),
-      prisma.ariaFeedback.groupBy({
+      prisma.manutAiFeedback.groupBy({
         by: ["rating"],
         where: { createdAt: { gte: since } },
         _count: { _all: true },

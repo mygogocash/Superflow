@@ -4,7 +4,7 @@ import {
   createPartFromUri,
   createUserContent,
 } from "@google/genai";
-import type { AriaAttachment } from "@nexora/database";
+import type { ManutAiAttachment } from "@nexora/database";
 import { OfficeParser } from "officeparser";
 import * as XLSX from "xlsx";
 
@@ -112,7 +112,7 @@ async function uploadAttachment(
     mimeType: string;
     size: number;
   },
-): Promise<AriaAttachment> {
+): Promise<ManutAiAttachment> {
   const plan = planFor(file.mimeType);
   if (!plan) {
     throw new BadRequestException(
@@ -326,7 +326,7 @@ const MAX_EXTRACTED_TEXT_CHARS = 40_000;
  * text note rather than aborting the whole chat turn.
  */
 async function buildAttachmentBlocks(
-  attachments: AriaAttachment[],
+  attachments: ManutAiAttachment[],
   opts: { inlineImages?: boolean } = {},
 ): Promise<unknown[]> {
   const inlineImages = opts.inlineImages ?? true;

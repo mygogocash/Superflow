@@ -62,12 +62,12 @@ interface ArticleUpsertInput {
  * for orphan deactivation.
  */
 async function upsertAutoArticle(input: ArticleUpsertInput): Promise<string> {
-  const existing = await prisma.ariaKnowledgeArticle.findUnique({
+  const existing = await prisma.manutAiKnowledgeArticle.findUnique({
     where: { slug: input.slug },
     select: { id: true, body: true, title: true, keywords: true },
   });
 
-  const article = await prisma.ariaKnowledgeArticle.upsert({
+  const article = await prisma.manutAiKnowledgeArticle.upsert({
     where: { slug: input.slug },
     create: {
       slug: input.slug,
@@ -132,7 +132,7 @@ async function deactivateOrphans(
   source: SourceKey,
   aliveIds: string[],
 ): Promise<number> {
-  const result = await prisma.ariaKnowledgeArticle.updateMany({
+  const result = await prisma.manutAiKnowledgeArticle.updateMany({
     where: {
       tags: { hasEvery: [AUTO_TAG, source] },
       isActive: true,

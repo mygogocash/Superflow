@@ -4,7 +4,7 @@ import { prisma } from "@/infrastructure/database/prisma";
 
 export const ariaRepository = {
   async findConversations(userId: string) {
-    return prisma.ariaConversation.findMany({
+    return prisma.manutAiConversation.findMany({
       where: { userId },
       include: { _count: { select: { messages: true } } },
       orderBy: { updatedAt: "desc" },
@@ -12,11 +12,11 @@ export const ariaRepository = {
   },
 
   async findConversationById(id: string) {
-    return prisma.ariaConversation.findUnique({ where: { id } });
+    return prisma.manutAiConversation.findUnique({ where: { id } });
   },
 
   async findConversationWithMessages(id: string) {
-    return prisma.ariaConversation.findUnique({
+    return prisma.manutAiConversation.findUnique({
       where: { id },
       include: {
         messages: {
@@ -31,7 +31,7 @@ export const ariaRepository = {
   // the chat. 40 messages ≈ 20 user/assistant pairs — wide enough to
   // hold a long thread without bloating prompt tokens.
   async getRecentMessages(conversationId: string, take = 40) {
-    const messages = await prisma.ariaMessage.findMany({
+    const messages = await prisma.manutAiMessage.findMany({
       where: { conversationId },
       orderBy: { createdAt: "desc" },
       take,
@@ -46,57 +46,57 @@ export const ariaRepository = {
    * into a single block.
    */
   async getMessagesOlderThan(conversationId: string, beforeId: string) {
-    const pivot = await prisma.ariaMessage.findUnique({
+    const pivot = await prisma.manutAiMessage.findUnique({
       where: { id: beforeId },
       select: { createdAt: true },
     });
     if (!pivot) return [];
-    return prisma.ariaMessage.findMany({
+    return prisma.manutAiMessage.findMany({
       where: { conversationId, createdAt: { lt: pivot.createdAt } },
       orderBy: { createdAt: "asc" },
     });
   },
 
   async countMessagesOlderThan(conversationId: string, beforeId: string) {
-    const pivot = await prisma.ariaMessage.findUnique({
+    const pivot = await prisma.manutAiMessage.findUnique({
       where: { id: beforeId },
       select: { createdAt: true },
     });
     if (!pivot) return 0;
-    return prisma.ariaMessage.count({
+    return prisma.manutAiMessage.count({
       where: { conversationId, createdAt: { lt: pivot.createdAt } },
     });
   },
 
   async createConversation(userId: string, title: string) {
-    return prisma.ariaConversation.create({ data: { userId, title } });
+    return prisma.manutAiConversation.create({ data: { userId, title } });
   },
 
   async updateConversationTimestamp(id: string) {
-    return prisma.ariaConversation.update({
+    return prisma.manutAiConversation.update({
       where: { id },
       data: { updatedAt: new Date() },
     });
   },
 
   async updateConversationTitle(id: string, title: string) {
-    return prisma.ariaConversation.update({
+    return prisma.manutAiConversation.update({
       where: { id },
       data: { title },
     });
   },
 
   async countMessages(conversationId: string) {
-    return prisma.ariaMessage.count({ where: { conversationId } });
+    return prisma.manutAiMessage.count({ where: { conversationId } });
   },
 
   async deleteConversation(id: string) {
-    await prisma.ariaMessage.deleteMany({ where: { conversationId: id } });
-    return prisma.ariaConversation.delete({ where: { id } });
+    await prisma.manutAiMessage.deleteMany({ where: { conversationId: id } });
+    return prisma.manutAiConversation.delete({ where: { id } });
   },
 
   async addMessage(conversationId: string, role: string, content: string) {
-    return prisma.ariaMessage.create({
+    return prisma.manutAiMessage.create({
       data: { conversationId, role, content },
     });
   },
@@ -111,12 +111,12 @@ export const ariaRepository = {
     conversationId: string,
     pivotMessageId: string,
   ): Promise<number> {
-    const pivot = await prisma.ariaMessage.findUnique({
+    const pivot = await prisma.manutAiMessage.findUnique({
       where: { id: pivotMessageId },
       select: { conversationId: true, createdAt: true },
     });
     if (!pivot || pivot.conversationId !== conversationId) return 0;
-    const result = await prisma.ariaMessage.deleteMany({
+    const result = await prisma.manutAiMessage.deleteMany({
       where: {
         conversationId,
         createdAt: { gte: pivot.createdAt },
@@ -127,14 +127,14 @@ export const ariaRepository = {
 
   /** Last persisted user message in the conversation (or `null`). */
   async findLatestUserMessage(conversationId: string) {
-    return prisma.ariaMessage.findFirst({
+    return prisma.manutAiMessage.findFirst({
       where: { conversationId, role: "user" },
       orderBy: { createdAt: "desc" },
     });
   },
 
   async findMessageById(id: string) {
-    return prisma.ariaMessage.findUnique({ where: { id } });
+    return prisma.manutAiMessage.findUnique({ where: { id } });
   },
 
   // ── Attachments ───────────────────────────────────────────────────
@@ -150,11 +150,11 @@ export const ariaRepository = {
     extractedText?: string | null;
     status?: string;
   }) {
-    return prisma.ariaAttachment.create({ data });
+    return prisma.manutAiAttachment.create({ data });
   },
 
   async findAttachmentById(id: string) {
-    return prisma.ariaAttachment.findUnique({ where: { id } });
+    return prisma.manutAiAttachment.findUnique({ where: { id } });
   },
 
   /**
@@ -164,7 +164,7 @@ export const ariaRepository = {
    */
   async findUnlinkedAttachmentsForUser(ids: string[], userId: string) {
     if (ids.length === 0) return [];
-    return prisma.ariaAttachment.findMany({
+    return prisma.manutAiAttachment.findMany({
       where: { id: { in: ids }, userId, messageId: null },
     });
   },
@@ -177,7 +177,7 @@ export const ariaRepository = {
     if (ids.length === 0) return;
     // Re-scope to owner + still-unlinked so the method is safe in isolation,
     // not just because the caller pre-validated.
-    await prisma.ariaAttachment.updateMany({
+    await prisma.manutAiAttachment.updateMany({
       where: { id: { in: ids }, userId, messageId: null },
       data: { messageId },
     });
@@ -190,7 +190,7 @@ export const ariaRepository = {
     isActive?: boolean;
     search?: string;
   }) {
-    return prisma.ariaKnowledgeArticle.findMany({
+    return prisma.manutAiKnowledgeArticle.findMany({
       where: {
         ...(filters.category && { category: filters.category }),
         ...(filters.isActive !== undefined && { isActive: filters.isActive }),
@@ -209,7 +209,7 @@ export const ariaRepository = {
   },
 
   async findKnowledgeById(id: string) {
-    return prisma.ariaKnowledgeArticle.findUnique({
+    return prisma.manutAiKnowledgeArticle.findUnique({
       where: { id },
       include: {
         createdBy: { select: { id: true, name: true, email: true } },
@@ -228,7 +228,7 @@ export const ariaRepository = {
     isActive: boolean;
     createdById?: string;
   }) {
-    return prisma.ariaKnowledgeArticle.create({
+    return prisma.manutAiKnowledgeArticle.create({
       data,
       include: {
         createdBy: { select: { id: true, name: true, email: true } },
@@ -249,7 +249,7 @@ export const ariaRepository = {
       isActive: boolean;
     }>,
   ) {
-    return prisma.ariaKnowledgeArticle.update({
+    return prisma.manutAiKnowledgeArticle.update({
       where: { id },
       data,
       include: {
@@ -259,7 +259,7 @@ export const ariaRepository = {
   },
 
   async deleteKnowledge(id: string) {
-    return prisma.ariaKnowledgeArticle.delete({ where: { id } });
+    return prisma.manutAiKnowledgeArticle.delete({ where: { id } });
   },
 
   // Lightweight retrieval — used by chatStream. Pulls all active rows
@@ -268,7 +268,7 @@ export const ariaRepository = {
   // a fallback when vector retrieval fails or the row has no
   // embedding yet.
   async findActiveKnowledgeForRetrieval() {
-    return prisma.ariaKnowledgeArticle.findMany({
+    return prisma.manutAiKnowledgeArticle.findMany({
       where: { isActive: true },
       select: {
         id: true,
@@ -337,7 +337,7 @@ export const ariaRepository = {
   // ── Conversation memory ───────────────────────────────────────────
 
   async getSummary(conversationId: string) {
-    return prisma.ariaConversationSummary.findUnique({
+    return prisma.manutAiConversationSummary.findUnique({
       where: { conversationId },
     });
   },
@@ -349,7 +349,7 @@ export const ariaRepository = {
     messageCount: number;
     model: string;
   }) {
-    return prisma.ariaConversationSummary.upsert({
+    return prisma.manutAiConversationSummary.upsert({
       where: { conversationId: input.conversationId },
       create: {
         conversationId: input.conversationId,
@@ -368,7 +368,7 @@ export const ariaRepository = {
   },
 
   async getMemory(conversationId: string) {
-    return prisma.ariaConversationMemory.findMany({
+    return prisma.manutAiConversationMemory.findMany({
       where: { conversationId },
       orderBy: { updatedAt: "desc" },
     });
@@ -381,7 +381,7 @@ export const ariaRepository = {
     if (entries.length === 0) return;
     await prisma.$transaction(
       entries.map((e) =>
-        prisma.ariaConversationMemory.upsert({
+        prisma.manutAiConversationMemory.upsert({
           where: {
             conversationId_key: { conversationId, key: e.key },
           },
@@ -401,7 +401,7 @@ export const ariaRepository = {
   async deleteMemoryEntriesMatching(conversationId: string, needle: string) {
     const trimmed = needle.trim();
     if (!trimmed) return [];
-    const found = await prisma.ariaConversationMemory.findMany({
+    const found = await prisma.manutAiConversationMemory.findMany({
       where: {
         conversationId,
         OR: [
@@ -411,7 +411,7 @@ export const ariaRepository = {
       },
     });
     if (found.length === 0) return [];
-    await prisma.ariaConversationMemory.deleteMany({
+    await prisma.manutAiConversationMemory.deleteMany({
       where: { id: { in: found.map((f) => f.id) } },
     });
     return found.map((f) => ({ key: f.key, value: f.value }));
@@ -440,7 +440,7 @@ export const ariaRepository = {
     toolUseCount?: number;
     toolNames?: string[];
   }) {
-    return prisma.ariaQueryLog.create({
+    return prisma.manutAiQueryLog.create({
       data: {
         conversationId: input.conversationId,
         userId: input.userId,
@@ -498,7 +498,7 @@ export const ariaRepository = {
     error: boolean;
     errorMessage: string | null;
   }) {
-    return prisma.ariaInteractionTrace.create({
+    return prisma.manutAiInteractionTrace.create({
       data: {
         conversationId: input.conversationId,
         userId: input.userId,
@@ -718,7 +718,7 @@ export const ariaRepository = {
     rating: "up" | "down";
     reason: string | null;
   }) {
-    return prisma.ariaFeedback.upsert({
+    return prisma.manutAiFeedback.upsert({
       where: {
         messageId_userId: {
           messageId: input.messageId,
@@ -745,7 +745,7 @@ export const ariaRepository = {
   },
 
   async findFeedbackById(id: string) {
-    return prisma.ariaFeedback.findUnique({
+    return prisma.manutAiFeedback.findUnique({
       where: { id },
       include: {
         message: {
@@ -764,7 +764,7 @@ export const ariaRepository = {
    * conversation title for context.
    */
   async findImprovementQueue(limit = 50) {
-    return prisma.ariaFeedback.findMany({
+    return prisma.manutAiFeedback.findMany({
       where: { rating: "down", reviewed: false },
       orderBy: { createdAt: "desc" },
       take: limit,
@@ -789,7 +789,7 @@ export const ariaRepository = {
     reviewNote: string | null;
     resultingArticleId: string | null;
   }) {
-    return prisma.ariaFeedback.update({
+    return prisma.manutAiFeedback.update({
       where: { id: input.feedbackId },
       data: {
         reviewed: true,
@@ -808,7 +808,7 @@ export const ariaRepository = {
    * generator so Haiku can see both Q and A.
    */
   async findFeedbackContext(feedbackId: string) {
-    const feedback = await prisma.ariaFeedback.findUnique({
+    const feedback = await prisma.manutAiFeedback.findUnique({
       where: { id: feedbackId },
       include: {
         message: {
@@ -823,7 +823,7 @@ export const ariaRepository = {
       },
     });
     if (!feedback) return null;
-    const prior = await prisma.ariaMessage.findFirst({
+    const prior = await prisma.manutAiMessage.findFirst({
       where: {
         conversationId: feedback.message.conversationId,
         role: "user",
@@ -848,7 +848,7 @@ export const ariaRepository = {
     const sentinel = "[redacted by retention policy]";
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - retentionDays);
-    const result = await prisma.ariaQueryLog.updateMany({
+    const result = await prisma.manutAiQueryLog.updateMany({
       where: {
         createdAt: { lt: cutoff },
         NOT: { userMessage: sentinel },

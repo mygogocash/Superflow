@@ -948,7 +948,7 @@ model VisaEventLog {
   @@map("visa_event_logs")
 }
 
-// HR-curated visa/immigration knowledge base. Mirrors AriaKnowledgeArticle
+// HR-curated visa/immigration knowledge base. Mirrors ManutAiKnowledgeArticle
 // (minus the retrieval embedding) — these are directly fetched and shown
 // contextually on a visa record, not semantically searched. `country` /
 // `visaType` null = applies to all. `requiredPermissions` empty = visible to

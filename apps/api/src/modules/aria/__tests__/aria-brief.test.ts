@@ -27,29 +27,29 @@ import {
  */
 
 const prismaMock = vi.hoisted(() => {
-  const ariaBriefSubscription = {
+  const manutAiBriefSubscription = {
     findMany: vi.fn(),
     findUnique: vi.fn(),
     upsert: vi.fn(),
     update: vi.fn(),
   };
-  const ariaBriefDelivery = {
+  const manutAiBriefDelivery = {
     findUnique: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     findMany: vi.fn(),
   };
-  const ariaConversation = {
+  const manutAiConversation = {
     create: vi.fn(),
     findFirst: vi.fn(),
   };
-  const ariaMessage = { create: vi.fn() };
+  const manutAiMessage = { create: vi.fn() };
   const user = { findUnique: vi.fn() };
   return {
-    ariaBriefSubscription,
-    ariaBriefDelivery,
-    ariaConversation,
-    ariaMessage,
+    manutAiBriefSubscription,
+    manutAiBriefDelivery,
+    manutAiConversation,
+    manutAiMessage,
     user,
     // Stubs for any section query that may run during a build. Every
     // section returns "empty" by default so the brief is well-behaved.
@@ -84,13 +84,13 @@ vi.mock("@/core/guards/auth.guard", () => ({
 beforeEach(() => {
   vi.clearAllMocks();
   // Default empty mocks so every test starts from a clean slate.
-  prismaMock.ariaBriefSubscription.findMany.mockResolvedValue([]);
-  prismaMock.ariaBriefDelivery.findUnique.mockResolvedValue(null);
-  prismaMock.ariaBriefDelivery.create.mockResolvedValue({ id: "delivery-1" });
-  prismaMock.ariaBriefDelivery.update.mockResolvedValue({ id: "delivery-1" });
-  prismaMock.ariaConversation.create.mockResolvedValue({ id: "conv-1" });
-  prismaMock.ariaMessage.create.mockResolvedValue({ id: "msg-1" });
-  prismaMock.ariaBriefSubscription.update.mockResolvedValue({});
+  prismaMock.manutAiBriefSubscription.findMany.mockResolvedValue([]);
+  prismaMock.manutAiBriefDelivery.findUnique.mockResolvedValue(null);
+  prismaMock.manutAiBriefDelivery.create.mockResolvedValue({ id: "delivery-1" });
+  prismaMock.manutAiBriefDelivery.update.mockResolvedValue({ id: "delivery-1" });
+  prismaMock.manutAiConversation.create.mockResolvedValue({ id: "conv-1" });
+  prismaMock.manutAiMessage.create.mockResolvedValue({ id: "msg-1" });
+  prismaMock.manutAiBriefSubscription.update.mockResolvedValue({});
   (loadUserPermissions as ReturnType<typeof vi.fn>).mockResolvedValue([]);
 });
 
@@ -102,7 +102,7 @@ describe("runBriefDispatcher", () => {
     // 19:00 Asia/Bangkok and 17:30 Asia/Kolkata, neither of which
     // matches a 07:00 subscription.
     const now = new Date("2026-05-24T12:00:00Z");
-    prismaMock.ariaBriefSubscription.findMany.mockResolvedValue([
+    prismaMock.manutAiBriefSubscription.findMany.mockResolvedValue([
       {
         userId: "u1",
         hourLocal: 7,
@@ -119,13 +119,13 @@ describe("runBriefDispatcher", () => {
     expect(summary.considered).toBe(1);
     expect(summary.built).toBe(0);
     expect(summary.delivered).toBe(0);
-    expect(prismaMock.ariaConversation.create).not.toHaveBeenCalled();
+    expect(prismaMock.manutAiConversation.create).not.toHaveBeenCalled();
   });
 
   it("fires for subscribers whose local hour matches", async () => {
     // 00:00 UTC == 07:00 Asia/Bangkok exactly.
     const now = new Date("2026-05-24T00:00:00Z");
-    prismaMock.ariaBriefSubscription.findMany.mockResolvedValue([
+    prismaMock.manutAiBriefSubscription.findMany.mockResolvedValue([
       {
         userId: "u1",
         hourLocal: 7,
@@ -152,12 +152,12 @@ describe("runBriefDispatcher", () => {
     expect(summary.considered).toBe(1);
     expect(summary.built).toBe(1);
     expect(summary.delivered).toBe(1);
-    expect(prismaMock.ariaConversation.create).toHaveBeenCalledTimes(1);
+    expect(prismaMock.manutAiConversation.create).toHaveBeenCalledTimes(1);
   });
 
   it("isolates per-user failures so one bad subscription doesn't poison the batch", async () => {
     const now = new Date("2026-05-24T00:00:00Z");
-    prismaMock.ariaBriefSubscription.findMany.mockResolvedValue([
+    prismaMock.manutAiBriefSubscription.findMany.mockResolvedValue([
       {
         userId: "u-bad",
         hourLocal: 7,
@@ -270,7 +270,7 @@ describe("deliverBrief idempotency", () => {
 
   it("first delivery creates the delivery row, the conversation, and sends email", async () => {
     // No P2002 — the create succeeds, so the rest of the flow runs.
-    prismaMock.ariaBriefDelivery.create.mockResolvedValueOnce({
+    prismaMock.manutAiBriefDelivery.create.mockResolvedValueOnce({
       id: "delivery-1",
     });
 
@@ -283,9 +283,9 @@ describe("deliverBrief idempotency", () => {
     });
 
     // Delivery row reserved FIRST as the atomic dedupe gate.
-    expect(prismaMock.ariaBriefDelivery.create).toHaveBeenCalledTimes(1);
-    expect(prismaMock.ariaConversation.create).toHaveBeenCalledTimes(1);
-    expect(prismaMock.ariaMessage.create).toHaveBeenCalledTimes(1);
+    expect(prismaMock.manutAiBriefDelivery.create).toHaveBeenCalledTimes(1);
+    expect(prismaMock.manutAiConversation.create).toHaveBeenCalledTimes(1);
+    expect(prismaMock.manutAiMessage.create).toHaveBeenCalledTimes(1);
     expect(sendEmail).toHaveBeenCalledTimes(1);
     expect(result.channelStatus.in_app).toBe("ok");
     expect(result.channelStatus.email).toBe("ok");
@@ -298,11 +298,11 @@ describe("deliverBrief idempotency", () => {
     const p2002 = Object.assign(new Error("unique violation"), {
       code: "P2002",
     });
-    prismaMock.ariaBriefDelivery.create.mockRejectedValueOnce(p2002);
-    prismaMock.ariaBriefDelivery.findUnique.mockResolvedValueOnce({
+    prismaMock.manutAiBriefDelivery.create.mockRejectedValueOnce(p2002);
+    prismaMock.manutAiBriefDelivery.findUnique.mockResolvedValueOnce({
       id: "delivery-1",
     });
-    prismaMock.ariaConversation.findFirst.mockResolvedValueOnce({
+    prismaMock.manutAiConversation.findFirst.mockResolvedValueOnce({
       id: "conv-existing",
     });
 
@@ -313,8 +313,8 @@ describe("deliverBrief idempotency", () => {
       email: "alice@example.com",
     });
 
-    expect(prismaMock.ariaConversation.create).not.toHaveBeenCalled();
-    expect(prismaMock.ariaMessage.create).not.toHaveBeenCalled();
+    expect(prismaMock.manutAiConversation.create).not.toHaveBeenCalled();
+    expect(prismaMock.manutAiMessage.create).not.toHaveBeenCalled();
     expect(sendEmail).not.toHaveBeenCalled();
     expect(result.conversationId).toBe("conv-existing");
     for (const status of Object.values(result.channelStatus)) {
@@ -323,7 +323,7 @@ describe("deliverBrief idempotency", () => {
   });
 
   it("email channel reports skipped when no address available", async () => {
-    prismaMock.ariaBriefDelivery.create.mockResolvedValueOnce({
+    prismaMock.manutAiBriefDelivery.create.mockResolvedValueOnce({
       id: "delivery-1",
     });
 

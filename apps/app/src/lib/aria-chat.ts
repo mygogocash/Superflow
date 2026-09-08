@@ -1,6 +1,6 @@
 import { ApiError, api, apiRequest } from "@/lib/api-client";
 
-export interface AriaConversation {
+export interface ManutAiConversation {
   id: string;
   userId: string;
   title: string | null;
@@ -9,7 +9,7 @@ export interface AriaConversation {
   _count?: { messages: number };
 }
 
-export interface AriaMessage {
+export interface ManutAiMessage {
   id: string;
   conversationId: string;
   role: "user" | "assistant";
@@ -17,8 +17,8 @@ export interface AriaMessage {
   createdAt: string;
 }
 
-export interface AriaConversationWithMessages extends AriaConversation {
-  messages: AriaMessage[];
+export interface ManutAiConversationWithMessages extends ManutAiConversation {
+  messages: ManutAiMessage[];
 }
 
 export type AriaStreamEvent =
@@ -31,7 +31,7 @@ export type AriaStreamEvent =
       status: "running" | "done" | "error";
       summary: string;
     }
-  | { t: "done"; message: AriaMessage }
+  | { t: "done"; message: ManutAiMessage }
   | { t: "error"; message: string };
 
 export type ToolUseTrace = {
@@ -157,13 +157,13 @@ function parseStreamLine(line: string): AriaStreamEvent | "skip" | null {
   return "skip";
 }
 
-export async function listConversations(): Promise<AriaConversation[]> {
-  const res = await api.get<{ data: AriaConversation[] }>("/aria/conversations");
+export async function listConversations(): Promise<ManutAiConversation[]> {
+  const res = await api.get<{ data: ManutAiConversation[] }>("/aria/conversations");
   return res.data;
 }
 
-export async function getConversation(id: string): Promise<AriaConversationWithMessages> {
-  const res = await api.get<{ data: AriaConversationWithMessages }>(`/aria/conversations/${id}`);
+export async function getConversation(id: string): Promise<ManutAiConversationWithMessages> {
+  const res = await api.get<{ data: ManutAiConversationWithMessages }>(`/aria/conversations/${id}`);
   return res.data;
 }
 

@@ -1,4 +1,4 @@
-import type { AriaAttachment } from "@nexora/database";
+import type { ManutAiAttachment } from "@nexora/database";
 import { OfficeParser } from "officeparser";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import * as XLSX from "xlsx";
@@ -22,7 +22,7 @@ function mockUpload() {
   });
 }
 
-function att(over: Partial<AriaAttachment>): AriaAttachment {
+function att(over: Partial<ManutAiAttachment>): ManutAiAttachment {
   return {
     id: "a1",
     userId: "u1",
@@ -37,7 +37,7 @@ function att(over: Partial<AriaAttachment>): AriaAttachment {
     status: "ready",
     createdAt: new Date(),
     ...over,
-  } as AriaAttachment;
+  } as ManutAiAttachment;
 }
 
 const file = (mimeType: string, size: number, body = "x") => ({

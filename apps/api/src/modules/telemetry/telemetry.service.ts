@@ -30,15 +30,15 @@ export async function runSnapshotSync() {
     },
   });
 
-  // AriaMessage has no direct userId — count via the conversation owner.
+  // ManutAiMessage has no direct userId — count via the conversation owner.
   // Single grouped query is cheaper than n queries for ~50 users.
-  const ariaCounts = await prisma.ariaMessage.groupBy({
+  const ariaCounts = await prisma.manutAiMessage.groupBy({
     by: ["conversationId"],
     where: { role: "user", createdAt: { gt: since } },
     _count: { _all: true },
   });
   const conversationOwners = ariaCounts.length
-    ? await prisma.ariaConversation.findMany({
+    ? await prisma.manutAiConversation.findMany({
         where: { id: { in: ariaCounts.map((c) => c.conversationId) } },
         select: { id: true, userId: true },
       })

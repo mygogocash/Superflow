@@ -294,7 +294,7 @@ export class UsersRepository {
       await tx.wallPost.deleteMany({ where: { authorId: id } });
       await tx.companyNews.deleteMany({ where: { authorId: id } });
       await tx.companyDate.deleteMany({ where: { addedBy: id } });
-      await tx.ariaConversation.deleteMany({ where: { userId: id } });
+      await tx.manutAiConversation.deleteMany({ where: { userId: id } });
 
       await tx.blog.deleteMany({ where: { authorId: id } });
       await tx.article.deleteMany({ where: { authorId: id } });

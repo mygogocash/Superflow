@@ -31,11 +31,11 @@ import { useAuth } from "@/providers/auth-provider";
 import {
   ARIA_KNOWLEDGE_CATEGORIES,
   ARIA_KNOWLEDGE_CATEGORY_LABELS,
-  type AriaKnowledgeArticle,
   type AriaKnowledgeCategory,
   createAriaKnowledge,
   deleteAriaKnowledge,
   listAriaKnowledge,
+  type ManutAiKnowledgeArticle,
   updateAriaKnowledge,
 } from "@/services/aria-knowledge.service";
 
@@ -64,7 +64,7 @@ const EMPTY_FORM: FormState = {
   isActive: true,
 };
 
-function articleToForm(a: AriaKnowledgeArticle): FormState {
+function articleToForm(a: ManutAiKnowledgeArticle): FormState {
   return {
     id: a.id,
     category: a.category,
@@ -90,7 +90,7 @@ export default function AriaKnowledgeAdminPage() {
   const { hasPermission } = useAuth();
   const canManage = hasPermission("aria:knowledge-manage");
 
-  const [articles, setArticles] = useState<AriaKnowledgeArticle[]>([]);
+  const [articles, setArticles] = useState<ManutAiKnowledgeArticle[]>([]);
   const [loading, setLoading] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -121,7 +121,7 @@ export default function AriaKnowledgeAdminPage() {
     setEditorOpen(true);
   }
 
-  function openEdit(a: AriaKnowledgeArticle) {
+  function openEdit(a: ManutAiKnowledgeArticle) {
     setForm(articleToForm(a));
     setEditorOpen(true);
   }
@@ -159,7 +159,7 @@ export default function AriaKnowledgeAdminPage() {
     }
   }
 
-  async function handleDelete(a: AriaKnowledgeArticle) {
+  async function handleDelete(a: ManutAiKnowledgeArticle) {
     if (!confirm(`Delete "${a.title}"?`)) return;
     try {
       await deleteAriaKnowledge(a.id);
@@ -304,8 +304,9 @@ export default function AriaKnowledgeAdminPage() {
               {form.id ? "Edit article" : "New article"}
             </DialogTitle>
             <DialogDescription>
-              Manut AI prepends the matching article body to its chat system prompt.
-              Keep titles + bodies focused so the model has clean context.
+              Manut AI prepends the matching article body to its chat system
+              prompt. Keep titles + bodies focused so the model has clean
+              context.
             </DialogDescription>
           </DialogHeader>
 
@@ -401,8 +402,9 @@ export default function AriaKnowledgeAdminPage() {
                 Leave empty for an article every signed-in user can see. Add
                 codes (e.g. <code>payroll:read</code>, <code>visa:hr-read</code>
                 ) to gate it: the caller must hold AT LEAST ONE of these codes
-                for Manut AI to surface the article in chat. Codes are free strings
-                — admins can reference future permissions without redeploying.
+                for Manut AI to surface the article in chat. Codes are free
+                strings — admins can reference future permissions without
+                redeploying.
               </p>
             </div>
             <div className="flex items-center gap-2">

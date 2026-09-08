@@ -168,7 +168,7 @@ model CompanyDate {
   @@map("company_dates")
 }
 
-model AriaConversation {
+model ManutAiConversation {
   id        String   @id @default(uuid()) @db.Uuid
   userId    String   @map("user_id") @db.Uuid
   title     String?
@@ -176,14 +176,14 @@ model AriaConversation {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   user       User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages   AriaMessage[]
-  queryLogs  AriaQueryLog[]
-  traces     AriaInteractionTrace[]
-  summary    AriaConversationSummary?
-  memory     AriaConversationMemory[]
+  messages   ManutAiMessage[]
+  queryLogs  ManutAiQueryLog[]
+  traces     ManutAiInteractionTrace[]
+  summary    ManutAiConversationSummary?
+  memory     ManutAiConversationMemory[]
 
   @@index([userId])
-  @@map("aria_conversations")
+  @@map("manut_ai_conversations")
 }
 
 // Compacted "earlier in this conversation" summary for chats that have
@@ -192,7 +192,7 @@ model AriaConversation {
 // `coversThroughMessageId`. Kept lightweight (single TEXT column) so a
 // summary write never blocks the user-facing stream — the call to the
 // summariser is fired-and-forgotten after the assistant reply.
-model AriaConversationSummary {
+model ManutAiConversationSummary {
   conversationId          String   @id @map("conversation_id") @db.Uuid
   summary                 String
   // Last message id incorporated into the summary. The next time the
@@ -203,16 +203,16 @@ model AriaConversationSummary {
   createdAt               DateTime @default(now()) @map("created_at")
   updatedAt               DateTime @updatedAt @map("updated_at")
 
-  conversation AriaConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation ManutAiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
-  @@map("aria_conversation_summaries")
+  @@map("manut_ai_conversation_summaries")
 }
 
 // Pinned key/value facts extracted from a conversation. Injected into
-// the system prompt every turn so ARIA "remembers" persistent details
+// the system prompt every turn so Manut AI "remembers" persistent details
 // (e.g. "user is reviewing Q2 expenses for Manut-TH"). Background
 // extractor runs after each assistant reply.
-model AriaConversationMemory {
+model ManutAiConversationMemory {
   id             String   @id @default(uuid()) @db.Uuid
   conversationId String   @map("conversation_id") @db.Uuid
   key            String
@@ -220,14 +220,14 @@ model AriaConversationMemory {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  conversation AriaConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversation ManutAiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, key])
   @@index([conversationId])
-  @@map("aria_conversation_memory")
+  @@map("manut_ai_conversation_memory")
 }
 
-model AriaMessage {
+model ManutAiMessage {
   id             String   @id @default(uuid()) @db.Uuid
   conversationId String   @map("conversation_id") @db.Uuid
   role           String
@@ -235,22 +235,22 @@ model AriaMessage {
   metadata       Json?
   createdAt      DateTime @default(now()) @map("created_at")
 
-  conversation AriaConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  feedback     AriaFeedback[]
-  attachments  AriaAttachment[]
-  traces       AriaInteractionTrace[]
+  conversation ManutAiConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  feedback     ManutAiFeedback[]
+  attachments  ManutAiAttachment[]
+  traces       ManutAiInteractionTrace[]
 
   @@index([conversationId])
-  @@map("aria_messages")
+  @@map("manut_ai_messages")
 }
 
-/// A file a user attached to an ARIA chat message (image / document / video).
+/// A file a user attached to an Manut AI chat message (image / document / video).
 /// Uploaded first (upload-first flow) — `messageId` is null until the message
 /// that references it is sent. Bytes live in a private Supabase bucket; the
 /// chat turn rebuilds the Claude content block from `storagePath` (image/pdf)
 /// or from `extractedText` (text docs + video transcript). `status` is `ready`
 /// except while a video is being transcribed (`processing`).
-model AriaAttachment {
+model ManutAiAttachment {
   id             String    @id @default(uuid()) @db.Uuid
   userId         String    @map("user_id") @db.Uuid
   messageId      String?   @map("message_id") @db.Uuid
@@ -267,12 +267,12 @@ model AriaAttachment {
   status         String    @default("ready")
   createdAt      DateTime  @default(now()) @map("created_at")
 
-  user    User         @relation("AriaAttachmentUploader", fields: [userId], references: [id], onDelete: Cascade)
-  message AriaMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  user    User         @relation("ManutAiAttachmentUploader", fields: [userId], references: [id], onDelete: Cascade)
+  message ManutAiMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([messageId])
-  @@map("aria_attachments")
+  @@map("manut_ai_attachments")
 }
 
 // Phase 6 — self-improvement loop.
@@ -287,7 +287,7 @@ model AriaAttachment {
 // `resultingArticleId` closes the loop — if the feedback drove a new
 // article, we can later report on how often that article was
 // retrieved + how it changed downstream ratings.
-model AriaFeedback {
+model ManutAiFeedback {
   id                 String   @id @default(uuid()) @db.Uuid
   messageId          String   @map("message_id") @db.Uuid
   userId             String   @map("user_id") @db.Uuid
@@ -301,22 +301,22 @@ model AriaFeedback {
   createdAt          DateTime @default(now()) @map("created_at")
   updatedAt          DateTime @updatedAt @map("updated_at")
 
-  message          AriaMessage           @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user             User                  @relation("AriaFeedbackAuthor", fields: [userId], references: [id], onDelete: Cascade)
-  reviewedBy       User?                 @relation("AriaFeedbackReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
-  resultingArticle AriaKnowledgeArticle? @relation(fields: [resultingArticleId], references: [id], onDelete: SetNull)
+  message          ManutAiMessage           @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user             User                  @relation("ManutAiFeedbackAuthor", fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy       User?                 @relation("ManutAiFeedbackReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  resultingArticle ManutAiKnowledgeArticle? @relation(fields: [resultingArticleId], references: [id], onDelete: SetNull)
 
   @@unique([messageId, userId])
   @@index([rating, reviewed, createdAt])
   @@index([reviewedById])
-  @@map("aria_feedback")
+  @@map("manut_ai_feedback")
 }
 
-// Curated knowledge corpus surfaced into the ARIA system prompt at
+// Curated knowledge corpus surfaced into the Manut AI system prompt at
 // chat time. v1 uses keyword matching against the user's message;
 // a future iteration can swap in vector embeddings without changing
 // the public shape.
-model AriaKnowledgeArticle {
+model ManutAiKnowledgeArticle {
   id          String   @id @default(uuid()) @db.Uuid
   // 'immigration' | 'hr' | 'finance' | 'policy' | 'other'
   category    String
@@ -327,7 +327,7 @@ model AriaKnowledgeArticle {
   tags        String[]
   // Permission gate for retrieval. Empty list = article is public for
   // any signed-in user. Non-empty list = user must hold AT LEAST ONE
-  // of these permission codes for ARIA to surface the article in
+  // of these permission codes for Manut AI to surface the article in
   // chat. Matches the OR shape of the existing `canSee*` helpers in
   // `aria-context.ts` so reviewers don't need to learn a new pattern.
   // Stored as plain strings (no FK to permissions catalog) so HR can
@@ -338,12 +338,12 @@ model AriaKnowledgeArticle {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  createdBy        User?          @relation("AriaKnowledgeArticleAuthor", fields: [createdById], references: [id], onDelete: SetNull)
-  sourceFeedback   AriaFeedback[]
+  createdBy        User?          @relation("ManutAiKnowledgeArticleAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  sourceFeedback   ManutAiFeedback[]
 
   @@index([category, isActive])
   @@index([slug])
-  @@map("aria_knowledge_articles")
+  @@map("manut_ai_knowledge_articles")
 }
 
 // Per-turn telemetry written by `aria.service.chatStream`. Powers the
@@ -351,7 +351,7 @@ model AriaKnowledgeArticle {
 // queries to curate). Best-effort writes — failures are swallowed so
 // telemetry never breaks chat. Retention policy applied via cron
 // (PII-bearing `userMessage` is purged after 30 days).
-model AriaQueryLog {
+model ManutAiQueryLog {
   id                  String   @id @default(uuid()) @db.Uuid
   conversationId      String?  @map("conversation_id") @db.Uuid
   userId              String   @map("user_id") @db.Uuid
@@ -384,36 +384,36 @@ model AriaQueryLog {
   createdAt           DateTime @default(now()) @map("created_at")
 
   user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  conversation AriaConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  conversation ManutAiConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
 
   @@index([createdAt])
   @@index([userId, createdAt])
   @@index([conversationId])
-  @@map("aria_query_logs")
+  @@map("manut_ai_query_logs")
 }
 
 // Training-data substrate — one immutable, replayable record per assistant
 // turn, the atomic unit every future training method (RAG tuning, eval sets,
 // DPO from feedback, SFT, tool-use fine-tuning) is built from. Distinct from
-// AriaQueryLog (which powers the admin insights page and keeps only
+// ManutAiQueryLog (which powers the admin insights page and keeps only
 // aggregates): this captures the full turn — the versioned prompt, the RBAC
 // snapshot the turn ran under, the retrieved context, the tool calls WITH
 // their args + results, and the produced output — so a turn can be
 // reconstructed and graded offline.
 //
-// Written best-effort and gated behind the fail-closed ARIA_TRACE_CAPTURE
+// Written best-effort and gated behind the fail-closed Manut AI_TRACE_CAPTURE
 // flag, so it never affects chat and stays off until explicitly enabled.
 // `userMessage` / `assistantText` / `toolCalls` carry PII; `piiRedacted`
 // tracks whether the redaction transform has run (Phase 2), and retention is
-// enforced by cron like aria_query_logs. Feedback is NOT copied here — it is
-// joined at dataset-build time via `assistantMessageId` → AriaFeedback so the
+// enforced by cron like manut_ai_query_logs. Feedback is NOT copied here — it is
+// joined at dataset-build time via `assistantMessageId` → ManutAiFeedback so the
 // trace stays immutable.
-model AriaInteractionTrace {
+model ManutAiInteractionTrace {
   id                 String   @id @default(uuid()) @db.Uuid
   conversationId     String?  @map("conversation_id") @db.Uuid
   userId             String   @map("user_id") @db.Uuid
   // The persisted assistant message this turn produced — the join key to
-  // AriaFeedback (thumbs / correction) at dataset-build time.
+  // ManutAiFeedback (thumbs / correction) at dataset-build time.
   assistantMessageId String?  @map("assistant_message_id") @db.Uuid
   // "send" | "edit" | "retry" — retry/edit turns are valuable negative /
   // preference signal (the prior answer was rejected).
@@ -446,7 +446,7 @@ model AriaInteractionTrace {
   assistantText      String   @map("assistant_text")
   stopReason         String?  @map("stop_reason")
   // Full tool trace: [{ name, input, ok, isError, resultPreview }]. The
-  // args + results are the tool-use training signal AriaQueryLog throws away
+  // args + results are the tool-use training signal ManutAiQueryLog throws away
   // (it keeps only count + names). Result payloads are capped on write.
   toolCalls          Json     @default("[]") @map("tool_calls")
   toolUseCount       Int      @default(0) @map("tool_use_count")
@@ -466,15 +466,15 @@ model AriaInteractionTrace {
 
   createdAt          DateTime @default(now()) @map("created_at")
 
-  user             User              @relation("AriaInteractionTraceUser", fields: [userId], references: [id], onDelete: Cascade)
-  conversation     AriaConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
-  assistantMessage AriaMessage?      @relation(fields: [assistantMessageId], references: [id], onDelete: SetNull)
+  user             User              @relation("ManutAiInteractionTraceUser", fields: [userId], references: [id], onDelete: Cascade)
+  conversation     ManutAiConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  assistantMessage ManutAiMessage?      @relation(fields: [assistantMessageId], references: [id], onDelete: SetNull)
 
   @@index([createdAt])
   @@index([userId, createdAt])
   @@index([conversationId])
   @@index([piiRedacted, createdAt])
-  @@map("aria_interaction_traces")
+  @@map("manut_ai_interaction_traces")
 }
 
 // Phase 2 — a versioned, immutable training dataset built from interaction
@@ -482,7 +482,7 @@ model AriaInteractionTrace {
 // are produced on demand and exported as JSONL. `filters`/`stats` are JSON;
 // `checksum` (sha256 of the serialized rows) makes a build verifiable and
 // lets a re-build be detected as identical. `version` is monotonic per kind.
-model AriaTrainingDataset {
+model ManutAiTrainingDataset {
   id          String   @id @default(uuid()) @db.Uuid
   kind        String // "sft" | "dpo" | "eval" | "retrieval"
   version     Int
@@ -494,12 +494,12 @@ model AriaTrainingDataset {
   createdById String?  @map("created_by_id") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at")
 
-  createdBy     User?              @relation("AriaTrainingDatasetAuthor", fields: [createdById], references: [id], onDelete: SetNull)
-  modelVersions AriaModelVersion[]
+  createdBy     User?              @relation("ManutAiTrainingDatasetAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  modelVersions ManutAiModelVersion[]
 
   @@unique([kind, version])
   @@index([kind, createdAt])
-  @@map("aria_training_datasets")
+  @@map("manut_ai_training_datasets")
 }
 
 // Phase 4 — registry of candidate / promoted fine-tunes. The training itself
@@ -507,7 +507,7 @@ model AriaTrainingDataset {
 // external job ref) and the eval summary, and gates promotion behind eval
 // results (see aria-training eval-gate). Status is a small state machine:
 // draft → candidate → promoted | rejected, with archived as a terminal park.
-model AriaModelVersion {
+model ManutAiModelVersion {
   id          String    @id @default(uuid()) @db.Uuid
   name        String    @unique
   baseModel   String    @map("base_model")
@@ -522,23 +522,23 @@ model AriaModelVersion {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  dataset   AriaTrainingDataset? @relation(fields: [datasetId], references: [id], onDelete: SetNull)
-  createdBy User?                @relation("AriaModelVersionAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  dataset   ManutAiTrainingDataset? @relation(fields: [datasetId], references: [id], onDelete: SetNull)
+  createdBy User?                @relation("ManutAiModelVersionAuthor", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([status, createdAt])
-  @@map("aria_model_versions")
+  @@map("manut_ai_model_versions")
 }
 
 // Phase 8 — proactive daily brief.
 //
-// Per-user opt-in for ARIA's morning brief. A cron sweeps every hour
+// Per-user opt-in for Manut AI's morning brief. A cron sweeps every hour
 // and fires deliveries for any row whose `hourLocal` matches the
 // subscriber's current local hour. `sections` is empty by default
 // which means "every section the user has permission for"; an
 // explicit list lets users mute noisy sections (e.g. drop "pipeline"
 // for engineers). `channels` is in_app + email today; slack is
 // reserved for a later integration but already part of the contract.
-model AriaBriefSubscription {
+model ManutAiBriefSubscription {
   userId          String    @id @map("user_id") @db.Uuid
   enabled         Boolean   @default(true)
   hourLocal       Int       @default(7) @map("hour_local")
@@ -555,7 +555,7 @@ model AriaBriefSubscription {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([enabled, hourLocal])
-  @@map("aria_brief_subscriptions")
+  @@map("manut_ai_brief_subscriptions")
 }
 
 // One row per delivery. `payloadJson` carries the rendered sections so
@@ -564,7 +564,7 @@ model AriaBriefSubscription {
 // "error:<code>"}` map so we can spot a Resend outage without trawling
 // logs. The unique constraint on (userId, deliveredOn) makes the cron
 // idempotent — a re-run inside the same calendar day no-ops.
-model AriaBriefDelivery {
+model ManutAiBriefDelivery {
   id            String   @id @default(uuid()) @db.Uuid
   userId        String   @map("user_id") @db.Uuid
   // Calendar date in the subscriber's local timezone. Stored as
@@ -578,5 +578,5 @@ model AriaBriefDelivery {
 
   @@unique([userId, deliveredOn])
   @@index([userId, generatedAt])
-  @@map("aria_brief_deliveries")
+  @@map("manut_ai_brief_deliveries")
 }

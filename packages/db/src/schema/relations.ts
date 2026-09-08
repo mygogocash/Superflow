@@ -11,17 +11,17 @@ import {
   wallComments,
   companyNews,
   companyDates,
-  ariaConversations,
-  ariaConversationSummaries,
-  ariaConversationMemory,
-  ariaMessages,
-  ariaAttachments,
-  ariaKnowledgeArticles,
-  ariaQueryLogs,
-  ariaBriefSubscriptions,
-  ariaBriefDeliveries,
+  manutAiConversations,
+  manutAiConversationSummaries,
+  manutAiConversationMemory,
+  manutAiMessages,
+  manutAiAttachments,
+  manutAiKnowledgeArticles,
+  manutAiQueryLogs,
+  manutAiBriefSubscriptions,
+  manutAiBriefDeliveries,
   blogs,
-  ariaFeedback,
+  manutAiFeedback,
   wikiPages,
   wikiPageVersions,
   wikiPagePermissions,
@@ -320,18 +320,18 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   companyNews: many(companyNews),
   companyDates: many(companyDates),
   wallPosts: many(wallPosts),
-  ariaConversations: many(ariaConversations),
-  ariaAttachments: many(ariaAttachments),
-  ariaKnowledgeArticles: many(ariaKnowledgeArticles),
-  ariaQueryLogs: many(ariaQueryLogs),
-  ariaBriefSubscriptions: many(ariaBriefSubscriptions),
-  ariaBriefDeliveries: many(ariaBriefDeliveries),
+  manutAiConversations: many(manutAiConversations),
+  manutAiAttachments: many(manutAiAttachments),
+  manutAiKnowledgeArticles: many(manutAiKnowledgeArticles),
+  manutAiQueryLogs: many(manutAiQueryLogs),
+  manutAiBriefSubscriptions: many(manutAiBriefSubscriptions),
+  manutAiBriefDeliveries: many(manutAiBriefDeliveries),
   blogs: many(blogs),
-  ariaFeedbacks_userId: many(ariaFeedback, {
-    relationName: "ariaFeedback_userId_users_id",
+  manutAiFeedbacks_userId: many(manutAiFeedback, {
+    relationName: "manutAiFeedback_userId_users_id",
   }),
-  ariaFeedbacks_reviewedById: many(ariaFeedback, {
-    relationName: "ariaFeedback_reviewedById_users_id",
+  manutAiFeedbacks_reviewedById: many(manutAiFeedback, {
+    relationName: "manutAiFeedback_reviewedById_users_id",
   }),
   wikiPages_createdById: many(wikiPages, {
     relationName: "wikiPages_createdById_users_id",
@@ -717,103 +717,103 @@ export const companyDatesRelations = relations(companyDates, ({ one }) => ({
   }),
 }));
 
-export const ariaConversationSummariesRelations = relations(
-  ariaConversationSummaries,
+export const manutAiConversationSummariesRelations = relations(
+  manutAiConversationSummaries,
   ({ one }) => ({
-    ariaConversation: one(ariaConversations, {
-      fields: [ariaConversationSummaries.conversationId],
-      references: [ariaConversations.id],
+    manutAiConversation: one(manutAiConversations, {
+      fields: [manutAiConversationSummaries.conversationId],
+      references: [manutAiConversations.id],
     }),
   }),
 );
 
-export const ariaConversationsRelations = relations(
-  ariaConversations,
+export const manutAiConversationsRelations = relations(
+  manutAiConversations,
   ({ one, many }) => ({
-    ariaConversationSummaries: many(ariaConversationSummaries),
-    ariaConversationMemories: many(ariaConversationMemory),
-    ariaMessages: many(ariaMessages),
+    manutAiConversationSummaries: many(manutAiConversationSummaries),
+    manutAiConversationMemories: many(manutAiConversationMemory),
+    manutAiMessages: many(manutAiMessages),
     user: one(users, {
-      fields: [ariaConversations.userId],
+      fields: [manutAiConversations.userId],
       references: [users.id],
     }),
-    ariaQueryLogs: many(ariaQueryLogs),
+    manutAiQueryLogs: many(manutAiQueryLogs),
   }),
 );
 
-export const ariaConversationMemoryRelations = relations(
-  ariaConversationMemory,
+export const manutAiConversationMemoryRelations = relations(
+  manutAiConversationMemory,
   ({ one }) => ({
-    ariaConversation: one(ariaConversations, {
-      fields: [ariaConversationMemory.conversationId],
-      references: [ariaConversations.id],
+    manutAiConversation: one(manutAiConversations, {
+      fields: [manutAiConversationMemory.conversationId],
+      references: [manutAiConversations.id],
     }),
   }),
 );
 
-export const ariaMessagesRelations = relations(
-  ariaMessages,
+export const manutAiMessagesRelations = relations(
+  manutAiMessages,
   ({ one, many }) => ({
-    ariaConversation: one(ariaConversations, {
-      fields: [ariaMessages.conversationId],
-      references: [ariaConversations.id],
+    manutAiConversation: one(manutAiConversations, {
+      fields: [manutAiMessages.conversationId],
+      references: [manutAiConversations.id],
     }),
-    ariaAttachments: many(ariaAttachments),
-    ariaFeedbacks: many(ariaFeedback),
+    manutAiAttachments: many(manutAiAttachments),
+    manutAiFeedbacks: many(manutAiFeedback),
   }),
 );
 
-export const ariaAttachmentsRelations = relations(
-  ariaAttachments,
+export const manutAiAttachmentsRelations = relations(
+  manutAiAttachments,
   ({ one }) => ({
     user: one(users, {
-      fields: [ariaAttachments.userId],
+      fields: [manutAiAttachments.userId],
       references: [users.id],
     }),
-    ariaMessage: one(ariaMessages, {
-      fields: [ariaAttachments.messageId],
-      references: [ariaMessages.id],
+    manutAiMessage: one(manutAiMessages, {
+      fields: [manutAiAttachments.messageId],
+      references: [manutAiMessages.id],
     }),
   }),
 );
 
-export const ariaKnowledgeArticlesRelations = relations(
-  ariaKnowledgeArticles,
+export const manutAiKnowledgeArticlesRelations = relations(
+  manutAiKnowledgeArticles,
   ({ one, many }) => ({
     user: one(users, {
-      fields: [ariaKnowledgeArticles.createdById],
+      fields: [manutAiKnowledgeArticles.createdById],
       references: [users.id],
     }),
-    ariaFeedbacks: many(ariaFeedback),
+    manutAiFeedbacks: many(manutAiFeedback),
   }),
 );
 
-export const ariaQueryLogsRelations = relations(ariaQueryLogs, ({ one }) => ({
+export const manutAiQueryLogsRelations = relations(manutAiQueryLogs, ({ one }) => ({
   user: one(users, {
-    fields: [ariaQueryLogs.userId],
+    fields: [manutAiQueryLogs.userId],
     references: [users.id],
   }),
-  ariaConversation: one(ariaConversations, {
-    fields: [ariaQueryLogs.conversationId],
-    references: [ariaConversations.id],
+  manutAiConversation: one(manutAiConversations, {
+    fields: [manutAiQueryLogs.conversationId],
+    references: [manutAiConversations.id],
   }),
 }));
 
-export const ariaBriefSubscriptionsRelations = relations(
-  ariaBriefSubscriptions,
+export const manutAiBriefSubscriptionsRelations = relations(
+  manutAiBriefSubscriptions,
   ({ one }) => ({
     user: one(users, {
-      fields: [ariaBriefSubscriptions.userId],
+      fields: [manutAiBriefSubscriptions.userId],
       references: [users.id],
     }),
   }),
 );
 
-export const ariaBriefDeliveriesRelations = relations(
-  ariaBriefDeliveries,
+export const manutAiBriefDeliveriesRelations = relations(
+  manutAiBriefDeliveries,
   ({ one }) => ({
     user: one(users, {
-      fields: [ariaBriefDeliveries.userId],
+      fields: [manutAiBriefDeliveries.userId],
       references: [users.id],
     }),
   }),
@@ -826,24 +826,24 @@ export const blogsRelations = relations(blogs, ({ one }) => ({
   }),
 }));
 
-export const ariaFeedbackRelations = relations(ariaFeedback, ({ one }) => ({
-  ariaMessage: one(ariaMessages, {
-    fields: [ariaFeedback.messageId],
-    references: [ariaMessages.id],
+export const manutAiFeedbackRelations = relations(manutAiFeedback, ({ one }) => ({
+  manutAiMessage: one(manutAiMessages, {
+    fields: [manutAiFeedback.messageId],
+    references: [manutAiMessages.id],
   }),
   user_userId: one(users, {
-    fields: [ariaFeedback.userId],
+    fields: [manutAiFeedback.userId],
     references: [users.id],
-    relationName: "ariaFeedback_userId_users_id",
+    relationName: "manutAiFeedback_userId_users_id",
   }),
   user_reviewedById: one(users, {
-    fields: [ariaFeedback.reviewedById],
+    fields: [manutAiFeedback.reviewedById],
     references: [users.id],
-    relationName: "ariaFeedback_reviewedById_users_id",
+    relationName: "manutAiFeedback_reviewedById_users_id",
   }),
-  ariaKnowledgeArticle: one(ariaKnowledgeArticles, {
-    fields: [ariaFeedback.resultingArticleId],
-    references: [ariaKnowledgeArticles.id],
+  manutAiKnowledgeArticle: one(manutAiKnowledgeArticles, {
+    fields: [manutAiFeedback.resultingArticleId],
+    references: [manutAiKnowledgeArticles.id],
   }),
 }));
 

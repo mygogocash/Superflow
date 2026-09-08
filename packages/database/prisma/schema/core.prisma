@@ -279,17 +279,17 @@ model User {
   moduleOwnerships             ModuleOwner[]
   moduleAccessGrants           ModuleAccess[]            @relation("ModuleAccessUser")
   moduleAccessGrantedBy        ModuleAccess[]            @relation("ModuleAccessGranter")
-  ariaConversations            AriaConversation[]
-  ariaKnowledgeArticles        AriaKnowledgeArticle[]    @relation("AriaKnowledgeArticleAuthor")
-  ariaQueryLogs                AriaQueryLog[]
-  ariaInteractionTraces        AriaInteractionTrace[]    @relation("AriaInteractionTraceUser")
-  ariaTrainingDatasets         AriaTrainingDataset[]     @relation("AriaTrainingDatasetAuthor")
-  ariaModelVersions            AriaModelVersion[]        @relation("AriaModelVersionAuthor")
-  ariaFeedback                 AriaFeedback[]            @relation("AriaFeedbackAuthor")
-  ariaFeedbackReviewed         AriaFeedback[]            @relation("AriaFeedbackReviewer")
-  ariaAttachments              AriaAttachment[]          @relation("AriaAttachmentUploader")
-  ariaBriefSubscription        AriaBriefSubscription?
-  ariaBriefDeliveries          AriaBriefDelivery[]
+  manutAiConversations         ManutAiConversation[]
+  manutAiKnowledgeArticles     ManutAiKnowledgeArticle[]    @relation("ManutAiKnowledgeArticleAuthor")
+  manutAiQueryLogs             ManutAiQueryLog[]
+  manutAiInteractionTraces     ManutAiInteractionTrace[]    @relation("ManutAiInteractionTraceUser")
+  manutAiTrainingDatasets      ManutAiTrainingDataset[]     @relation("ManutAiTrainingDatasetAuthor")
+  manutAiModelVersions         ManutAiModelVersion[]        @relation("ManutAiModelVersionAuthor")
+  manutAiFeedback              ManutAiFeedback[]            @relation("ManutAiFeedbackAuthor")
+  manutAiFeedbackReviewed      ManutAiFeedback[]            @relation("ManutAiFeedbackReviewer")
+  manutAiAttachments           ManutAiAttachment[]          @relation("ManutAiAttachmentUploader")
+  manutAiBriefSubscription     ManutAiBriefSubscription?
+  manutAiBriefDeliveries       ManutAiBriefDelivery[]
   blogsAuthored                Blog[]
   articlesAuthored             Article[]
   wikiPagesCreated             WikiPage[]                @relation("WikiPageCreator")

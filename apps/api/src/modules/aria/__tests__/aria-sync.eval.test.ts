@@ -20,7 +20,7 @@ const prismaMock = vi.hoisted(() => ({
   partner: { findMany: vi.fn() },
   project: { findMany: vi.fn() },
   companyPolicy: { findMany: vi.fn() },
-  ariaKnowledgeArticle: {
+  manutAiKnowledgeArticle: {
     findUnique: vi.fn(),
     upsert: vi.fn(),
     updateMany: vi.fn(),
@@ -136,13 +136,13 @@ beforeEach(() => {
 
   // Every upsert returns a deterministic id derived from slug so tests
   // can assert which rows passed through the writer.
-  prismaMock.ariaKnowledgeArticle.findUnique.mockResolvedValue(null);
-  prismaMock.ariaKnowledgeArticle.upsert.mockImplementation(
+  prismaMock.manutAiKnowledgeArticle.findUnique.mockResolvedValue(null);
+  prismaMock.manutAiKnowledgeArticle.upsert.mockImplementation(
     async (args: { where: { slug: string } }) => ({
       id: `art-${args.where.slug}`,
     }),
   );
-  prismaMock.ariaKnowledgeArticle.updateMany.mockResolvedValue({ count: 0 });
+  prismaMock.manutAiKnowledgeArticle.updateMany.mockResolvedValue({ count: 0 });
 });
 
 // ── Tests ──────────────────────────────────────────────────────────
@@ -165,7 +165,7 @@ describe("ARIA auto-sync eval", () => {
 
   it("writes deterministic slugs per source", async () => {
     await runAllSyncs();
-    const slugs = prismaMock.ariaKnowledgeArticle.upsert.mock.calls.map(
+    const slugs = prismaMock.manutAiKnowledgeArticle.upsert.mock.calls.map(
       (call) => (call[0] as { where: { slug: string } }).where.slug,
     );
     expect(slugs).toContain("auto-leave-type-lt-annual");
@@ -177,7 +177,7 @@ describe("ARIA auto-sync eval", () => {
 
   it("tags every upsert with auto-synced + source key", async () => {
     await runAllSyncs();
-    for (const call of prismaMock.ariaKnowledgeArticle.upsert.mock.calls) {
+    for (const call of prismaMock.manutAiKnowledgeArticle.upsert.mock.calls) {
       const data = (
         call[0] as {
           create: { tags: string[]; slug: string };
@@ -190,7 +190,7 @@ describe("ARIA auto-sync eval", () => {
 
   it("gates partner/project articles with the right perm code", async () => {
     await runAllSyncs();
-    const calls = prismaMock.ariaKnowledgeArticle.upsert.mock.calls;
+    const calls = prismaMock.manutAiKnowledgeArticle.upsert.mock.calls;
     const findCreate = (slug: string) => {
       const call = calls.find(
         (c) => (c[0] as { where: { slug: string } }).where.slug === slug,
@@ -212,7 +212,7 @@ describe("ARIA auto-sync eval", () => {
 
   it("buckets public holidays per entity-year", async () => {
     await runAllSyncs();
-    const calls = prismaMock.ariaKnowledgeArticle.upsert.mock.calls;
+    const calls = prismaMock.manutAiKnowledgeArticle.upsert.mock.calls;
     const phCall = calls.find(
       (c) =>
         (c[0] as { where: { slug: string } }).where.slug ===

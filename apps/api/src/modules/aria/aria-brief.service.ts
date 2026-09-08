@@ -76,7 +76,7 @@ const DEFAULT_SECTIONS: BriefSection["id"][] = [
 
 /**
  * Returns the calendar date (yyyy-mm-dd) in the caller's timezone.
- * Used for the idempotency unique key on `AriaBriefDelivery`.
+ * Used for the idempotency unique key on `ManutAiBriefDelivery`.
  */
 function localDate(timezone: string, when: Date = new Date()): string {
   const fmt = new Intl.DateTimeFormat("en-CA", {
@@ -615,7 +615,7 @@ export interface DeliverBriefResult {
  * per (userId, deliveredOn) — a second call inside the same calendar
  * day no-ops by returning the existing delivery row.
  *
- * Conversation strategy: we always create a *fresh* AriaConversation
+ * Conversation strategy: we always create a *fresh* ManutAiConversation
  * per brief rather than appending to a long-running "Brief inbox"
  * conversation. That keeps each day's follow-up Q&A scoped to its own
  * context window so yesterday's pipeline noise doesn't leak into
@@ -635,7 +635,7 @@ export async function deliverBrief(
   // branch without any side effects.
   let delivery: { id: string };
   try {
-    delivery = await prisma.ariaBriefDelivery.create({
+    delivery = await prisma.manutAiBriefDelivery.create({
       data: {
         userId,
         deliveredOn: payload.deliveredOn,
@@ -658,14 +658,14 @@ export async function deliverBrief(
   // In-app delivery is unconditional: even if the user has email
   // disabled we still want a chat thread waiting for them. Otherwise
   // an empty inbox masks the fact that the brief ran at all.
-  const conversation = await prisma.ariaConversation.create({
+  const conversation = await prisma.manutAiConversation.create({
     data: {
       userId,
       title: briefTitleFor(payload.deliveredOn),
     },
     select: { id: true },
   });
-  await prisma.ariaMessage.create({
+  await prisma.manutAiMessage.create({
     data: {
       conversationId: conversation.id,
       role: "assistant",
@@ -712,12 +712,12 @@ export async function deliverBrief(
   }
 
   // Persist the resolved channel status on the row we reserved.
-  await prisma.ariaBriefDelivery.update({
+  await prisma.manutAiBriefDelivery.update({
     where: { id: delivery.id },
     data: { channelStatus },
   });
 
-  await prisma.ariaBriefSubscription.update({
+  await prisma.manutAiBriefSubscription.update({
     where: { userId },
     data: { lastDeliveredAt: new Date() },
   });
@@ -742,13 +742,13 @@ async function alreadyDeliveredResult(
   payload: BriefPayload,
   channels: BriefChannel[],
 ): Promise<DeliverBriefResult> {
-  const existing = await prisma.ariaBriefDelivery.findUnique({
+  const existing = await prisma.manutAiBriefDelivery.findUnique({
     where: {
       userId_deliveredOn: { userId, deliveredOn: payload.deliveredOn },
     },
     select: { id: true },
   });
-  const conv = await prisma.ariaConversation.findFirst({
+  const conv = await prisma.manutAiConversation.findFirst({
     where: {
       userId,
       title: { startsWith: briefTitleFor(payload.deliveredOn) },
@@ -829,7 +829,7 @@ function absoluteUrl(path: string): string {
  * without us writing a row for every employee on first chat.
  */
 export async function getBriefSubscription(userId: string) {
-  const existing = await prisma.ariaBriefSubscription.findUnique({
+  const existing = await prisma.manutAiBriefSubscription.findUnique({
     where: { userId },
   });
   if (existing) return { ...existing, virtual: false };
@@ -869,7 +869,7 @@ export async function upsertBriefSubscription(
 ) {
   // Upsert (rather than update-only) so the first PATCH from an
   // unsubscribed user creates the row instead of 404-ing.
-  const updated = await prisma.ariaBriefSubscription.upsert({
+  const updated = await prisma.manutAiBriefSubscription.upsert({
     where: { userId },
     create: {
       userId,
@@ -886,7 +886,7 @@ export async function upsertBriefSubscription(
 }
 
 export async function listBriefDeliveries(userId: string, limit: number) {
-  return prisma.ariaBriefDelivery.findMany({
+  return prisma.manutAiBriefDelivery.findMany({
     where: { userId },
     orderBy: { generatedAt: "desc" },
     take: limit,
@@ -939,7 +939,7 @@ export async function runBriefDispatcher(
   // timezone-local hour. Counts are small (hundreds at most) and the
   // alternative — a SQL query per timezone — would race against
   // Postgres' timezone catalog if we ever add an unknown zone.
-  const subs = await prisma.ariaBriefSubscription.findMany({
+  const subs = await prisma.manutAiBriefSubscription.findMany({
     where: { enabled: true },
     select: {
       userId: true,
