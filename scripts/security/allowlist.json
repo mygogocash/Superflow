@@ -1,11 +1,11 @@
 {
   "$comment": "Expected public / non-session-RBAC surfaces. Wave 0 inventory; Wave 7 may gate new ungated routes against this list.",
   "edgeRouteFiles": {
-    "health.ts": "Liveness probe — no secrets",
+    "health.ts": "Liveness probe \u2014 no secrets",
     "index.ts": "Router mount + Better Auth /auth/* catch-all"
   },
   "edgeAltAuthFiles": {
-    "cron.ts": "Shared-secret cron (verifyCron) — not session RBAC",
+    "cron.ts": "Shared-secret cron (verifyCron) \u2014 not session RBAC",
     "line.ts": "LINE webhook HMAC + public /status"
   },
   "edgeAuthAlternatives": [
@@ -20,14 +20,14 @@
     "cron/cron.controller.ts": "Shared-secret cron",
     "helpdesk/helpdesk.public.controller.ts": "GitHub webhook HMAC",
     "legal/legal.public.controller.ts": "DocuSign webhook",
-    "organizations/organizations.controller.ts": "Session auth (requireAuth) — deepen in Wave 3",
+    "organizations/organizations.controller.ts": "Session auth (requireAuth) \u2014 deepen in Wave 3",
     "push/push.controller.ts": "Session auth (requireAuth)",
     "uploads/uploads.controller.ts": "Session auth + admin permission on delete",
-    "projects/workflow/workflow-public.controller.ts": "Signed email-action token (verifyActionToken) — Wave 4 audit"
+    "projects/workflow/workflow-public.controller.ts": "Signed email-action token (verifyActionToken) \u2014 Wave 4 audit"
   },
   "htmlSinkNotes": {
-    "apps/app/src/components/dom/rich-html.tsx": "Caller must sanitize — audit all import sites in Wave 5",
-    "apps/web/src/components/ui/chart.tsx": "Static CSS string — low risk",
-    "apps/web/src/app/(dashboard)/accounting/invoices/[id]/print/page.tsx": "Static PRINT_STYLES — low risk"
+    "apps/app/src/components/dom/rich-html.tsx": "Wave 5: sanitizes via sanitizeRichHtml inside the DOM component",
+    "apps/web/src/components/ui/chart.tsx": "Static CSS string \u2014 low risk",
+    "apps/web/src/app/(dashboard)/accounting/invoices/[id]/print/page.tsx": "Static PRINT_STYLES \u2014 low risk"
   }
 }

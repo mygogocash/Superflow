@@ -67,14 +67,15 @@ This is an automated message. Please do not reply directly to this email.
 }
 
 function actionButton(label: string, url: string): string {
+  const safeUrl = escapeHtml(url);
   return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;">
 <tr><td style="border-radius:8px;background-color:${BRAND.primaryColor};">
-<a href="${url}" target="_blank" style="display:inline-block;padding:12px 28px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;border-radius:8px;">${label}</a>
+<a href="${safeUrl}" target="_blank" style="display:inline-block;padding:12px 28px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;border-radius:8px;">${escapeHtml(label)}</a>
 </td></tr></table>`;
 }
 
 function statusBadge(label: string, color: string): string {
-  return `<span style="display:inline-block;padding:4px 12px;font-size:12px;font-weight:600;color:#ffffff;background-color:${color};border-radius:20px;">${label}</span>`;
+  return `<span style="display:inline-block;padding:4px 12px;font-size:12px;font-weight:600;color:#ffffff;background-color:${color};border-radius:20px;">${escapeHtml(label)}</span>`;
 }
 
 /** "it-crm-task-assigned" -> "It Crm Task Assigned"; "employeeName" -> "Employee Name". */
@@ -131,11 +132,9 @@ export function renderGenericEmail(
         `<tr><td style="padding:8px 16px;font-size:13px;border-bottom:1px solid ${BRAND.borderColor};width:40%;color:${BRAND.mutedColor};"><strong>${escapeHtml(humanizeTemplateId(k))}</strong></td><td style="padding:8px 16px;font-size:13px;border-bottom:1px solid ${BRAND.borderColor};">${escapeHtml(String(v))}</td></tr>`,
     )
     .join("");
-  const body = `${intro ? `<p style="margin:0 0 16px;">${escapeHtml(intro)}</p>` : ""}${
-    rows
+  const body = `${intro ? `<p style="margin:0 0 16px;">${escapeHtml(intro)}</p>` : ""}${rows
       ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">${rows}</table>`
-      : ""
-  }${url ? actionButton(escapeHtml(ctaLabel), url) : ""}`;
+      : ""}${url ? actionButton(escapeHtml(ctaLabel), url) : ""}`;
   return { subject, html: baseLayout(body) };
 }
 
@@ -155,12 +154,12 @@ export function leaveSubmittedEmail(data: {
     variables: data,
     subject: `Leave Request from ${data.employeeName}`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.approverName}</strong>,</p>
-<p style="margin:0 0 20px;color:${BRAND.mutedColor};">${data.employeeName} has submitted a leave request that requires your review.</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.approverName)}</strong>,</p>
+<p style="margin:0 0 20px;color:${BRAND.mutedColor};">${escapeHtml(data.employeeName)} has submitted a leave request that requires your review.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Type:</strong> ${data.leaveType}</td></tr>
-<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>From:</strong> ${data.startDate} &rarr; <strong>To:</strong> ${data.endDate}</td></tr>
-<tr><td style="padding:12px 16px;font-size:13px;"><strong>Reason:</strong> ${data.reason || "—"}</td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Type:</strong> ${escapeHtml(data.leaveType)}</td></tr>
+<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>From:</strong> ${escapeHtml(data.startDate)} &rarr; <strong>To:</strong> ${escapeHtml(data.endDate)}</td></tr>
+<tr><td style="padding:12px 16px;font-size:13px;"><strong>Reason:</strong> ${escapeHtml(data.reason || "—")}</td></tr>
 </table>
 ${actionButton("Review Request", data.portalUrl)}
 `),
@@ -181,11 +180,11 @@ export function leaveEscalationReminderEmail(data: {
     variables: data,
     subject: `[Reminder ${data.reminderCount}] Leave pending — ${data.employeeName}`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.approverName}</strong>,</p>
-<p style="margin:0 0 20px;color:${BRAND.mutedColor};">This is a reminder: a leave request from <strong>${data.employeeName}</strong> is still awaiting your review.</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.approverName)}</strong>,</p>
+<p style="margin:0 0 20px;color:${BRAND.mutedColor};">This is a reminder: a leave request from <strong>${escapeHtml(data.employeeName)}</strong> is still awaiting your review.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Type:</strong> ${data.leaveType}</td></tr>
-<tr><td style="padding:12px 16px;font-size:13px;"><strong>From:</strong> ${data.startDate} &rarr; <strong>To:</strong> ${data.endDate}</td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Type:</strong> ${escapeHtml(data.leaveType)}</td></tr>
+<tr><td style="padding:12px 16px;font-size:13px;"><strong>From:</strong> ${escapeHtml(data.startDate)} &rarr; <strong>To:</strong> ${escapeHtml(data.endDate)}</td></tr>
 </table>
 ${actionButton("Review Request", data.portalUrl)}
 `),
@@ -206,11 +205,11 @@ export function leaveForwardedEmail(data: {
     variables: data,
     subject: `Leave approval delegated to you — ${data.employeeName}`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.delegateName}</strong>,</p>
-<p style="margin:0 0 20px;color:${BRAND.mutedColor};"><strong>${data.forwardedByName}</strong> has asked you to review a leave request for <strong>${data.employeeName}</strong>.</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.delegateName)}</strong>,</p>
+<p style="margin:0 0 20px;color:${BRAND.mutedColor};"><strong>${escapeHtml(data.forwardedByName)}</strong> has asked you to review a leave request for <strong>${escapeHtml(data.employeeName)}</strong>.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Type:</strong> ${data.leaveType}</td></tr>
-<tr><td style="padding:12px 16px;font-size:13px;"><strong>From:</strong> ${data.startDate} &rarr; <strong>To:</strong> ${data.endDate}</td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Type:</strong> ${escapeHtml(data.leaveType)}</td></tr>
+<tr><td style="padding:12px 16px;font-size:13px;"><strong>From:</strong> ${escapeHtml(data.startDate)} &rarr; <strong>To:</strong> ${escapeHtml(data.endDate)}</td></tr>
 </table>
 ${actionButton("Review Request", data.portalUrl)}
 `),
@@ -347,11 +346,11 @@ export function leaveApprovedEmail(data: {
     variables: data,
     subject: `Leave Request Approved — ${data.leaveType}`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.employeeName}</strong>,</p>
-<p style="margin:0 0 20px;">Your leave request has been ${statusBadge("Approved", "#28a060")} by <strong>${data.approverName}</strong>.</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.employeeName)}</strong>,</p>
+<p style="margin:0 0 20px;">Your leave request has been ${statusBadge("Approved", "#28a060")} by <strong>${escapeHtml(data.approverName)}</strong>.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Type:</strong> ${data.leaveType}</td></tr>
-<tr><td style="padding:12px 16px;font-size:13px;"><strong>Period:</strong> ${data.startDate} &rarr; ${data.endDate}</td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Type:</strong> ${escapeHtml(data.leaveType)}</td></tr>
+<tr><td style="padding:12px 16px;font-size:13px;"><strong>Period:</strong> ${escapeHtml(data.startDate)} &rarr; ${escapeHtml(data.endDate)}</td></tr>
 </table>
 ${actionButton("View in Portal", data.portalUrl)}
 `),
@@ -375,12 +374,12 @@ export function leaveRejectedEmail(data: {
     },
     subject: `Leave Request Rejected — ${data.leaveType}`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.employeeName}</strong>,</p>
-<p style="margin:0 0 20px;">Your leave request has been ${statusBadge("Rejected", "#dc2626")} by <strong>${data.approverName}</strong>.</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.employeeName)}</strong>,</p>
+<p style="margin:0 0 20px;">Your leave request has been ${statusBadge("Rejected", "#dc2626")} by <strong>${escapeHtml(data.approverName)}</strong>.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Type:</strong> ${data.leaveType}</td></tr>
-<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Period:</strong> ${data.startDate} &rarr; ${data.endDate}</td></tr>
-${data.rejectionReason ? `<tr><td style="padding:12px 16px;font-size:13px;"><strong>Reason:</strong> ${data.rejectionReason}</td></tr>` : ""}
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Type:</strong> ${escapeHtml(data.leaveType)}</td></tr>
+<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Period:</strong> ${escapeHtml(data.startDate)} &rarr; ${escapeHtml(data.endDate)}</td></tr>
+${data.rejectionReason ? `<tr><td style="padding:12px 16px;font-size:13px;"><strong>Reason:</strong> ${escapeHtml(data.rejectionReason)}</td></tr>` : ""}
 </table>
 ${actionButton("View in Portal", data.portalUrl)}
 `),
@@ -400,11 +399,11 @@ export function leaveCancelledEmail(data: {
     variables: data,
     subject: `Leave Cancelled — ${data.employeeName}`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.recipientName}</strong>,</p>
-<p style="margin:0 0 20px;">${data.employeeName} has ${statusBadge("Cancelled", "#6b7990")} their leave request.</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.recipientName)}</strong>,</p>
+<p style="margin:0 0 20px;">${escapeHtml(data.employeeName)} has ${statusBadge("Cancelled", "#6b7990")} their leave request.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Type:</strong> ${data.leaveType}</td></tr>
-<tr><td style="padding:12px 16px;font-size:13px;"><strong>Period:</strong> ${data.startDate} &rarr; ${data.endDate}</td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Type:</strong> ${escapeHtml(data.leaveType)}</td></tr>
+<tr><td style="padding:12px 16px;font-size:13px;"><strong>Period:</strong> ${escapeHtml(data.startDate)} &rarr; ${escapeHtml(data.endDate)}</td></tr>
 </table>
 ${actionButton("View in Portal", data.portalUrl)}
 `),
@@ -424,7 +423,7 @@ export function travelSubmittedEmail(data: {
   portalUrl: string;
 }): EmailContent {
   const originRow = data.origin
-    ? `<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Origin:</strong> ${data.origin}</td></tr>`
+    ? `<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Origin:</strong> ${escapeHtml(data.origin)}</td></tr>`
     : "";
   return {
     templateId: "travel-submitted",
@@ -434,13 +433,13 @@ export function travelSubmittedEmail(data: {
     },
     subject: `Travel Request from ${data.employeeName}`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.approverName}</strong>,</p>
-<p style="margin:0 0 20px;">${data.employeeName} has submitted a travel request for your review.</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.approverName)}</strong>,</p>
+<p style="margin:0 0 20px;">${escapeHtml(data.employeeName)} has submitted a travel request for your review.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
 ${originRow}
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Destination:</strong> ${data.destination}</td></tr>
-<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Period:</strong> ${data.startDate} &rarr; ${data.endDate}</td></tr>
-<tr><td style="padding:12px 16px;font-size:13px;"><strong>Purpose:</strong> ${data.purpose || "—"}</td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Destination:</strong> ${escapeHtml(data.destination)}</td></tr>
+<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Period:</strong> ${escapeHtml(data.startDate)} &rarr; ${escapeHtml(data.endDate)}</td></tr>
+<tr><td style="padding:12px 16px;font-size:13px;"><strong>Purpose:</strong> ${escapeHtml(data.purpose || "—")}</td></tr>
 </table>
 ${actionButton("Review Request", data.portalUrl)}
 `),
@@ -457,7 +456,7 @@ export function travelApprovedEmail(data: {
   portalUrl: string;
 }): EmailContent {
   const originRow = data.origin
-    ? `<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Origin:</strong> ${data.origin}</td></tr>`
+    ? `<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Origin:</strong> ${escapeHtml(data.origin)}</td></tr>`
     : "";
   return {
     templateId: "travel-approved",
@@ -467,12 +466,12 @@ export function travelApprovedEmail(data: {
     },
     subject: `Travel Request Approved — ${data.destination}`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.employeeName}</strong>,</p>
-<p style="margin:0 0 20px;">Your travel request has been ${statusBadge("Approved", "#28a060")} by <strong>${data.approverName}</strong>.</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.employeeName)}</strong>,</p>
+<p style="margin:0 0 20px;">Your travel request has been ${statusBadge("Approved", "#28a060")} by <strong>${escapeHtml(data.approverName)}</strong>.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
 ${originRow}
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Destination:</strong> ${data.destination}</td></tr>
-<tr><td style="padding:12px 16px;font-size:13px;"><strong>Period:</strong> ${data.startDate} &rarr; ${data.endDate}</td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Destination:</strong> ${escapeHtml(data.destination)}</td></tr>
+<tr><td style="padding:12px 16px;font-size:13px;"><strong>Period:</strong> ${escapeHtml(data.startDate)} &rarr; ${escapeHtml(data.endDate)}</td></tr>
 </table>
 ${actionButton("View in Portal", data.portalUrl)}
 `),
@@ -662,7 +661,7 @@ export function travelRejectedEmail(data: {
   portalUrl: string;
 }): EmailContent {
   const originRow = data.origin
-    ? `<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Origin:</strong> ${data.origin}</td></tr>`
+    ? `<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Origin:</strong> ${escapeHtml(data.origin)}</td></tr>`
     : "";
   return {
     templateId: "travel-rejected",
@@ -673,13 +672,13 @@ export function travelRejectedEmail(data: {
     },
     subject: `Travel Request Rejected — ${data.destination}`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.employeeName}</strong>,</p>
-<p style="margin:0 0 20px;">Your travel request has been ${statusBadge("Rejected", "#dc2626")} by <strong>${data.approverName}</strong>.</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.employeeName)}</strong>,</p>
+<p style="margin:0 0 20px;">Your travel request has been ${statusBadge("Rejected", "#dc2626")} by <strong>${escapeHtml(data.approverName)}</strong>.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
 ${originRow}
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Destination:</strong> ${data.destination}</td></tr>
-<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Period:</strong> ${data.startDate} &rarr; ${data.endDate}</td></tr>
-${data.rejectionReason ? `<tr><td style="padding:12px 16px;font-size:13px;"><strong>Reason:</strong> ${data.rejectionReason}</td></tr>` : ""}
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Destination:</strong> ${escapeHtml(data.destination)}</td></tr>
+<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Period:</strong> ${escapeHtml(data.startDate)} &rarr; ${escapeHtml(data.endDate)}</td></tr>
+${data.rejectionReason ? `<tr><td style="padding:12px 16px;font-size:13px;"><strong>Reason:</strong> ${escapeHtml(data.rejectionReason)}</td></tr>` : ""}
 </table>
 ${actionButton("View in Portal", data.portalUrl)}
 `),
@@ -696,7 +695,7 @@ export function travelCancelledEmail(data: {
   portalUrl: string;
 }): EmailContent {
   const originRow = data.origin
-    ? `<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Origin:</strong> ${data.origin}</td></tr>`
+    ? `<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Origin:</strong> ${escapeHtml(data.origin)}</td></tr>`
     : "";
   return {
     templateId: "travel-cancelled",
@@ -706,12 +705,12 @@ export function travelCancelledEmail(data: {
     },
     subject: `Travel Cancelled — ${data.employeeName}`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.recipientName}</strong>,</p>
-<p style="margin:0 0 20px;">${data.employeeName} has ${statusBadge("Cancelled", "#6b7990")} their travel request.</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.recipientName)}</strong>,</p>
+<p style="margin:0 0 20px;">${escapeHtml(data.employeeName)} has ${statusBadge("Cancelled", "#6b7990")} their travel request.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
 ${originRow}
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Destination:</strong> ${data.destination}</td></tr>
-<tr><td style="padding:12px 16px;font-size:13px;"><strong>Period:</strong> ${data.startDate} &rarr; ${data.endDate}</td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Destination:</strong> ${escapeHtml(data.destination)}</td></tr>
+<tr><td style="padding:12px 16px;font-size:13px;"><strong>Period:</strong> ${escapeHtml(data.startDate)} &rarr; ${escapeHtml(data.endDate)}</td></tr>
 </table>
 ${actionButton("View in Portal", data.portalUrl)}
 `),
@@ -814,7 +813,7 @@ export function cashAdvanceHrSummaryEmail(data: {
 ${moneyRow("Approved amount", escapeHtml(data.approvedAmount))}
 ${moneyRow("Payout mode", escapeHtml(data.payoutMode))}
 ${bankRows}
-<tr><td style="padding:12px 16px;font-size:13px;"><strong>Notes:</strong> ${escapeHtml(data.notes ?? "") || "—"}</td></tr>
+<tr><td style="padding:12px 16px;font-size:13px;"><strong>Notes:</strong> ${escapeHtml(data.notes ?? "—")}</td></tr>
 </table>
 ${actionButton("Open Cash Advance", data.portalUrl)}
 `),
@@ -840,7 +839,7 @@ export function cashAdvanceRejectedEmail(data: {
 <p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.employeeName)}</strong>,</p>
 <p style="margin:0 0 20px;">Your cash advance request ${escapeHtml(data.requestCode)} was ${statusBadge("Rejected", "#d04545")} by <strong>${escapeHtml(data.approverName)}</strong>.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
-<tr><td style="padding:12px 16px;font-size:13px;"><strong>Reason:</strong> ${escapeHtml(data.reason ?? "") || "—"}</td></tr>
+<tr><td style="padding:12px 16px;font-size:13px;"><strong>Reason:</strong> ${escapeHtml(data.reason ?? "—")}</td></tr>
 </table>
 ${actionButton("View in Portal", data.portalUrl)}
 `),
@@ -870,10 +869,10 @@ export function visaExpiryReminderEmail(data: {
   );
   const items = [
     data.visa
-      ? `<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Visa (${data.visa.visaType}):</strong> expires ${data.visa.expiryDate} &middot; ${data.visa.daysLeft} day${data.visa.daysLeft === 1 ? "" : "s"} left</td></tr>`
+      ? `<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Visa (${escapeHtml(data.visa.visaType)}):</strong> expires ${escapeHtml(data.visa.expiryDate)} &middot; ${data.visa.daysLeft} day${data.visa.daysLeft === 1 ? "" : "s"} left</td></tr>`
       : "",
     data.workPermit
-      ? `<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Work Permit${data.workPermit.permitNumber ? ` (${data.workPermit.permitNumber})` : ""}:</strong> expires ${data.workPermit.expiryDate} &middot; ${data.workPermit.daysLeft} day${data.workPermit.daysLeft === 1 ? "" : "s"} left</td></tr>`
+      ? `<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Work Permit${data.workPermit.permitNumber ? ` (${escapeHtml(data.workPermit.permitNumber)})` : ""}:</strong> expires ${escapeHtml(data.workPermit.expiryDate)} &middot; ${data.workPermit.daysLeft} day${data.workPermit.daysLeft === 1 ? "" : "s"} left</td></tr>`
       : "",
   ]
     .filter(Boolean)
@@ -883,14 +882,14 @@ export function visaExpiryReminderEmail(data: {
     variables: {
       employeeName: data.employeeName,
       country: data.country,
-      summaryText: `A document tied to your stay in ${data.country} is approaching its expiry date.`,
+      summaryText: `A document tied to your stay in ${escapeHtml(data.country)} is approaching its expiry date.`,
       documentRowsHtml: items,
       portalUrl: data.portalUrl,
     },
     subject: `Action needed — ${earliest} day${earliest === 1 ? "" : "s"} until your ${data.workPermit && !data.visa ? "work permit" : "visa"} expires`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.employeeName}</strong>,</p>
-<p style="margin:0 0 20px;">A document tied to your stay in ${data.country} is approaching its expiry date. Please coordinate with HR to begin the renewal process.</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.employeeName)}</strong>,</p>
+<p style="margin:0 0 20px;">A document tied to your stay in ${escapeHtml(data.country)} is approaching its expiry date. Please coordinate with HR to begin the renewal process.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
 ${items}
 </table>
@@ -915,13 +914,13 @@ export function ninetyDayReminderEmail(data: {
   if (data.offsetDays < 0) {
     const daysOver = Math.abs(data.offsetDays);
     headline = `Final TM.47 report due — day ${daysOver} of 7`;
-    body = `You are inside the <strong>7-day final reporting window</strong> for your 90-day notification (TM.47). The 90-day mark was on <strong>${data.dueDate}</strong>; reports must be lodged with Immigration before the window closes.`;
+    body = `You are inside the <strong>7-day final reporting window</strong> for your 90-day notification (TM.47). The 90-day mark was on <strong>${escapeHtml(data.dueDate)}</strong>; reports must be lodged with Immigration before the window closes.`;
   } else if (data.offsetDays <= 15) {
     headline = `Submit TM.47 — ${data.offsetDays} day${data.offsetDays === 1 ? "" : "s"} until your 90-day mark`;
-    body = `Your 90-day notification (TM.47) for the arrival on <strong>${data.lastArrivalDate}</strong> falls due on <strong>${data.dueDate}</strong>. The advance submission window is open — please coordinate with HR to file ahead of the deadline.`;
+    body = `Your 90-day notification (TM.47) for the arrival on <strong>${escapeHtml(data.lastArrivalDate)}</strong> falls due on <strong>${escapeHtml(data.dueDate)}</strong>. The advance submission window is open — please coordinate with HR to file ahead of the deadline.`;
   } else {
     headline = `Heads-up: TM.47 in ${data.offsetDays} days`;
-    body = `Your next 90-day notification (TM.47) for the arrival on <strong>${data.lastArrivalDate}</strong> is due on <strong>${data.dueDate}</strong>. No action needed yet — this is a heads-up so HR can plan the submission.`;
+    body = `Your next 90-day notification (TM.47) for the arrival on <strong>${escapeHtml(data.lastArrivalDate)}</strong> is due on <strong>${escapeHtml(data.dueDate)}</strong>. No action needed yet — this is a heads-up so HR can plan the submission.`;
   }
   return {
     templateId: "visa-ninety-day-reminder",
@@ -933,7 +932,7 @@ export function ninetyDayReminderEmail(data: {
     },
     subject: headline,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.employeeName}</strong>,</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.employeeName)}</strong>,</p>
 <p style="margin:0 0 20px;">${body}</p>
 ${actionButton("Open in Portal", data.portalUrl)}
 `),
@@ -955,12 +954,12 @@ export function expenseSubmittedEmail(data: {
     variables: data,
     subject: `Expense Claim from ${data.employeeName}`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.approverName}</strong>,</p>
-<p style="margin:0 0 20px;">${data.employeeName} has submitted an expense claim for your review.</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.approverName)}</strong>,</p>
+<p style="margin:0 0 20px;">${escapeHtml(data.employeeName)} has submitted an expense claim for your review.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Title:</strong> ${data.title}</td></tr>
-<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Amount:</strong> ${data.amount}</td></tr>
-<tr><td style="padding:12px 16px;font-size:13px;"><strong>Category:</strong> ${data.category}</td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Title:</strong> ${escapeHtml(data.title)}</td></tr>
+<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Amount:</strong> ${escapeHtml(data.amount)}</td></tr>
+<tr><td style="padding:12px 16px;font-size:13px;"><strong>Category:</strong> ${escapeHtml(data.category)}</td></tr>
 </table>
 ${actionButton("Review Expense", data.portalUrl)}
 `),
@@ -979,11 +978,11 @@ export function expenseApprovedEmail(data: {
     variables: data,
     subject: `Expense Approved — ${data.title}`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.employeeName}</strong>,</p>
-<p style="margin:0 0 20px;">Your expense claim has been ${statusBadge("Approved", "#28a060")} by <strong>${data.approverName}</strong>.</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.employeeName)}</strong>,</p>
+<p style="margin:0 0 20px;">Your expense claim has been ${statusBadge("Approved", "#28a060")} by <strong>${escapeHtml(data.approverName)}</strong>.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Title:</strong> ${data.title}</td></tr>
-<tr><td style="padding:12px 16px;font-size:13px;"><strong>Amount:</strong> ${data.amount}</td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Title:</strong> ${escapeHtml(data.title)}</td></tr>
+<tr><td style="padding:12px 16px;font-size:13px;"><strong>Amount:</strong> ${escapeHtml(data.amount)}</td></tr>
 </table>
 ${actionButton("View in Portal", data.portalUrl)}
 `),
@@ -1006,12 +1005,12 @@ export function expenseRejectedEmail(data: {
     },
     subject: `Expense Rejected — ${data.title}`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.employeeName}</strong>,</p>
-<p style="margin:0 0 20px;">Your expense claim has been ${statusBadge("Rejected", "#dc2626")} by <strong>${data.approverName}</strong>.</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.employeeName)}</strong>,</p>
+<p style="margin:0 0 20px;">Your expense claim has been ${statusBadge("Rejected", "#dc2626")} by <strong>${escapeHtml(data.approverName)}</strong>.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Title:</strong> ${data.title}</td></tr>
-<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Amount:</strong> ${data.amount}</td></tr>
-${data.rejectionReason ? `<tr><td style="padding:12px 16px;font-size:13px;"><strong>Reason:</strong> ${data.rejectionReason}</td></tr>` : ""}
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Title:</strong> ${escapeHtml(data.title)}</td></tr>
+<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Amount:</strong> ${escapeHtml(data.amount)}</td></tr>
+${data.rejectionReason ? `<tr><td style="padding:12px 16px;font-size:13px;"><strong>Reason:</strong> ${escapeHtml(data.rejectionReason)}</td></tr>` : ""}
 </table>
 ${actionButton("View in Portal", data.portalUrl)}
 `),
@@ -1029,8 +1028,8 @@ export function expenseMonthlySubmissionReminderEmail(data: {
 }): EmailContent {
   const isThailand = data.variant === "thailand";
   const subject = isThailand
-    ? `Reminder: submit your ${data.periodLabel} monthly allowance`
-    : `Reminder: submit your ${data.periodLabel} monthly reimbursement`;
+    ? `Reminder: submit your ${escapeHtml(data.periodLabel)} monthly allowance`
+    : `Reminder: submit your ${escapeHtml(data.periodLabel)} monthly reimbursement`;
   const checklist = isThailand
     ? `<ul style="margin:0 0 20px;padding-left:20px;font-size:14px;line-height:1.7;">
 <li>Meal allowance</li>
@@ -1076,11 +1075,11 @@ export function expenseReimbursedEmail(data: {
     variables: data,
     subject: `Expense Reimbursed — ${data.title}`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.employeeName}</strong>,</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.employeeName)}</strong>,</p>
 <p style="margin:0 0 20px;">Your expense claim has been ${statusBadge("Reimbursed", "#28a060")}.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Title:</strong> ${data.title}</td></tr>
-<tr><td style="padding:12px 16px;font-size:13px;"><strong>Amount:</strong> ${data.amount}</td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Title:</strong> ${escapeHtml(data.title)}</td></tr>
+<tr><td style="padding:12px 16px;font-size:13px;"><strong>Amount:</strong> ${escapeHtml(data.amount)}</td></tr>
 </table>
 ${actionButton("View in Portal", data.portalUrl)}
 `),
@@ -1100,10 +1099,10 @@ export function surveyUploadCompleteEmail(data: {
     variables: data,
     subject: `Survey Upload Complete — ${data.waveName}`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.uploaderName}</strong>,</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.uploaderName)}</strong>,</p>
 <p style="margin:0 0 20px;">Your survey data upload has been ${statusBadge("Completed", "#28a060")} successfully.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Wave:</strong> ${data.waveName}</td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Wave:</strong> ${escapeHtml(data.waveName)}</td></tr>
 <tr><td style="padding:12px 16px;font-size:13px;"><strong>Responses Imported:</strong> ${data.responseCount}</td></tr>
 </table>
 ${actionButton("View Survey Analytics", data.portalUrl)}
@@ -1158,7 +1157,7 @@ export function staleLeadDigestEmail(data: {
     },
     subject: `${data.totalCount} stale ${data.totalCount === 1 ? "lead needs" : "leads need"} follow-up`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.ownerName}</strong>,</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.ownerName)}</strong>,</p>
 <p style="margin:0 0 20px;color:${BRAND.mutedColor};">You have <strong>${data.totalCount}</strong> ${data.totalCount === 1 ? "lead" : "leads"} in <em>new</em> or <em>contacted</em> status with no activity in the last ${data.thresholdDays} days.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
 <thead>
@@ -1172,11 +1171,9 @@ export function staleLeadDigestEmail(data: {
 ${rowsHtml}
 </tbody>
 </table>
-${
-  data.hiddenCount > 0
+${data.hiddenCount > 0
     ? `<p style="margin:0 0 20px;color:${BRAND.mutedColor};font-size:12px;">+${data.hiddenCount} more ${data.hiddenCount === 1 ? "lead" : "leads"} hidden — open the portal to see the full list.</p>`
-    : ""
-}
+    : ""}
 ${actionButton("Open Stale Leads", data.portalUrl)}
 `),
   };
@@ -1200,11 +1197,11 @@ export function opportunityCreatedEmail(data: {
     html: baseLayout(`
 <p style="margin:0 0 6px;">A new deal has just been added to the pipeline.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Account:</strong> ${data.accountName}</td></tr>
-<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Opportunity:</strong> ${data.opportunityName}</td></tr>
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Stage:</strong> ${data.stage}</td></tr>
-<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Value:</strong> ${data.value} ${data.currency}</td></tr>
-<tr><td style="padding:12px 16px;font-size:13px;"><strong>Owner:</strong> ${data.ownerName}</td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Account:</strong> ${escapeHtml(data.accountName)}</td></tr>
+<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Opportunity:</strong> ${escapeHtml(data.opportunityName)}</td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Stage:</strong> ${escapeHtml(data.stage)}</td></tr>
+<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Value:</strong> ${escapeHtml(data.value)} ${escapeHtml(data.currency)}</td></tr>
+<tr><td style="padding:12px 16px;font-size:13px;"><strong>Owner:</strong> ${escapeHtml(data.ownerName)}</td></tr>
 </table>
 ${actionButton("Open Pipeline", data.portalUrl)}
 `),
@@ -1228,11 +1225,11 @@ export function opportunityStageChangedEmail(data: {
     html: baseLayout(`
 <p style="margin:0 0 6px;">A deal has moved stages.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Account:</strong> ${data.accountName}</td></tr>
-<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Opportunity:</strong> ${data.opportunityName}</td></tr>
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Stage:</strong> ${data.fromStage} &rarr; ${data.toStage}</td></tr>
-<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Value:</strong> ${data.value} ${data.currency}</td></tr>
-<tr><td style="padding:12px 16px;font-size:13px;"><strong>Owner:</strong> ${data.ownerName}</td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Account:</strong> ${escapeHtml(data.accountName)}</td></tr>
+<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Opportunity:</strong> ${escapeHtml(data.opportunityName)}</td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Stage:</strong> ${escapeHtml(data.fromStage)} &rarr; ${escapeHtml(data.toStage)}</td></tr>
+<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Value:</strong> ${escapeHtml(data.value)} ${escapeHtml(data.currency)}</td></tr>
+<tr><td style="padding:12px 16px;font-size:13px;"><strong>Owner:</strong> ${escapeHtml(data.ownerName)}</td></tr>
 </table>
 ${actionButton("Open Pipeline", data.portalUrl)}
 `),
@@ -1270,11 +1267,11 @@ export function expenseAllowanceFiledEmail(data: {
       },
       subject: `Allowance filed — ${data.reportTitle}`,
       html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.recipientName}</strong>,</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.recipientName)}</strong>,</p>
 <p style="margin:0 0 20px;">Your allowance claim has been ${statusBadge("Filed", "#28a060")}. The finance team will process the payout — no further approval is required.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
 <tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Report:</strong> ${escapeHtml(data.reportTitle)}</td></tr>
-<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Amount:</strong> ${data.amount}</td></tr>
+<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Amount:</strong> ${escapeHtml(data.amount)}</td></tr>
 <tr><td style="padding:12px 16px;font-size:13px;"><strong>Line items:</strong> ${data.expenseCount}</td></tr>
 </table>
 ${actionButton("View in Portal", data.portalUrl)}
@@ -1338,11 +1335,11 @@ export function leaveSubmittedConfirmationEmail(data: {
     variables: data,
     subject: `Leave request submitted — ${data.leaveType}`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hello <strong>${data.employeeName}</strong>,</p>
+<p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.employeeName)}</strong>,</p>
 <p style="margin:0 0 20px;">Your leave request has been ${statusBadge("Submitted", "#2262F4")}. Your manager and HR have been notified.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Type:</strong> ${data.leaveType}</td></tr>
-<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>From:</strong> ${data.startDate} &rarr; <strong>To:</strong> ${data.endDate}</td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Type:</strong> ${escapeHtml(data.leaveType)}</td></tr>
+<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>From:</strong> ${escapeHtml(data.startDate)} &rarr; <strong>To:</strong> ${escapeHtml(data.endDate)}</td></tr>
 <tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Working days:</strong> ${data.days}</td></tr>
 ${data.reason ? `<tr><td style="padding:12px 16px;font-size:13px;"><strong>Reason:</strong> ${escapeHtml(data.reason)}</td></tr>` : ""}
 </table>
@@ -1431,7 +1428,7 @@ export function helpdeskTicketCreatedTeamEmail(data: {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
 <tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Ticket:</strong> IT-${data.ticketNumber}</td></tr>
 <tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Title:</strong> ${escapeHtml(data.title)}</td></tr>
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Category:</strong> ${data.category} &middot; <strong>Priority:</strong> ${data.priority}</td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Category:</strong> ${escapeHtml(data.category)} &middot; <strong>Priority:</strong> ${escapeHtml(data.priority)}</td></tr>
 <tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Submitted by:</strong> ${escapeHtml(data.creatorName)} (${escapeHtml(data.creatorEmail)})</td></tr>
 <tr><td style="padding:12px 16px;font-size:13px;white-space:pre-wrap;"><strong>Description:</strong><br/>${escapeHtml(data.description)}</td></tr>
 </table>
@@ -1458,7 +1455,7 @@ export function helpdeskTicketCreatedRequesterEmail(data: {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
 <tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Ticket:</strong> IT-${data.ticketNumber}</td></tr>
 <tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Title:</strong> ${escapeHtml(data.title)}</td></tr>
-<tr><td style="padding:12px 16px;font-size:13px;"><strong>Category:</strong> ${data.category} &middot; <strong>Priority:</strong> ${data.priority}</td></tr>
+<tr><td style="padding:12px 16px;font-size:13px;"><strong>Category:</strong> ${escapeHtml(data.category)} &middot; <strong>Priority:</strong> ${escapeHtml(data.priority)}</td></tr>
 </table>
 ${actionButton("View Ticket", data.portalUrl)}
 `),
@@ -1547,12 +1544,12 @@ export function welcomeEmail(data: {
     },
     subject: `Welcome to ${BRAND.name} — Your Account is Ready`,
     html: baseLayout(`
-<p style="margin:0 0 6px;">Hi <strong>${data.name}</strong>,</p>
+<p style="margin:0 0 6px;">Hi <strong>${escapeHtml(data.name)}</strong>,</p>
 <p style="margin:0 0 16px;">Here are your login credentials to access the new website.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
-<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Website Link:</strong> <a href="${data.portalUrl}" style="color:${BRAND.primaryColor};text-decoration:none;">${data.portalUrl}</a></td></tr>
-<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Email:</strong> ${data.email}</td></tr>
-<tr><td style="padding:12px 16px;font-size:13px;"><strong>Password:</strong> <code style="background-color:${BRAND.bgColor};padding:2px 8px;border-radius:4px;font-size:14px;">${data.temporaryPassword}</code></td></tr>
+<tr><td style="padding:12px 16px;background-color:${BRAND.bgColor};border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Website Link:</strong> <a href="${escapeHtml(data.portalUrl)}" style="color:${BRAND.primaryColor};text-decoration:none;">${escapeHtml(data.portalUrl)}</a></td></tr>
+<tr><td style="padding:12px 16px;border-bottom:1px solid ${BRAND.borderColor};font-size:13px;"><strong>Email:</strong> ${escapeHtml(data.email)}</td></tr>
+<tr><td style="padding:12px 16px;font-size:13px;"><strong>Password:</strong> <code style="background-color:${BRAND.bgColor};padding:2px 8px;border-radius:4px;font-size:14px;">${escapeHtml(data.temporaryPassword)}</code></td></tr>
 </table>
 <p style="margin:0 0 20px;">Please log in and let us know if you have any issues.</p>
 ${actionButton("Sign In to Manut", data.portalUrl)}
@@ -1582,7 +1579,7 @@ export function itAccessRequestEmail(data: {
   return {
     templateId: "it-access-request",
     variables: data,
-    subject: `Access Request: ${escapeHtml(data.systemName)} (${escapeHtml(data.requesterName)})`,
+    subject: `Access Request: ${data.systemName} (${data.requesterName})`,
     html: baseLayout(`
 <p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.approverName)}</strong>,</p>
 <p style="margin:0 0 20px;">An access request needs your action at the <strong>${escapeHtml(data.stepName)}</strong> step.</p>
@@ -1616,7 +1613,7 @@ export function itAccessDecisionEmail(data: {
   return {
     templateId: "it-access-decision",
     variables: { ...data, decisionLabel: b.label },
-    subject: `Access ${b.label}: ${escapeHtml(data.systemName)}`,
+    subject: `Access ${b.label}: ${data.systemName}`,
     html: baseLayout(`
 <p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.requesterName)}</strong>,</p>
 <p style="margin:0 0 20px;">Your access for <strong>${escapeHtml(data.systemName)}</strong> has been ${statusBadge(b.label, b.color)} by <strong>${escapeHtml(data.byName)}</strong>.</p>
@@ -1645,7 +1642,7 @@ export function itBillingReminderEmail(data: {
   return {
     templateId: "it-billing-reminder",
     variables: { ...data, title },
-    subject: `${title}: ${escapeHtml(data.productName)}`,
+    subject: `${title}: ${data.productName}`,
     html: baseLayout(`
 <p style="margin:0 0 6px;">Hello <strong>${escapeHtml(data.recipientName)}</strong>,</p>
 <p style="margin:0 0 20px;">${statusBadge(title, "#d97706")} for an IT subscription.</p>
@@ -1695,16 +1692,16 @@ export function crmDeadlineReminderEmail(data: {
   return {
     templateId: "it-crm-deadline-reminder-2",
     variables: { ...data, headline },
-    subject: `${headline}: ${escapeHtml(data.title)}`,
+    subject: `${headline}: ${data.title}`,
     html: baseLayout(`
 <p style="margin:0 0 6px;">Hello,</p>
-<p style="margin:0 0 20px;">${statusBadge(headline, badgeColor)} for a ${escapeHtml(data.crmLabel)} ${data.itemType}.</p>
+<p style="margin:0 0 20px;">${statusBadge(headline, badgeColor)} for a ${escapeHtml(data.crmLabel)} ${escapeHtml(data.itemType)}.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:20px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">
 ${itemRow}
 ${data.itemType === "task" ? itRow("Project", escapeHtml(data.projectName)) : ""}
 ${itRow(data.deadlineLabel, escapeHtml(data.dueDate))}
 </table>
-${actionButton(`Open ${data.crmLabel}`, data.portalUrl)}
+${actionButton(`Open ${escapeHtml(data.crmLabel)}`, data.portalUrl)}
 `),
   };
 }
@@ -1724,7 +1721,7 @@ export function crmTaskUpdateEmail(data: {
   return {
     templateId: "it-crm-task-update-2",
     variables: { ...data },
-    subject: `${data.eventLabel}: ${escapeHtml(data.taskTitle)}`,
+    subject: `${data.eventLabel}: ${data.taskTitle}`,
     html: baseLayout(`
 <p style="margin:0 0 6px;">Hello,</p>
 <p style="margin:0 0 20px;">${statusBadge(data.eventLabel, "#2563eb")} in ${escapeHtml(data.crmLabel)}.</p>
@@ -1733,7 +1730,7 @@ ${itRow("Task", escapeHtml(data.taskTitle))}
 ${itRow("Project", escapeHtml(data.projectName))}
 ${itRow("Update", escapeHtml(data.summary))}
 </table>
-${actionButton(`Open ${data.crmLabel}`, data.portalUrl)}
+${actionButton(`Open ${escapeHtml(data.crmLabel)}`, data.portalUrl)}
 `),
   };
 }
@@ -1772,11 +1769,11 @@ export function projectApprovalRequestEmail(data: {
   const actions = data.approveLink
     ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0;"><tr>
 <td style="border-radius:8px;background-color:${BRAND.primaryColor};">
-<a href="${data.approveLink}" target="_blank" style="display:inline-block;padding:12px 28px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;border-radius:8px;">Approve</a>
+<a href="${escapeHtml(data.approveLink)}" target="_blank" style="display:inline-block;padding:12px 28px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;border-radius:8px;">Approve</a>
 </td>
 <td style="width:12px;">&nbsp;</td>
 <td style="border-radius:8px;border:1px solid ${BRAND.borderColor};">
-<a href="${data.rejectLink ?? data.deepLink}" target="_blank" style="display:inline-block;padding:11px 26px;color:${BRAND.textColor};text-decoration:none;font-size:14px;font-weight:600;border-radius:8px;">Reject</a>
+<a href="${escapeHtml(data.rejectLink ?? data.deepLink)}" target="_blank" style="display:inline-block;padding:11px 26px;color:${BRAND.textColor};text-decoration:none;font-size:14px;font-weight:600;border-radius:8px;">Reject</a>
 </td></tr></table>
 <p style="margin:0 0 8px;font-size:12px;color:${BRAND.mutedColor};">Rejecting opens the request so you can record a reason.</p>`
     : actionButton("Review Request", data.deepLink);
@@ -1804,7 +1801,7 @@ export function projectApprovalRequestEmail(data: {
 <p style="margin:0 0 20px;color:${BRAND.mutedColor};"><strong>${escapeHtml(data.projectName)}</strong> is waiting for your approval.</p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:4px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">${rows}</table>
 ${actions}
-<p style="margin:0;font-size:12px;color:${BRAND.mutedColor};">Or open it directly: <a href="${data.deepLink}" style="color:${BRAND.primaryColor};">${escapeHtml(data.projectName)}</a></p>
+<p style="margin:0;font-size:12px;color:${BRAND.mutedColor};">Or open it directly: <a href="${escapeHtml(data.deepLink)}" style="color:${BRAND.primaryColor};">${escapeHtml(data.projectName)}</a></p>
 `),
   };
 }

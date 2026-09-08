@@ -26,7 +26,10 @@ export const MULTIPART_UPLOAD_MAX_BYTES = Math.max(...Object.values(MAX_FILE_SIZ
 
 const ALLOWED_MIME: Record<BucketName, string[]> = {
   article: ["image/jpeg", "image/png", "image/webp"],
-  avatars: ["image/jpeg", "image/png", "image/webp", "image/svg+xml"],
+  // SVG is intentionally omitted for user uploads (stored XSS via <img>).
+  // Trusted server-side avatar generator may still upload SVG via
+  // validateUpload(..., { purpose: "avatar-generator" }).
+  avatars: ["image/jpeg", "image/png", "image/webp"],
   blog: ["image/jpeg", "image/png", "image/webp"],
   receipts: ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"],
   documents: [
@@ -65,11 +68,22 @@ export function assertBucket(name: string): BucketName {
   return name as BucketName;
 }
 
-export function validateUpload(bucket: BucketName, mimeType: string, size: number) {
+const TRUSTED_AVATAR_GENERATOR_PURPOSE = "avatar-generator";
+
+export function validateUpload(
+  bucket: BucketName,
+  mimeType: string,
+  size: number,
+  opts?: { purpose?: string | null },
+) {
   const max = MAX_FILE_SIZES[bucket];
   if (size > max) throw new BadRequestException(`File exceeds ${max} byte limit for bucket ${bucket}`);
   const allowed = ALLOWED_MIME[bucket];
-  if (!allowed.includes(mimeType)) {
+  const trustedSvg =
+    bucket === "avatars" &&
+    mimeType === "image/svg+xml" &&
+    opts?.purpose === TRUSTED_AVATAR_GENERATOR_PURPOSE;
+  if (!allowed.includes(mimeType) && !trustedSvg) {
     throw new BadRequestException(`MIME type ${mimeType} is not allowed for bucket ${bucket}`);
   }
 }

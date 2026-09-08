@@ -41,7 +41,9 @@ export async function upload(
 ) {
   const bucket = assertBucket(input.bucket ?? "uploads");
   const bytes = Uint8Array.from(atob(input.base64), (c) => c.charCodeAt(0));
-  validateUpload(bucket, input.mimeType, bytes.byteLength);
+  validateUpload(bucket, input.mimeType, bytes.byteLength, {
+    purpose: input.purpose,
+  });
   const key = buildObjectKey(userId, input.originalName);
   await storage.put(key, bytes, input.mimeType);
   const path = encodeR2Path(bucket, key);

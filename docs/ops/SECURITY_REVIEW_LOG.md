@@ -16,7 +16,7 @@ Allowlist for intentional public / alt-auth surfaces: `scripts/security/allowlis
 | id | wave | severity | surface | status | notes | PR |
 |----|------|----------|---------|--------|-------|-----|
 | SEC-000 | 0 | — | inventory harness | done | Scripts + allowlist + this log | #319 |
-| SEC-001 | 0 | P3 | HTML sinks without nearby sanitizer | open | 4 REVIEW rows: print CSS, chart CSS, Expo `RichHtml` (caller-must-sanitize) — Wave 5 | |
+| SEC-001 | 0 | P3 | HTML sinks without nearby sanitizer | done | Wave 5: `sanitizeRichHtml` style allowlist + Expo `RichHtml` sanitizes in-component; print/chart CSS remain static (allowlisted). Email free-text escaped; avatar SVG uploads banned except `avatar-generator`; signed-URL ownership tests | |
 | SEC-002 | 0 | P2 | Workflow email-action public controller | open | `projects/workflow/workflow-public.controller.ts` uses `verifyActionToken`. Wave 4: replay/expiry/binding audit | |
 | SEC-003 | 0 | P2 | Expo session in web storage | mitigated | Wave 1: logout clears `intranet.session.v1` + legacy keys; residual XSS blast radius remains (Bearer-in-storage for Expo) | |
 | SEC-004 | 0 | P1 | Soft-delete restore IDOR pattern | done | Wave 2: owner-or-HR/read-all in service for accounting restore + permanent delete IncludingDeleted | |
@@ -177,3 +177,19 @@ Do **not** claim multi-org ERP is done until debt rows above carry `organization
 - Staging/prod operators must rotate any `CRON_SECRET` shorter than 32 chars before Wave 4 deploy (fail-closed).
 - Workflow email-action token replay/expiry audit remains SEC-002 (not cron HMAC).
 
+## Wave 5 — XSS / HTML / uploads / signed URLs (2026-09-08)
+
+### Landed
+
+| Surface | Change |
+|---------|--------|
+| `sanitizeRichHtml` (web utils + Expo `apps/app`) | `allowedStyles` whitelist (color/bg/align/font/decoration); anchors get `rel=noopener noreferrer`; Expo `RichHtml` sanitizes before `dangerouslySetInnerHTML` |
+| Email templates (`apps/api` `templates.ts`) | Free-text `${data.*}` HTML interpolations wrapped in `escapeHtml`; subjects left plain-text (no HTML entities) |
+| Avatar uploads (`validateUpload`) | Public `avatars` MIME = jpeg/png/webp only; `image/svg+xml` only when `purpose === "avatar-generator"` |
+| Signed URLs (`getSignedUrl`) | Ownership check (`uploadedBy`); regression tests for 404 / Forbidden / owner OK |
+| HTML inventory | `pnpm security:dangerously-html` → 6 sinks, 0 REVIEW |
+
+### Residual
+
+- Expo Bearer-in-storage XSS blast radius remains (SEC-003) — sanitizing HTML sinks reduces injection paths but does not remove token-in-storage risk.
+- Static CSS sinks (print invoice, chart) remain intentional; documented in `htmlSinkNotes`.

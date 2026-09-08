@@ -184,16 +184,16 @@ Each wave below is independently reviewable. Do not start Wave N+1 until Wave Nâ
 
 ### Tasks
 
-- [ ] Close every Wave 0 HTML inventory gap (sanitize or remove).
-- [ ] Grep email templates for unescaped interpolations; standardize on `escapeHtml`.
-- [ ] Uploads: assert content-type/size limits; public bucket allowlist only avatars/marketing assets.
-- [ ] Document download: ownership check + short-lived signed URL only.
-- [ ] Commit: `fix(security): sanitize HTML and lock down uploads/signed URLs`
+- [x] Close every Wave 0 HTML inventory gap (sanitize or remove).
+- [x] Grep email templates for unescaped interpolations; standardize on `escapeHtml`.
+- [x] Uploads: assert content-type/size limits; public bucket allowlist only avatars/marketing assets.
+- [x] Document download: ownership check + short-lived signed URL only.
+- [x] Commit: `fix(security): sanitize HTML and lock down uploads/signed URLs`
 
 ### Verify
 
-- [ ] Existing `sanitize-rich-html` tests + new XSS fixture tests.
-- [ ] Attempt fetch of private object URL without signature fails.
+- [x] Existing `sanitize-rich-html` tests + new XSS fixture tests.
+- [x] Attempt fetch of private object URL without signature fails.
 
 ---
 

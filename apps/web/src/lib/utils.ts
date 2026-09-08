@@ -58,6 +58,21 @@ export function sanitizeRichHtml(html: string): string {
     // Quill embeds pasted/uploaded images as data: URIs.
     allowedSchemesByTag: { img: ["http", "https", "data"] },
     allowProtocolRelative: false,
+    // Without allowedStyles, sanitize-html keeps arbitrary CSS (expression()/
+    // url(javascript:)). Restrict to formatting Quill actually emits.
+    allowedStyles: {
+      "*": {
+        color: [/^#[0-9a-fA-F]{3,8}$/, /^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/, /^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*[\d.]+\s*\)$/],
+        "background-color": [/^#[0-9a-fA-F]{3,8}$/, /^rgb\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\)$/, /^rgba\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*,\s*[\d.]+\s*\)$/],
+        "text-align": [/^(left|right|center|justify)$/],
+        "font-size": [/^\d+(?:px|em|rem|%)$/],
+        "font-weight": [/^(normal|bold|[1-9]00)$/],
+        "text-decoration": [/^(none|underline|line-through)$/],
+      },
+    },
+    transformTags: {
+      a: sanitizeHtml.simpleTransform("a", { rel: "noopener noreferrer" }, true),
+    },
   });
 }
 

@@ -45,4 +45,25 @@ describe("sanitizeRichHtml", () => {
     expect(out).toContain("text-align");
     expect(out).toContain("color");
   });
+
+  it("strips style XSS (expression / javascript urls)", () => {
+    const out = sanitizeRichHtml(
+      '<p style="color:expression(alert(1)); background-color:url(javascript:alert(1))">x</p>',
+    );
+    expect(out.toLowerCase()).not.toContain("expression");
+    expect(out.toLowerCase()).not.toContain("javascript:");
+  });
+
+  it("strips vbscript and data hrefs on anchors", () => {
+    const out = sanitizeRichHtml(
+      '<a href="vbscript:msgbox(1)">x</a><a href="data:text/html,hi">y</a>',
+    );
+    expect(out.toLowerCase()).not.toContain("vbscript:");
+    expect(out.toLowerCase()).not.toContain("data:text/html");
+  });
+
+  it("adds rel=noopener on links that keep target", () => {
+    const out = sanitizeRichHtml('<a href="https://ok.test" target="_blank">x</a>');
+    expect(out).toContain("noopener");
+  });
 });

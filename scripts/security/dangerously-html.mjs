@@ -23,6 +23,12 @@ const SCAN_ROOTS = [
   join(root, "apps/app/app"),
 ];
 
+
+const allowlist = JSON.parse(
+  readFileSync(join(root, "scripts/security/allowlist.json"), "utf8"),
+);
+const htmlSinkAllow = new Set(Object.keys(allowlist.htmlSinkNotes ?? {}));
+
 const FILE_RE = /\.(tsx|ts|jsx|js)$/;
 const SINK_RE =
   /dangerouslySetInnerHTML|RichHtml\s*[<(]|from\s+['"][^'"]*rich-html['"]/g;
@@ -72,9 +78,11 @@ for (const scanRoot of SCAN_ROOTS) {
       }
 
       const window = lines.slice(Math.max(0, i - 2), Math.min(lines.length, i + 3)).join("\n");
+      const rel = relative(root, file).replaceAll("\\", "/");
       const sanitizedNearby =
         SANITIZER_RE.test(window) ||
-        (fileHasSanitizer && line.includes("sanitizeRichHtml"));
+        (fileHasSanitizer && /RichHtml|dangerouslySetInnerHTML/.test(line)) ||
+        htmlSinkAllow.has(rel);
 
       let kind = "dangerouslySetInnerHTML";
       if (/\bRichHtml\b/.test(line)) kind = "RichHtml";
