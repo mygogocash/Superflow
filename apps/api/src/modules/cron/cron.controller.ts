@@ -6,6 +6,7 @@ import { syncCrmEmailsForAllUsers } from "@/modules/accounts/crm-email-sync.serv
 import { storageSnapshotService } from "@/modules/admin/usage/storage-snapshot.service";
 import { ariaService } from "@/modules/aria/aria.service";
 import { runBriefDispatcher } from "@/modules/aria/aria-brief.service";
+import { ariaTrainingService } from "@/modules/aria-training/aria-training.service";
 import { processCrmDeadlineReminders } from "@/modules/crm-shared/crm-reminders";
 import { botFxService } from "@/modules/exchange-rates/bot-fx.service";
 import { expensesService } from "@/modules/expenses/expenses.service";
@@ -288,6 +289,23 @@ router.post(
       return;
     }
     const data = await ariaService.runPiiPurge();
+    res.json(data);
+  }),
+);
+
+// Daily PII redaction of interaction traces (training-data substrate).
+// Pseudonymizes emails/phones/ids in place and flips pii_redacted once a
+// trace is older than ARIA_TRACE_REDACT_AFTER_DAYS (default 7). Idempotent —
+// already-redacted rows are excluded. Schedule daily alongside the other
+// ARIA maintenance crons.
+router.post(
+  "/aria-redact-traces",
+  asyncHandler(async (req, res) => {
+    if (!verifyCronSecret(readSecret(req))) {
+      res.status(401).json({ error: "Unauthorized" });
+      return;
+    }
+    const data = await ariaTrainingService.runTraceRedaction();
     res.json(data);
   }),
 );

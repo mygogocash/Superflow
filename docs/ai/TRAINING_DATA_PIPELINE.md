@@ -4,8 +4,10 @@ Design + phased plan for capturing structured, governed interaction data so the
 ARIA agent can be improved and, in future, trained (RAG tuning, eval sets,
 preference tuning, SFT, tool-use fine-tuning).
 
-Status: **Phase 0 + Phase 1 landed** (schema + capture behind a fail-closed
-flag). Later phases are scoped below, not yet built.
+Status: **Phases 0-5 built in-repo.** Capture (Phase 1) is behind a fail-closed
+flag; redaction, dataset builder + registry, eval-gate, model-version registry,
+and the monitoring read-model (Phases 2-5) are implemented. The fine-tune/DPO
+compute and any BI/warehouse sink are external by design (see boundaries below).
 
 ---
 
@@ -106,12 +108,52 @@ model version → loop.
 
 - **Phase 0** — schema + governance policy. *(landed)*
 - **Phase 1** — capture full traces behind `ARIA_TRACE_CAPTURE`. *(landed)*
-- **Phase 2** — redaction transform + `piiRedacted` retention cron; dataset
-  builder + versioning + export (JSONL/Parquet); feedback/correction join.
-- **Phase 3** — eval gate + DPO-from-feedback + retrieval tuning.
-- **Phase 4** — SFT / tool-use fine-tune; register + eval-gate + canary.
-- **Phase 5** — closed loop + monitoring (PostHog LLM analytics), drift + cost
-  dashboards.
+- **Phase 2** — redaction transform + retention cron; versioned dataset builder
+  + JSONL export; feedback join. *(landed)*
+- **Phase 3** — DPO-from-feedback pairs + the promotion eval-gate + a
+  retrieval-tuning dataset. *(landed — the builders + gate; running an actual
+  DPO/eval job is external)*
+- **Phase 4** — model-version registry + eval-gated promotion. *(landed — the
+  registry + gate; the fine-tune compute is external, referenced by
+  `externalRef`)*
+- **Phase 5** — monitoring read-model (volume, error rate, token cost, tool-use
+  rate, feedback, retrieval-distance p50/p95). *(landed — the in-repo metrics
+  endpoint; richer BI dashboards remain external, e.g. PostHog LLM analytics)*
+
+### Implementation (Phases 2-5)
+
+Module `apps/api/src/modules/aria-training/` (system-admin gated at
+`/api/aria-training/*`; training data is the most sensitive corpus in the app):
+
+- **Redaction** (`redaction.ts`) — pure, tested PII pseudonymization (emails /
+  phones / long ids → typed placeholders) applied in place; the
+  `/api/cron/aria-redact-traces` cron flips `piiRedacted` for traces older than
+  `ARIA_TRACE_REDACT_AFTER_DAYS` (default 7). Keeps content useful (unlike the
+  query-log sentinel purge).
+- **Dataset builder** (`dataset-format.ts`) — pure formatters for `sft`,
+  `eval`, `retrieval`, and `dpo` (preference pairs on the *same* prompt), with a
+  content `checksum`. Datasets include only already-redacted traces up to a
+  frozen `until`, so a build is deterministic and re-exportable.
+- **Registry** — `AriaTrainingDataset` (versioned per kind, checksum, filters,
+  stats) and `AriaModelVersion` (draft → candidate → promoted | rejected).
+- **Eval-gate** (`eval-gate.ts`) — pure regression check (higher/lower-is-better
+  metrics, tolerance, absolute bound); `promote` records the outcome and blocks
+  promotion on any regression.
+- **Metrics** — `GET /api/aria-training/metrics` read-model over the traces.
+
+**External boundaries (by design):** the actual fine-tune / DPO compute and any
+data-warehouse/BI sink are external. This repo produces the governed datasets
+(JSONL export), records lineage (`externalRef` on a model version), and enforces
+the promotion gate; the trainer and dashboards plug in at those seams.
+
+### Endpoints
+
+- `POST /api/aria-training/datasets/build` — build + version a dataset.
+- `GET  /api/aria-training/datasets` / `GET …/datasets/:id/export` — list / JSONL.
+- `POST /api/aria-training/model-versions` — register a candidate.
+- `POST /api/aria-training/model-versions/:id/promote` — run the eval-gate.
+- `GET  /api/aria-training/metrics?days=30` — monitoring read-model.
+- `POST /api/cron/aria-redact-traces` — redaction retention cron.
 
 ## Open decisions
 
