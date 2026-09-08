@@ -88,12 +88,16 @@ function resolveStatus(
 }
 
 
-function canViewAll(actorPermissions: string[]): boolean {
-    return (
-      actorPermissions.includes(PERMISSIONS.HRMS_ATTENDANCE_MANAGE) ||
-      actorPermissions.includes(PERMISSIONS.HRMS_ATTENDANCE_READ)
-    );
-  }
+function canManageAll(actorPermissions: string[]): boolean {
+  return actorPermissions.includes(PERMISSIONS.HRMS_ATTENDANCE_MANAGE);
+}
+
+function canReadOthers(actorPermissions: string[]): boolean {
+  return (
+    actorPermissions.includes(PERMISSIONS.HRMS_ATTENDANCE_MANAGE) ||
+    actorPermissions.includes(PERMISSIONS.HRMS_ATTENDANCE_READ)
+  );
+}
 
 async function getUserAttendanceContext(db: Db, userId: string) {
     const user = (await db.select({ entityId: schema.users.entityId, timezone: schema.users.timezone }).from(schema.users).where(eq(schema.users.id, userId)).limit(1))[0] ?? null;
@@ -260,7 +264,7 @@ export async function getLive(db: Db,
     actorId: string,
     actorPermissions: string[],
   ): Promise<AttendanceRecordDto[]> {
-    if (!canViewAll(actorPermissions)) {
+    if (!canManageAll(actorPermissions)) {
       throw new ForbiddenException(
         "You do not have permission to view live attendance",
       );
@@ -321,7 +325,7 @@ export async function getLive(db: Db,
 export async function getDashboard(db: Db, 
     actorPermissions: string[],
   ): Promise<AttendanceDashboardSummary> {
-    if (!canViewAll(actorPermissions)) {
+    if (!canManageAll(actorPermissions)) {
       throw new ForbiddenException(
         "You do not have permission to view attendance dashboard",
       );
@@ -423,11 +427,11 @@ export async function getMonthlyReport(db: Db,
     actorPermissions: string[],
     query: MonthlyReportQuery,
   ): Promise<MonthlyAttendanceReport> {
-    const viewAll = canViewAll(actorPermissions);
+    const canRead = canReadOthers(actorPermissions);
     const targetEmployeeId =
-      query.employeeId && viewAll ? query.employeeId : actorId;
+      query.employeeId && canRead ? query.employeeId : actorId;
 
-    if (query.employeeId && query.employeeId !== actorId && !viewAll) {
+    if (query.employeeId && query.employeeId !== actorId && !canRead) {
       throw new ForbiddenException("Cannot view another employee's report");
     }
 
@@ -501,7 +505,7 @@ export async function getDepartmentReport(db: Db,
     actorPermissions: string[],
     query: DepartmentReportQuery,
   ): Promise<DepartmentAttendanceSummary[]> {
-    if (!canViewAll(actorPermissions)) {
+    if (!canManageAll(actorPermissions)) {
       throw new ForbiddenException(
         "You do not have permission to view department attendance",
       );

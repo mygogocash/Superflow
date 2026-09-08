@@ -27,11 +27,19 @@ export function parseR2PrivateKey(fileUrl: string | null | undefined): string | 
   return fileUrl.slice(R2_PRIVATE_PREFIX.length);
 }
 
-export async function list(db: Db, query: ListCertificatesQuery) {
+export async function list(
+  db: Db,
+  query: ListCertificatesQuery,
+  actorId: string,
+  actorPermissions: string[],
+) {
+  // certificate:read = access own certificates; certificate:manage = org-wide.
+  const canManage = actorPermissions.includes(PERMISSIONS.CERTIFICATE_MANAGE);
+  const recipientId = canManage ? query.recipientId : actorId;
   const { data, total } = await repo.list(
     db,
     {
-      recipientId: query.recipientId,
+      recipientId,
       status: query.status,
       view: query.view,
     },
@@ -109,10 +117,8 @@ export async function assertCanDownload(
   const cert = await repo.findById(db, id);
   if (!cert) throw new NotFoundException("Certificate not found");
 
-  const canViewAll =
-    actorPermissions.includes(PERMISSIONS.CERTIFICATE_READ) ||
-    actorPermissions.includes(PERMISSIONS.CERTIFICATE_MANAGE);
-  if (cert.recipientId !== actorId && !canViewAll) {
+  const canManage = actorPermissions.includes(PERMISSIONS.CERTIFICATE_MANAGE);
+  if (cert.recipientId !== actorId && !canManage) {
     throw new ForbiddenException("You cannot access this certificate");
   }
   if (!cert.fileUrl) throw new NotFoundException("Certificate file is not available");

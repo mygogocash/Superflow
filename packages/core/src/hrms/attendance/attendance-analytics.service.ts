@@ -23,10 +23,8 @@ export async function getSummary(
   actorPermissions: string[],
   query: AnalyticsQuery,
 ): Promise<AttendanceAnalyticsSummary> {
-  const canView =
-    actorPermissions.includes(PERMISSIONS.HRMS_ATTENDANCE_READ) ||
-    actorPermissions.includes(PERMISSIONS.HRMS_ATTENDANCE_MANAGE);
-  if (!canView) {
+  // Org-wide analytics dump is manage-only; attendance:read is not a dump-all.
+  if (!actorPermissions.includes(PERMISSIONS.HRMS_ATTENDANCE_MANAGE)) {
     throw new ForbiddenException("You do not have permission to view attendance analytics");
   }
 

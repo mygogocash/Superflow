@@ -23,7 +23,11 @@ router.get(
   requirePermission(PERMISSIONS.CERTIFICATE_READ),
   asyncHandler(async (req, res) => {
     const query = listCertificatesSchema.parse(req.query);
-    const result = await certificatesService.list(query);
+    const result = await certificatesService.list(
+      query,
+      req.user!.id,
+      req.user!.permissions,
+    );
     res.json(result);
   }),
 );

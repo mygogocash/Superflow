@@ -27,6 +27,7 @@ vi.mock("./travel.repository", () => ({
     nextStepOrder: vi.fn(),
     createDecisions: vi.fn(),
     findDecisions: vi.fn(),
+    findDecisionsForRequests: vi.fn(),
     updateDecision: vi.fn(),
   },
 }));
@@ -278,6 +279,54 @@ describe("TravelService — approval chain", () => {
       await expect(
         svc.rejectRequest("req-1", "mgr-1", "no", []),
       ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe("getRequestById — Wave 8 view scope", () => {
+    beforeEach(() => {
+      // Non-pending avoids attachViewerCanAct's Prisma decision lookup;
+      // assertCanViewTravelRequest still checks manager/approver via the repo.
+      (travelRepository.findRequestById as Mock).mockResolvedValue({
+        id: "req-1",
+        employeeId: "emp-1",
+        employee: { name: "Alice", email: "alice@x.com", reportingTo: "mgr-1" },
+        destination: "Tokyo",
+        departureDate: new Date("2026-06-01"),
+        returnDate: new Date("2026-06-05"),
+        purpose: "Conference",
+        status: "approved",
+        currentStepOrder: 1,
+      });
+      (travelRepository.findDecisions as Mock).mockResolvedValue([]);
+      (travelRepository.findDecisionsForRequests as Mock).mockResolvedValue([]);
+    });
+
+    it("allows the direct manager to open a report's request", async () => {
+      await expect(
+        svc.getRequestById("req-1", "mgr-1", [PERMISSIONS.TRAVEL_READ]),
+      ).resolves.toMatchObject({ id: "req-1" });
+    });
+
+    it("allows an assigned approver who is not the manager", async () => {
+      (travelRepository.findDecisions as Mock).mockResolvedValue([
+        {
+          id: "d1",
+          order: 1,
+          status: "approved",
+          approverType: "user",
+          approverUserId: "approver-9",
+        },
+      ]);
+
+      await expect(
+        svc.getRequestById("req-1", "approver-9", [PERMISSIONS.TRAVEL_READ]),
+      ).resolves.toMatchObject({ id: "req-1" });
+    });
+
+    it("forbids an unrelated coworker", async () => {
+      await expect(
+        svc.getRequestById("req-1", "stranger", [PERMISSIONS.TRAVEL_READ]),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 });

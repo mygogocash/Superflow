@@ -202,6 +202,28 @@ function hasTravelAllRead(permissions: string[]): boolean {
   );
 }
 
+async function assertCanViewTravelRequest(
+  db: Db,
+  request: {
+    id: string;
+    employeeId: string;
+    employee: { reportingTo: string | null };
+  },
+  userId: string,
+  userPermissions: string[],
+) {
+  if (hasTravelAllRead(userPermissions)) return;
+  if (request.employeeId === userId) return;
+  if (request.employee.reportingTo === userId) return;
+
+  const decisions = await repo.findDecisions(db, request.id);
+  if (decisions.some((d) => d.approverUserId === userId)) return;
+
+  throw new ForbiddenException(
+    "You can only view travel requests in your management scope",
+  );
+}
+
 export async function listRequests(
   db: Db,
   userId: string,
@@ -233,12 +255,7 @@ export async function getRequestById(
   const request = await repo.findRequestById(db, id);
   if (!request) throw new NotFoundException("Travel request not found");
 
-  const hasHrRead = userPermissions.includes(PERMISSIONS.TRAVEL_HR_READ);
-  if (!hasHrRead && request.employeeId !== userId) {
-    throw new ForbiddenException(
-      "You can only view your own travel requests",
-    );
-  }
+  await assertCanViewTravelRequest(db, request, userId, userPermissions);
 
   const [enriched] = await attachViewerCanAct(
     db,
@@ -697,12 +714,7 @@ export async function getDecisions(
 ) {
   const request = await repo.findRequestById(db, id);
   if (!request) throw new NotFoundException("Travel request not found");
-  const isHr = permissions.includes(PERMISSIONS.TRAVEL_HR_READ);
-  if (!isHr && request.employeeId !== userId) {
-    throw new ForbiddenException(
-      "You can only view approvals for your own travel requests",
-    );
-  }
+  await assertCanViewTravelRequest(db, request, userId, permissions);
   return repo.findDecisions(db, id);
 }
 
@@ -977,12 +989,7 @@ export async function getLinkedExpenses(
   const request = await repo.findRequestById(db, travelId);
   if (!request) throw new NotFoundException("Travel request not found");
 
-  const hasHrRead = userPermissions.includes(PERMISSIONS.TRAVEL_HR_READ);
-  if (!hasHrRead && request.employeeId !== userId) {
-    throw new ForbiddenException(
-      "You can only view expenses for your own travel requests",
-    );
-  }
+  await assertCanViewTravelRequest(db, request, userId, userPermissions);
 
   return repo.findExpensesForTravel(db, travelId);
 }

@@ -262,3 +262,24 @@ Do **not** claim multi-org ERP is done until debt rows above carry `organization
 ### Verify
 
 - `pnpm --filter @nexora/api exec vitest run src/modules/accounting/accounting.service.test.ts` (own-doc + Wave 8 journal/quote cases).
+
+## Wave 8 — HR deep-dive (2026-09-08)
+
+### Findings fixed
+
+| id | Sev | Finding | Fix |
+|----|-----|---------|-----|
+| SEC-021 | P1 | `certificate:read` treated as org-wide list/download (seed historically HR-only, but custom roles with read would see all) | Edge + Express: `certificate:manage` = org-wide; `certificate:read` = own recipient only; download auth-only path still owner-or-manage |
+| SEC-022 | P1 | Travel get-by-id / decisions / linked expenses only allowed owner or `travel:hr-read`, while list already includes manager team — managers & assigned approvers got 403 on detail | Edge (`@nexora/core`) + Express: `assertCanViewTravelRequest` allows HR-all-read, owner, `employee.reportingTo`, or decision `approverUserId` |
+| SEC-023 | P1 | `hrms:attendance-read` treated as org-wide for live/dashboard/department/correction `scope=all` (+ analytics/executive dumps) | Manage-only for org dumps; read\|manage for another employee's monthly/calendar report |
+
+### Residual (HR batch)
+
+| id | Finding | Disposition |
+|----|---------|-------------|
+| SEC-024 | Leave / visa already owner-or-HR; not re-audited beyond spot-check | accepted for this batch |
+| SEC-025 | ESOP / agreements signed-URL ownership covered in Wave 5; no new finding | n/a |
+
+### Verify
+
+- `pnpm --filter @nexora/api exec vitest run src/modules/travel/travel.service.test.ts` (Wave 8 manager/approver/stranger getRequestById cases).

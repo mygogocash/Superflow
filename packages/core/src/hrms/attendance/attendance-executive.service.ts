@@ -26,12 +26,10 @@ export async function getExecutiveAnalytics(
   actorPermissions: string[],
     query: ExecutiveAnalyticsQuery,
   ): Promise<ExecutiveAttendanceAnalytics> {
-    const canView =
-      actorPermissions.includes(PERMISSIONS.HRMS_ATTENDANCE_MANAGE) ||
-      actorPermissions.includes(PERMISSIONS.HRMS_ATTENDANCE_READ);
-    if (!canView) {
+    // Org-wide executive dump is manage-only; attendance:read is not dump-all.
+    if (!actorPermissions.includes(PERMISSIONS.HRMS_ATTENDANCE_MANAGE)) {
       throw new ForbiddenException(
-        "Executive attendance analytics requires HR access",
+        "Executive attendance analytics requires HR manage access",
       );
     }
 

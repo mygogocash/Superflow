@@ -73,10 +73,8 @@ function canApprove(actorPermissions: string[]): boolean {
 }
 
 function canViewAll(actorPermissions: string[]): boolean {
-  return (
-    actorPermissions.includes(PERMISSIONS.HRMS_ATTENDANCE_MANAGE) ||
-    actorPermissions.includes(PERMISSIONS.HRMS_ATTENDANCE_READ)
-  );
+  // Org-wide correction inbox is manage-only; attendance:read is not a dump-all.
+  return actorPermissions.includes(PERMISSIONS.HRMS_ATTENDANCE_MANAGE);
 }
 
 export async function create(db: Db, actorId: string, input: CreateCorrectionInput) {

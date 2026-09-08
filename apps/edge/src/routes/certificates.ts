@@ -27,7 +27,15 @@ export const certificates = new Hono<AppEnv>()
     "/",
     requirePermission(PERMISSIONS.CERTIFICATE_READ),
     zValidator("query", listCertificatesSchema),
-    async (c) => c.json(await certificatesService.list(c.var.db, c.req.valid("query"))),
+    async (c) =>
+      c.json(
+        await certificatesService.list(
+          c.var.db,
+          c.req.valid("query"),
+          c.var.user!.id,
+          c.var.user!.permissions,
+        ),
+      ),
   )
   .post(
     "/",

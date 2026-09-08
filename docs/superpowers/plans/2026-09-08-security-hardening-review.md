@@ -243,8 +243,8 @@ Prisma `$queryRaw` call sites (~aria, accounting, admin usage, CRM), Drizzle `sq
 
 Run as **separate PRs** per domain, using Wave 0–2 checklists:
 
-1. **Finance:** expenses, cash-advance, accounting, payroll, vendors — **in progress** (payroll P0 + journal/quote own-doc landed this PR; expenses/vendors org tenancy residual)  
-2. **HR:** leave, travel, visa, attendance, ESOP/agreements  
+1. **Finance:** expenses, cash-advance, accounting, payroll, vendors — **done** (payroll P0 + journal/quote own-doc; expenses/vendors org tenancy residual)  
+2. **HR:** leave, travel, visa, attendance, certificates, ESOP/agreements — **in progress** (certificates own-or-manage; travel manager/approver view; attendance read≠org-wide)  
 3. **CRM / projects:** sales, investors, IT/legal CRM, proposals, approval-chains  
 4. **Content / comms:** wall, news, survey, docs, uploads  
 5. **AI / ARIA:** tools RBAC, PII in logs, prompt injection notes in `ai-prompts.ts`  
@@ -252,12 +252,12 @@ Run as **separate PRs** per domain, using Wave 0–2 checklists:
 
 ### Per-module checklist (copy into each PR)
 
-- [x] Every mutating route: auth + permission + service ownership/org check _(Finance: payroll manager gate; journal/quote own-doc)_  
-- [x] List endpoints: server-side scope (never trust client filter alone) _(Finance: journals/quotes `createdBy`)_  
-- [x] Soft-delete restore/permanent IDOR test _(journals/invoices pre-existing; quotes N/A this batch)_  
-- [ ] Email/notification paths escape user content _(Finance: not re-audited this batch)_  
+- [x] Every mutating route: auth + permission + service ownership/org check _(Finance done; HR: travel view scope + certificate download)_  
+- [x] List endpoints: server-side scope (never trust client filter alone) _(Finance: journals/quotes; HR: certificates own-or-manage; attendance manage for dumps)_  
+- [x] Soft-delete restore/permanent IDOR test _(journals/invoices pre-existing; travel/leave prior waves)_  
+- [ ] Email/notification paths escape user content _(not re-audited this batch)_  
 - [x] No new ungated route without allowlist entry  
-- [x] Parity: edge route exists if Express had it _(payroll + accounting journals/quotes)_  
+- [x] Parity: edge route exists if Express had it _(certificates + travel + attendance in `@nexora/core`)_  
 
 ---
 

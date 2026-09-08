@@ -119,16 +119,39 @@ export class TravelService {
     };
   }
 
+  private hasTravelAllRead(permissions: string[]): boolean {
+    return (
+      permissions.includes(PERMISSIONS.TRAVEL_HR_READ) ||
+      permissions.includes(PERMISSIONS.TRAVEL_HR_APPROVE)
+    );
+  }
+
+  private async assertCanViewTravelRequest(
+    request: {
+      id: string;
+      employeeId: string;
+      employee: { reportingTo: string | null };
+    },
+    userId: string,
+    userPermissions: string[],
+  ) {
+    if (this.hasTravelAllRead(userPermissions)) return;
+    if (request.employeeId === userId) return;
+    if (request.employee.reportingTo === userId) return;
+
+    const decisions = await travelRepository.findDecisions(request.id);
+    if (decisions.some((d) => d.approverUserId === userId)) return;
+
+    throw new ForbiddenException(
+      "You can only view travel requests in your management scope",
+    );
+  }
+
   async getRequestById(id: string, userId: string, userPermissions: string[]) {
     const request = await travelRepository.findRequestById(id);
     if (!request) throw new NotFoundException("Travel request not found");
 
-    const hasHrRead = userPermissions.includes(PERMISSIONS.TRAVEL_HR_READ);
-    if (!hasHrRead && request.employeeId !== userId) {
-      throw new ForbiddenException(
-        "You can only view your own travel requests",
-      );
-    }
+    await this.assertCanViewTravelRequest(request, userId, userPermissions);
 
     const [enriched] = await this.attachViewerCanAct(
       [request],
@@ -793,12 +816,7 @@ export class TravelService {
   async getDecisions(id: string, userId: string, permissions: string[]) {
     const request = await travelRepository.findRequestById(id);
     if (!request) throw new NotFoundException("Travel request not found");
-    const isHr = permissions.includes(PERMISSIONS.TRAVEL_HR_READ);
-    if (!isHr && request.employeeId !== userId) {
-      throw new ForbiddenException(
-        "You can only view approvals for your own travel requests",
-      );
-    }
+    await this.assertCanViewTravelRequest(request, userId, permissions);
     return travelRepository.findDecisions(id);
   }
 
@@ -1083,12 +1101,7 @@ export class TravelService {
     const request = await travelRepository.findRequestById(travelId);
     if (!request) throw new NotFoundException("Travel request not found");
 
-    const hasHrRead = userPermissions.includes(PERMISSIONS.TRAVEL_HR_READ);
-    if (!hasHrRead && request.employeeId !== userId) {
-      throw new ForbiddenException(
-        "You can only view expenses for your own travel requests",
-      );
-    }
+    await this.assertCanViewTravelRequest(request, userId, userPermissions);
 
     return travelRepository.findExpensesForTravel(travelId);
   }

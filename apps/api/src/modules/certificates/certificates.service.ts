@@ -100,12 +100,22 @@ async function resolveSignatureImage(
 }
 
 export class CertificatesService {
-  // HR/Admin-only listing (gated by certificate:read, which the seed grants
-  // only to Admin + HR Manager). Returns every certificate by design; there is
-  // no employee self-service list — recipients receive their own via email.
-  async list(query: ListCertificatesQuery) {
+  // certificate:read lists the actor's own certificates; certificate:manage
+  // is org-wide (HR/Admin). Seed historically put read on HR roles only —
+  // this is defense-in-depth for custom roles that hold read without manage.
+  async list(
+    query: ListCertificatesQuery,
+    actorId: string,
+    actorPermissions: string[],
+  ) {
     const where: Prisma.CertificateWhereInput = {};
-    if (query.recipientId) where.recipientId = query.recipientId;
+    // certificate:read = own; certificate:manage = org-wide (HR/Admin).
+    const canManage = actorPermissions.includes(PERMISSIONS.CERTIFICATE_MANAGE);
+    if (canManage) {
+      if (query.recipientId) where.recipientId = query.recipientId;
+    } else {
+      where.recipientId = actorId;
+    }
     if (query.status) where.status = query.status;
     // Active list hides reverted certificates; the "reverted" view shows only
     // those (for restore / permanent delete).
@@ -230,10 +240,8 @@ export class CertificatesService {
     const cert = await certificatesRepository.findById(id);
     if (!cert) throw new NotFoundException("Certificate not found");
 
-    const canViewAll =
-      actorPermissions.includes(PERMISSIONS.CERTIFICATE_READ) ||
-      actorPermissions.includes(PERMISSIONS.CERTIFICATE_MANAGE);
-    if (cert.recipientId !== actorId && !canViewAll) {
+    const canManage = actorPermissions.includes(PERMISSIONS.CERTIFICATE_MANAGE);
+    if (cert.recipientId !== actorId && !canManage) {
       throw new ForbiddenException("You cannot access this certificate");
     }
     if (!cert.fileUrl) {
