@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Response } from "express";
 
@@ -41,7 +43,7 @@ import { runAllSyncs } from "@/modules/aria/aria-sync.service";
 import {
   executeTool,
   loadToolContext,
-  toolDefinitions,
+  toolDefinitionsFor,
 } from "@/modules/aria/aria-tools";
 
 type NdjsonLine =
@@ -71,6 +73,30 @@ function writeNdjson(res: Response, line: NdjsonLine) {
 }
 
 const TITLE_MAX_LEN = 72;
+
+// Training-data capture (Phase 1). Full-turn traces are written best-effort,
+// only when ARIA_TRACE_CAPTURE === "true" (fail-closed: unset = off).
+const ARIA_TRACE_CAPTURE_FLAG = "ARIA_TRACE_CAPTURE";
+// Short digest of the system prompt in force, so each trace is attributable to
+// an exact prompt revision without inlining the whole prompt every turn.
+const ARIA_PROMPT_VERSION = createHash("sha256")
+  .update(AI_PROMPTS.ARIA_SYSTEM)
+  .digest("hex")
+  .slice(0, 12);
+// Cap each captured tool-result payload so a large result can't bloat the row.
+const TRACE_TOOL_RESULT_CAP = 8000;
+
+function isTraceCaptureEnabled(): boolean {
+  return process.env[ARIA_TRACE_CAPTURE_FLAG] === "true";
+}
+
+type TraceToolCall = {
+  name: string;
+  input: unknown;
+  ok: boolean;
+  isError: boolean;
+  resultPreview: string;
+};
 
 function sanitizeConversationTitle(raw: string): string {
   const oneLine = raw.replace(/\s+/g, " ").trim();
@@ -144,7 +170,7 @@ interface RetrievalResult {
 
 // Hybrid retrieval weights. 0.7/0.3 favours semantic similarity but
 // keeps a strong keyword signal so acronyms / policy codes ("IT-15",
-// "SSF", "TBH") that vectors gloss over still surface.
+// "SSF", "Manut") that vectors gloss over still surface.
 const HYBRID_VECTOR_WEIGHT = 0.7;
 const HYBRID_KEYWORD_WEIGHT = 0.3;
 // Combined-score threshold (higher is better). Calibrated against the
@@ -441,7 +467,7 @@ export const ariaService = {
     const body = verifyActionToken<Record<string, unknown>>(token);
     if (!body) {
       throw new ConflictException(
-        "Invalid or expired confirmation token. Ask ARIA to draft the action again.",
+        "Invalid or expired confirmation token. Ask Manut AI to draft the action again.",
       );
     }
     if (body.userId !== actorId) {
@@ -482,7 +508,7 @@ export const ariaService = {
       });
       return { action: body.action, result };
     }
-    throw new ConflictException(`Unknown ARIA action: ${body.action}`);
+    throw new ConflictException(`Unknown Manut AI action: ${body.action}`);
   },
 
   async getConversation(userId: string, conversationId: string) {
@@ -777,11 +803,11 @@ export const ariaService = {
         model: ANTHROPIC_MODELS.TITLE,
         max_tokens: 1500,
         system: [
-          "You draft internal knowledge-base articles for ARIA, the assistant inside the Manut intranet.",
+          "You draft internal knowledge-base articles for Manut AI, the assistant inside the Manut intranet.",
           "Input: a user question + the assistant reply that received thumbs-down + the user's optional reason.",
           'Output: a JSON object with shape {"title": string (<= 80 chars), "slug": string (lowercase a-z0-9 + hyphens, <= 60 chars), "category": one of "immigration" | "hr" | "finance" | "policy" | "other", "body": string (<= 4000 chars, markdown, written as a definitive policy / how-to — NOT as a chat reply), "keywords": string[] (3-8 short retrieval hints)}.',
           "Rules:",
-          "- Do not echo the chat conversation. Write the article from a TBH HR / Ops voice, present tense, third person.",
+          "- Do not echo the chat conversation. Write the article from a Manut HR / Ops voice, present tense, third person.",
           "- If the input is ambiguous or you would have to invent facts, set `body` to a one-line note asking the admin to supply the source data, and keep the other fields as best-effort scaffolding.",
           "- Output JSON only. No markdown fences, no prose around the object.",
         ].join("\n"),
@@ -1011,7 +1037,8 @@ export const ariaService = {
       );
       await linkAttachments(userMsg.id);
       // Feed a sensible embedding/title seed when the turn is attachments-only.
-      effectiveMessage = input.message ?? "(shared file for ARIA to review)";
+      effectiveMessage =
+        input.message ?? "(shared file for Manut AI to review)";
     }
 
     beginStream();
@@ -1022,7 +1049,7 @@ export const ariaService = {
     res.on("close", onClose);
 
     const configFallback =
-      "ARIA is not yet configured. Please ask your administrator to set the ANTHROPIC_API_KEY environment variable.";
+      "Manut AI is not yet configured. Please ask your administrator to set the ANTHROPIC_API_KEY environment variable.";
     const genericFallback =
       "I encountered an error while processing your request. Please try again.";
 
@@ -1045,6 +1072,14 @@ export const ariaService = {
     let cacheReadTokens: number | null = null;
     let cacheCreateTokens: number | null = null;
     const toolUsage: Array<{ name: string; ok: boolean; summary: string }> = [];
+    // Trace-only accumulators (Phase 1). Captured every turn but persisted only
+    // when the capture flag is on; hoisted to function scope so the post-stream
+    // emit (which needs the assistant message id) can read them.
+    const traceToolCalls: TraceToolCall[] = [];
+    let tracePerms: string[] = [];
+    let traceOfferedTools: string[] = [];
+    let traceStopReason: string | null = null;
+    let traceMaxTokens: number | null = null;
 
     try {
       const anthropic = getAnthropicClient();
@@ -1148,13 +1183,17 @@ export const ariaService = {
         }),
       );
 
-      // Tool-use loop. We allow up to MAX_TOOL_ITERATIONS round-trips
-      // so the model can chain (e.g. lookup_employee → lookup_visa).
-      // Each iteration streams text to the user; the final iteration
-      // ends with stop_reason="end_turn" or "stop_sequence" and writes
-      // the assistant message to the database.
-      const MAX_TOOL_ITERATIONS = 5;
+      // Tool-use loop. Cap room enough for multi-person chains
+      // (employee → visa → leave) plus one forced synthesis turn.
+      const MAX_TOOL_ITERATIONS = 8;
+      /** Output budget for board memos / multi-tool answers (was 2048). */
+      const CHAT_MAX_TOKENS = 8192;
       const toolContext = await loadToolContext(userId, conversationId);
+      const allowedTools = toolDefinitionsFor(toolContext.perms);
+      // Snapshot the RBAC context + offered tools for the training trace.
+      tracePerms = Array.from(toolContext.perms);
+      traceOfferedTools = allowedTools.map((t) => t.name);
+      traceMaxTokens = CHAT_MAX_TOKENS;
       let iterations = 0;
       let lastStopReason: string | null = null;
 
@@ -1168,12 +1207,25 @@ export const ariaService = {
       while (iterations < MAX_TOOL_ITERATIONS) {
         iterations += 1;
 
+        // On the final allowed iteration, disable tools so the model
+        // must synthesise from tool results already in the transcript
+        // instead of burning another tool_use and leaving an empty reply.
+        const atCeiling = iterations >= MAX_TOOL_ITERATIONS;
+        const toolsThisTurn =
+          atCeiling || allowedTools.length === 0 ? undefined : allowedTools;
+
+        // Per-iteration buffer: intermediate "looking that up…" prose from
+        // tool_use turns must not pollute the persisted assistant message.
+        // The FE replaces streamed text with the `done` payload, so clearing
+        // `accumulated` on tool_use keeps the saved answer clean.
+        let iterationText = "";
+
         const stream = anthropic.messages.stream(
           {
             model: ANTHROPIC_MODELS.CHAT,
-            max_tokens: 2048,
+            max_tokens: CHAT_MAX_TOKENS,
             system: systemBlocks,
-            tools: toolDefinitions(),
+            ...(toolsThisTurn ? { tools: toolsThisTurn } : {}),
             messages: messages as Anthropic.MessageParam[],
           },
           { signal: ac.signal },
@@ -1181,6 +1233,7 @@ export const ariaService = {
 
         stream.on("text", (delta) => {
           if (res.writableEnded || !delta) return;
+          iterationText += delta;
           accumulated += delta;
           writeNdjson(res, { t: "delta", text: delta });
         });
@@ -1204,6 +1257,13 @@ export const ariaService = {
 
         if (lastStopReason !== "tool_use") {
           break;
+        }
+
+        // Drop tool-turn narration from the final answer buffer.
+        if (iterationText.length > 0 && accumulated.endsWith(iterationText)) {
+          accumulated = accumulated.slice(0, -iterationText.length);
+        } else {
+          accumulated = "";
         }
 
         // Tool-use turn — execute each tool_use block, then append the
@@ -1260,6 +1320,18 @@ export const ariaService = {
             ok: result.ok,
             summary: result.summary,
           });
+          // Full tool detail (args + result) for the training trace — the
+          // signal the aggregate query log discards. Result payload is capped.
+          traceToolCalls.push({
+            name: block.name,
+            input: (block.input ?? {}) as Record<string, unknown>,
+            ok: result.ok,
+            isError: !result.ok,
+            resultPreview: (result.resultJson ?? "").slice(
+              0,
+              TRACE_TOOL_RESULT_CAP,
+            ),
+          });
           writeNdjson(res, {
             t: "tool_use",
             id: block.id,
@@ -1282,6 +1354,7 @@ export const ariaService = {
       tokensOut = aggOut > 0 ? aggOut : null;
       cacheReadTokens = aggCacheRead > 0 ? aggCacheRead : null;
       cacheCreateTokens = aggCacheCreate > 0 ? aggCacheCreate : null;
+      traceStopReason = lastStopReason;
 
       if (iterations >= MAX_TOOL_ITERATIONS && lastStopReason === "tool_use") {
         logger.warn("ARIA tool loop hit iteration ceiling", {
@@ -1408,6 +1481,57 @@ export const ariaService = {
         accumulated,
       );
       await ariaRepository.updateConversationTimestamp(conversationId);
+
+      // Training-data trace (Phase 1). Full, replayable capture of the turn —
+      // gated behind the fail-closed ARIA_TRACE_CAPTURE flag and best-effort so
+      // it never affects chat. Links to the assistant message id so feedback
+      // (thumbs / correction) joins at dataset-build time.
+      if (isTraceCaptureEnabled()) {
+        try {
+          const turnKind = input.editMessageId
+            ? "edit"
+            : input.retryAssistantMessageId
+              ? "retry"
+              : "send";
+          await ariaRepository.recordInteractionTrace({
+            conversationId,
+            userId,
+            assistantMessageId: assistantMsg.id,
+            turnKind,
+            promptVersion: ARIA_PROMPT_VERSION,
+            model: ANTHROPIC_MODELS.CHAT,
+            maxTokens: traceMaxTokens,
+            userMessage: effectiveMessage,
+            permissionsSnapshot: tracePerms,
+            offeredTools: traceOfferedTools,
+            retrievedArticleIds: retrieval.injectedIds,
+            retrievedDistances: retrieval.injectedDistances.map((d) =>
+              Number.isFinite(d) ? d : 0,
+            ),
+            topDistance: retrieval.topDistance,
+            retrievalMode: retrieval.mode,
+            workspaceBytes,
+            knowledgeBytes,
+            assistantText: accumulated,
+            stopReason: traceStopReason,
+            toolCalls: traceToolCalls,
+            toolUseCount: toolUsage.length,
+            toolNames: toolUsage.map((t) => t.name),
+            tokensIn,
+            tokensOut,
+            cacheReadTokens,
+            cacheCreateTokens,
+            latencyMs: Date.now() - startedAt,
+            error: streamErrored,
+            errorMessage: streamErrorMessage,
+          });
+        } catch (traceErr) {
+          logger.warn("ARIA interaction trace write failed", {
+            err:
+              traceErr instanceof Error ? traceErr.message : String(traceErr),
+          });
+        }
+      }
 
       if (isNewConversation) {
         const messageCount = await ariaRepository.countMessages(conversationId);

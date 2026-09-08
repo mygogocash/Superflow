@@ -19,6 +19,7 @@ export interface MyProfile {
   location: string | null;
   country: string | null;
   timezone: string | null;
+  locale: string | null;
   entity: { id: string; name: string; code: string } | null;
   roles: Array<{ id: string; name: string }>;
 }
@@ -29,6 +30,7 @@ export interface UpdateMyProfileInput {
   location?: string;
   country?: string;
   timezone?: string;
+  locale?: string;
   avatarUrl?: string;
 }
 

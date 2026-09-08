@@ -486,7 +486,7 @@ export default function AriaPage() {
       (m) => m.role === "user" && m.content.trim().length > 0,
     );
     if (firstUser) return firstUser.content.slice(0, 60);
-    return "ARIA conversation";
+    return "Manut AI conversation";
   }, [conversations, activeId, messages]);
 
   const handleEndSession = useCallback(() => {
@@ -679,7 +679,7 @@ export default function AriaPage() {
               <Sparkles className="size-3.5 text-intelligence-500" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-foreground text-sm font-semibold">ARIA</h1>
+              <h1 className="text-foreground text-sm font-semibold">Manut AI</h1>
               <p className="text-muted-foreground text-[10px]">
                 {workspace === "documents"
                   ? "Receipt & invoice extraction"
@@ -885,7 +885,7 @@ export default function AriaPage() {
                   adjustHeight();
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask ARIA anything..."
+                placeholder="Ask Manut AI anything..."
                 rows={1}
                 disabled={sending || !canUse}
                 className={cn(
@@ -932,7 +932,7 @@ export default function AriaPage() {
                 text-muted-foreground/50 mt-1.5 text-center text-[10px]
               `}
             >
-              ARIA can make mistakes. Verify important information.
+              Manut AI can make mistakes. Verify important information.
             </p>
           </div>
         </div>

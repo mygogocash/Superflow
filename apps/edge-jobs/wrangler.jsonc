@@ -23,7 +23,8 @@
   "env": {
     "staging": {
       "name": "intranet-edge-jobs-staging",
-      "vars": { "JOBS_TIMEZONE": "Asia/Bangkok", "JOBS_ENABLED": "true" },
+      // Keep off until EDGE_API_URL + CRON_SECRET are bound; otherwise ticks enqueue no-op / fail loudly.
+      "vars": { "JOBS_TIMEZONE": "Asia/Bangkok", "JOBS_ENABLED": "false" },
       "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "2531da29a59f4890bf8817697f5d350d" }],
       "kv_namespaces": [{ "binding": "KV_CACHE", "id": "5d4fe4fa29b34b6b8fc1f1495b66c946" }],
       "queues": {

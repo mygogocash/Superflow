@@ -179,7 +179,7 @@ describe("UsersService", () => {
     it("should create user successfully", async () => {
       (usersRepository.findByEmail as Mock).mockResolvedValue(null);
       (usersRepository.allocateNextEmployeeId as Mock).mockResolvedValue(
-        "TBH-042",
+        "MNT-042",
       );
       (supabaseAdmin.auth.admin.createUser as Mock).mockResolvedValue({
         data: { user: { id: "new-user-123" } },
@@ -197,7 +197,7 @@ describe("UsersService", () => {
       expect(usersRepository.allocateNextEmployeeId).toHaveBeenCalled();
       expect(supabaseAdmin.auth.admin.createUser).toHaveBeenCalled();
       expect(usersRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({ employeeId: "TBH-042" }),
+        expect.objectContaining({ employeeId: "MNT-042" }),
         undefined,
       );
       expect(sendWelcomeTemplateEmailMock).toHaveBeenCalledWith({
@@ -256,7 +256,7 @@ describe("UsersService", () => {
     it("should throw BadRequestException when Supabase fails", async () => {
       (usersRepository.findByEmail as Mock).mockResolvedValue(null);
       (usersRepository.allocateNextEmployeeId as Mock).mockResolvedValue(
-        "TBH-001",
+        "MNT-001",
       );
       (supabaseAdmin.auth.admin.createUser as Mock).mockResolvedValue({
         data: null,
@@ -271,7 +271,7 @@ describe("UsersService", () => {
     it("should delete Supabase user when DB creation fails", async () => {
       (usersRepository.findByEmail as Mock).mockResolvedValue(null);
       (usersRepository.allocateNextEmployeeId as Mock).mockResolvedValue(
-        "TBH-001",
+        "MNT-001",
       );
       (supabaseAdmin.auth.admin.createUser as Mock).mockResolvedValue({
         data: { user: { id: "temp-user" } },
@@ -290,7 +290,7 @@ describe("UsersService", () => {
     it("skips the welcome template email when requested", async () => {
       (usersRepository.findByEmail as Mock).mockResolvedValue(null);
       (usersRepository.allocateNextEmployeeId as Mock).mockResolvedValue(
-        "TBH-043",
+        "MNT-043",
       );
       (supabaseAdmin.auth.admin.createUser as Mock).mockResolvedValue({
         data: { user: { id: "new-user-789" } },
@@ -335,15 +335,15 @@ describe("UsersService", () => {
     it("rejects an employeeId already taken by another user", async () => {
       (usersRepository.findById as Mock).mockResolvedValue({
         id: "user-123",
-        employeeId: "TBH-001",
+        employeeId: "MNT-001",
       });
       (usersRepository.findByEmployeeId as Mock).mockResolvedValue({
         id: "user-other",
-        employeeId: "TBH-042",
+        employeeId: "MNT-042",
       });
 
       await expect(
-        usersService.update("user-123", { employeeId: "TBH-042" }),
+        usersService.update("user-123", { employeeId: "MNT-042" }),
       ).rejects.toThrow(ConflictException);
       expect(usersRepository.update).not.toHaveBeenCalled();
     });
@@ -351,19 +351,19 @@ describe("UsersService", () => {
     it("allows keeping the same employeeId without a conflict check", async () => {
       (usersRepository.findById as Mock).mockResolvedValue({
         id: "user-123",
-        employeeId: "TBH-001",
+        employeeId: "MNT-001",
       });
       (usersRepository.update as Mock).mockResolvedValue({
         id: "user-123",
         userRoles: [],
       });
 
-      await usersService.update("user-123", { employeeId: "TBH-001" });
+      await usersService.update("user-123", { employeeId: "MNT-001" });
 
       expect(usersRepository.findByEmployeeId).not.toHaveBeenCalled();
       expect(usersRepository.update).toHaveBeenCalledWith(
         "user-123",
-        expect.objectContaining({ employeeId: "TBH-001" }),
+        expect.objectContaining({ employeeId: "MNT-001" }),
       );
     });
   });

@@ -50,7 +50,7 @@ function futureDate(daysAhead: number): Date {
 
 /** Default password assigned to seeded employee Supabase auth users. */
 const SEED_EMPLOYEE_PASSWORD =
-  process.env.SEED_EMPLOYEE_PASSWORD || "WelcomeTBH123!";
+  process.env.SEED_EMPLOYEE_PASSWORD || "WelcomeManut123!";
 
 /** Page through Supabase Auth admin user list and return email → id map. */
 async function listAllSupabaseAuthUsers(
@@ -201,6 +201,16 @@ const ESS_V2_FEEDBACK_COLUMNS_SEED: Prisma.InputJsonValue = [
 
 const ADMIN_EMAIL = "admin@manut.xyz";
 
+// Org identity for the demo tenant. Override with SEED_ORG_NAME to brand the
+// whole demo (entities, offices, admin, app.name) for a different org — e.g.
+// `SEED_ORG_NAME=Acme pnpm db:seed` produces an Acme-branded tenant. Defaults
+// to Manut. This exercises the modular company-identity work: the invoice /
+// payslip company blocks default their name from the `app.name` SystemSetting.
+const ORG_NAME = (process.env.SEED_ORG_NAME || "Manut").trim() || "Manut";
+const ADMIN_NAME = `${ORG_NAME} Admin`;
+/** Rebrand the seed's built-in "Manut" org token to the configured org name. */
+const brandOrg = (value: string): string => value.split("Manut").join(ORG_NAME);
+
 /** Entity `code` values — DB assigns `Entity.id` (cuid). */
 const ENTITY_CODE_ORDER = ["TH", "AE", "SG", "PT", "ID", "VN", "IN"] as const;
 
@@ -225,56 +235,56 @@ const JOB_IDS: string[] = [];
    ──────────────────────────────────────────────── */
 const ENTITIES = [
   {
-    name: "TBH Thailand",
+    name: "Manut Thailand",
     code: "TH",
     country: "Thailand",
     currency: "THB",
     accountingStd: "TFRS for NPAEs",
   },
   {
-    name: "TBH Dubai",
+    name: "Manut Dubai",
     code: "AE",
     country: "UAE",
     currency: "AED",
     accountingStd: "IFRS",
   },
   {
-    name: "TBH Singapore",
+    name: "Manut Singapore",
     code: "SG",
     country: "Singapore",
     currency: "SGD",
     accountingStd: "IFRS",
   },
   {
-    name: "TBH Portugal",
+    name: "Manut Portugal",
     code: "PT",
     country: "Portugal",
     currency: "EUR",
     accountingStd: "IFRS",
   },
   {
-    name: "TBH Indonesia",
+    name: "Manut Indonesia",
     code: "ID",
     country: "Indonesia",
     currency: "IDR",
     accountingStd: "PSAK",
   },
   {
-    name: "TBH Vietnam",
+    name: "Manut Vietnam",
     code: "VN",
     country: "Vietnam",
     currency: "VND",
     accountingStd: "VAS",
   },
   {
-    name: "TBH India",
+    name: "Manut India",
     code: "IN",
     country: "India",
     currency: "INR",
     accountingStd: "Ind AS",
   },
   {
-    name: "TBH Bangladesh",
+    name: "Manut Bangladesh",
     code: "BD",
     country: "Bangladesh",
     currency: "BDT",
@@ -695,7 +705,6 @@ async function main() {
   // Phase 1: Delete leaf tables (no FK dependencies) in parallel
   await Promise.all([
     prisma.surveyResponse.deleteMany({}),
-    prisma.uploadJob.deleteMany({}),
     prisma.goal.deleteMany({}),
     prisma.appraisalRating.deleteMany({}),
     prisma.appraisalComment.deleteMany({}),
@@ -740,7 +749,6 @@ async function main() {
 
   // Phase 2: Delete mid-level tables
   await Promise.all([
-    prisma.surveyWave.deleteMany({}),
     prisma.appraisal.deleteMany({}),
     prisma.ariaConversation.deleteMany({}),
     prisma.wallPost.deleteMany({}),
@@ -758,7 +766,6 @@ async function main() {
 
   // Phase 3: Delete top-level tables
   await Promise.all([
-    prisma.surveyDefinition.deleteMany({}),
     prisma.appraisalCycle.deleteMany({}),
     prisma.kRATemplate.deleteMany({}),
     prisma.office.deleteMany({}),
@@ -786,13 +793,14 @@ async function main() {
   // ─── 1. ENTITIES ────────────────────────────
   console.log("=== 1. Entities ===");
   await prisma.$transaction(
-    ENTITIES.map((entity) =>
-      prisma.entity.upsert({
+    ENTITIES.map((entity) => {
+      const data = { ...entity, name: brandOrg(entity.name) };
+      return prisma.entity.upsert({
         where: { code: entity.code },
-        update: entity,
-        create: entity,
-      }),
-    ),
+        update: data,
+        create: data,
+      });
+    }),
   );
   const entityRows = await prisma.entity.findMany({
     orderBy: { code: "asc" },
@@ -1196,7 +1204,7 @@ async function main() {
             email: ADMIN_EMAIL,
             password: adminPassword,
             email_confirm: true,
-            user_metadata: { name: "TBH Admin" },
+            user_metadata: { name: ADMIN_NAME },
           }),
         });
 
@@ -1225,16 +1233,16 @@ async function main() {
   // Create/update admin in Prisma database
   await prisma.user.upsert({
     where: { email: ADMIN_EMAIL },
-    update: { id: adminUserId, name: "TBH Admin", isActive: true },
+    update: { id: adminUserId, name: ADMIN_NAME, isActive: true },
     create: {
       id: adminUserId,
       email: ADMIN_EMAIL,
-      name: "TBH Admin",
+      name: ADMIN_NAME,
       phone: "+66812345678",
       entityId: entityIdByCode["TH"]!,
       department: "Operations",
       jobTitle: "System Administrator",
-      employeeId: "TBH-001",
+      employeeId: "MNT-001",
       employmentType: "full_time",
       startDate: d("2023-01-01"),
       salary: dec(150000),
@@ -1275,7 +1283,7 @@ async function main() {
       entityId: entityIdByCode[ENTITY_CODE_ORDER[entityIdx]!]!,
       department: DEPARTMENTS[i % DEPARTMENTS.length]!,
       jobTitle: TITLES[i]!,
-      employeeId: `TBH-${String(i + 2).padStart(3, "0")}`,
+      employeeId: `MNT-${String(i + 2).padStart(3, "0")}`,
       reportingTo: adminUserId,
       employmentType: i < 20 ? "full_time" : "contractor",
       startDate: pastDate(380 - ((i * 19) % 340)),
@@ -3753,41 +3761,44 @@ async function main() {
   console.log("=== 25. Offices ===");
   const OFFICES = [
     {
-      name: "TBH Bangkok HQ",
+      name: "Manut Bangkok HQ",
       city: "Bangkok",
       country: "Thailand",
       timezone: "Asia/Bangkok",
       capacity: 80,
     },
     {
-      name: "TBH Dubai Office",
+      name: "Manut Dubai Office",
       city: "Dubai",
       country: "UAE",
       timezone: "Asia/Dubai",
       capacity: 40,
     },
     {
-      name: "TBH Singapore Hub",
+      name: "Manut Singapore Hub",
       city: "Singapore",
       country: "Singapore",
       timezone: "Asia/Singapore",
       capacity: 30,
     },
     {
-      name: "TBH Lisbon Lab",
+      name: "Manut Lisbon Lab",
       city: "Lisbon",
       country: "Portugal",
       timezone: "Europe/Lisbon",
       capacity: 25,
     },
     {
-      name: "TBH Bangkok Co-work",
+      name: "Manut Bangkok Co-work",
       city: "Bangkok",
       country: "Thailand",
       timezone: "Asia/Bangkok",
       capacity: 20,
     },
-  ];
+    // Brand the office names to the configured org up front so every
+    // downstream lookup (createMany, findMany-by-name, the per-office loop)
+    // uses the same value.
+  ].map((office) => ({ ...office, name: brandOrg(office.name) }));
 
   const officesData: Prisma.OfficeUncheckedCreateInput[] = OFFICES.map((o) => ({
     ...o,
@@ -3988,7 +3999,7 @@ async function main() {
     "Shout-out to Support for keeping response times low during the traffic spike.",
     "New compliance refresher is live in Learning; please finish by month end.",
     "Save the date: company offsite in December (details to follow).",
-    "Press pick-up: TBH mentioned in this week's regional tech roundup (link in thread).",
+    "Press pick-up: Manut mentioned in this week's regional tech roundup (link in thread).",
     "Casual board-game evening in Bangkok next Friday after work.",
     "We're piloting paperless expense bundles — finance will host a short walkthrough.",
     "Performance conversations start next week; prep notes are in the HR wiki.",
@@ -4046,7 +4057,7 @@ async function main() {
   // ─── 30. COMPANY NEWS ─────────────────────
   console.log("=== 30. Company News ===");
   const NEWS = [
-    { title: "TBH Secures Series A Funding of $15M", category: "funding" },
+    { title: "Manut Secures Series A Funding of $15M", category: "funding" },
     { title: "BNRY Token Launch Date Announced", category: "product" },
     { title: "New Office Opening in Lisbon", category: "company" },
     { title: "Partnership with Binance Ecosystem", category: "partnership" },
@@ -4055,14 +4066,14 @@ async function main() {
     { title: "New CTO Joins Manut", category: "people" },
     { title: "Sustainability Report 2025 Published", category: "company" },
     { title: "Employee of the Quarter Announced", category: "people" },
-    { title: "TBH Named Top 50 Web3 Companies", category: "awards" },
+    { title: "Manut Named Top 50 Web3 Companies", category: "awards" },
     { title: "New Health Insurance Benefits Package", category: "benefits" },
     { title: "Security Audit Results: All Clear", category: "security" },
     { title: "Mobile App V2 Launch", category: "product" },
     { title: "Community Reaches 100K Members", category: "milestone" },
     { title: "New Learning Platform Launch", category: "internal" },
     { title: "Cross-Chain Bridge Goes Live", category: "product" },
-    { title: "TBH Featured on Bloomberg", category: "media" },
+    { title: "Manut Featured on Bloomberg", category: "media" },
     { title: "ISO 27001 Certification Achieved", category: "compliance" },
     { title: "New Regional Office in Singapore", category: "company" },
     { title: "Hackathon 2026 Winners Announced", category: "event" },
@@ -4084,9 +4095,9 @@ async function main() {
     "Manut has been recognized in CoinDesk's annual ranking of the Top 50 Web3 Companies to Watch in 2026. The recognition highlights our innovative approach to enterprise blockchain solutions, our growing global team, and the strong traction of the BNRY ecosystem. We are honored to be listed alongside industry leaders.",
     "We are upgrading our health insurance benefits package effective July 1, 2026. Key improvements include: expanded dental and vision coverage, mental health support with unlimited therapy sessions through Spring Health, increased annual checkup allowance to 15,000 THB, and new family coverage options. Visit the Benefits portal for full details and enrollment.",
     "Our comprehensive security audit by CertiK has been completed with zero critical vulnerabilities found. The audit covered all smart contracts, API endpoints, and infrastructure components. Two medium-severity findings were identified and promptly remediated. The full audit report is available in the Data Room for investors and stakeholders.",
-    "Version 2.0 of the TBH Mobile App is now available on both iOS and Android. Key features include: biometric authentication, push notifications for approvals, offline mode for travel requests, improved UX with dark mode support, and integration with the BNRY wallet. Download from the App Store or Google Play and share your feedback.",
+    "Version 2.0 of the Manut Mobile App is now available on both iOS and Android. Key features include: biometric authentication, push notifications for approvals, offline mode for travel requests, improved UX with dark mode support, and integration with the BNRY wallet. Download from the App Store or Google Play and share your feedback.",
     "Our community has officially crossed the 100,000 member milestone across all platforms. Discord leads with 45K members, followed by Telegram at 32K, and Twitter/X at 23K. To celebrate, we are launching a community rewards program with exclusive NFT drops and governance token allocations for our most active contributors.",
-    "The new TBH Learning Platform is live, featuring 200+ courses across technical, leadership, and compliance categories. All employees get unlimited access to courses from Coursera, Udemy Business, and our custom internal curriculum. Mandatory compliance training must be completed by end of Q2. Track your progress through the Learning tab in Intranet.",
+    "The new Manut Learning Platform is live, featuring 200+ courses across technical, leadership, and compliance categories. All employees get unlimited access to courses from Coursera, Udemy Business, and our custom internal curriculum. Mandatory compliance training must be completed by end of Q2. Track your progress through the Learning tab in Intranet.",
     "The BNRY cross-chain bridge is now live, enabling seamless token transfers between Ethereum, Polygon, and BSC networks. The bridge supports fast finality with an average transfer time of 3 minutes and competitive gas fees. Over $2M in volume was processed during the beta period with zero security incidents.",
     "Manut was featured in a Bloomberg Technology segment discussing the future of enterprise blockchain adoption in Southeast Asia. CEO James Chen highlighted our unique position bridging traditional enterprise operations with Web3 infrastructure. The segment reached an estimated audience of 2.5 million viewers globally.",
     "We have achieved ISO 27001 certification for our Information Security Management System. The certification covers all our operations across Bangkok, Dubai, Singapore, and Lisbon offices. This milestone demonstrates our commitment to the highest standards of data protection and security practices for our clients and partners.",
@@ -4624,7 +4635,7 @@ async function main() {
   // ─── 37. SYSTEM SETTINGS ──────────────────
   console.log("=== 37. System Settings ===");
   const SETTINGS = [
-    { key: "app.name", value: "Manut" },
+    { key: "app.name", value: ORG_NAME },
     { key: "app.version", value: "1.0.0" },
     { key: "app.timezone", value: "Asia/Bangkok" },
     { key: "app.locale", value: "en" },
@@ -4744,68 +4755,12 @@ async function main() {
     })),
   });
 
-  const surveyDefRows = await prisma.$transaction(
-    Array.from({ length: SEED_MIN }, (_, i) =>
-      prisma.surveyDefinition.create({
-        data: {
-          versionName: `Pulse engagement ${year}-v${i + 1}`,
-          description: "Sample engagement survey definition for local testing",
-          sectionsSchema: ESS_V2_SECTIONS_SEED,
-          demographicsSchema: {},
-          feedbackColumns: ESS_V2_FEEDBACK_COLUMNS_SEED,
-          totalQuestions: 35,
-          isActive: true,
-        },
-      }),
-    ),
-  );
-  const waveIdsSeed: string[] = [];
-  const waveRows = await prisma.$transaction(
-    surveyDefRows.map((def, i) =>
-      prisma.surveyWave.create({
-        data: {
-          name: `${year} pulse wave ${i + 1}`,
-          definitionId: def.id,
-          status: i % 3 === 0 ? "active" : "closed",
-          startDate: pastDate(60),
-          endDate: futureDate(30),
-          createdBy: adminUserId,
-        },
-      }),
-    ),
-  );
-  waveIdsSeed.push(...waveRows.map((w) => w.id));
-
-  const surveyResponsesBulk: Prisma.SurveyResponseUncheckedCreateInput[] = [];
-  for (let i = 0; i < SEED_MIN; i++) {
-    surveyResponsesBulk.push({
-      waveId: waveIdsSeed[i]!,
-      department: DEPARTMENTS[i % DEPARTMENTS.length]!,
-      tenure: "2-3y",
-      roleLevel: "IC",
-      workSetup: "hybrid",
-      sections: {},
-      feedbackStartDoing: "Keep mentoring juniors",
-      feedbackStopDoing: "Late night pings",
-      feedbackContinueDoing: "Clear documentation",
-    });
-  }
-  await prisma.surveyResponse.createMany({ data: surveyResponsesBulk });
-
-  const uploadJobsBulk: Prisma.UploadJobUncheckedCreateInput[] = [];
-  for (let i = 0; i < SEED_MIN; i++) {
-    uploadJobsBulk.push({
-      waveId: waveIdsSeed[i]!,
-      fileName: `responses_batch_${i + 1}.csv`,
-      fileSize: 2000 + i * 100,
-      rowCount: 42,
-      validRows: 40,
-      errorCount: 2,
-      status: "completed",
-      createdBy: adminUserId,
-    });
-  }
-  await prisma.uploadJob.createMany({ data: uploadJobsBulk });
+  // NOTE: The ESS engagement-survey seed block (surveyDefinition / surveyWave
+  // / wave-based surveyResponse / uploadJob) was removed — those Prisma models
+  // no longer exist in the schema (packages/database/prisma/schema/hr.prisma
+  // now models Survey/SurveyQuestion/SurveyResponse/SurveyAnswer instead), so
+  // the block threw `Cannot read properties of undefined (reading 'create')`
+  // and blocked the entire seed. See ESS_V2_* constants above (now unused).
 
   const kraTemplateRows = await prisma.$transaction(
     Array.from({ length: SEED_MIN }, (_, i) =>
@@ -5501,7 +5456,7 @@ async function main() {
         "<p>Our BNRY staking platform handles $15M+ in total value locked across three tiers. Here's the technical architecture that ensures security and reliability.</p><p>Smart contracts are written in Solidity 0.8.24 with OpenZeppelin's upgradeable proxy pattern. The staking contract uses a modified MasterChef-style reward distribution with per-second reward calculation. Lock periods are enforced on-chain with time-weighted multipliers.</p><p>The frontend polls contract state via ethers.js and updates every 15 seconds. For better UX, we estimate pending rewards client-side between polls. The indexer (The Graph subgraph) provides historical data for the earnings chart and portfolio performance tracking.</p>",
     },
     {
-      title: "DevOps at TBH: From Manual Deploys to GitOps",
+      title: "DevOps at Manut: From Manual Deploys to GitOps",
       content:
         "<p>18 months ago, deploying our services involved SSH into servers and running shell scripts. Today, every deployment is automated, tested, and reversible. Here's how we transformed our DevOps practices.</p><p>Infrastructure: All cloud resources are defined in Terraform with state stored in S3. Kubernetes clusters run on EKS with Karpenter for auto-scaling. Each service gets dedicated CPU/memory limits based on load testing data.</p><p>CI/CD: GitHub Actions handles build, test, and Docker image creation. ArgoCD watches our GitOps repository and reconciles the desired state automatically. Rollbacks are a simple git revert. Average deployment time from merge to production: 8 minutes.</p><p>Monitoring: Datadog for metrics and traces, PagerDuty for alerting, and Sentry for error tracking. We maintain a 99.97% uptime SLA with MTTR under 15 minutes for P1 incidents.</p>",
     },
@@ -5528,7 +5483,7 @@ async function main() {
     {
       title: "The Future of Enterprise Blockchain: Our 2027 Thesis",
       content:
-        "<p>After 3 years building in the enterprise blockchain space, here are the trends we believe will define 2027 and how TBH is positioning for them.</p><p>1) Account abstraction will make wallets invisible - users won't know they're using blockchain. We're building our mobile wallet with this principle. 2) Regulatory clarity in APAC and Middle East will unlock institutional adoption. Our multi-jurisdiction compliance framework is designed for this. 3) Real-world asset tokenization will be the killer use case, not DeFi speculation. Our partnerships with traditional finance institutions are strategic bets on this thesis.</p><p>4) Privacy-preserving computation (ZK proofs, FHE) will enable enterprise data on public chains. We're investing in ZK research for our cross-chain bridge. 5) AI agents will become the primary users of blockchain infrastructure. Our ARIA AI assistant already processes on-chain data for internal use.</p>",
+        "<p>After 3 years building in the enterprise blockchain space, here are the trends we believe will define 2027 and how Manut is positioning for them.</p><p>1) Account abstraction will make wallets invisible - users won't know they're using blockchain. We're building our mobile wallet with this principle. 2) Regulatory clarity in APAC and Middle East will unlock institutional adoption. Our multi-jurisdiction compliance framework is designed for this. 3) Real-world asset tokenization will be the killer use case, not DeFi speculation. Our partnerships with traditional finance institutions are strategic bets on this thesis.</p><p>4) Privacy-preserving computation (ZK proofs, FHE) will enable enterprise data on public chains. We're investing in ZK research for our cross-chain bridge. 5) AI agents will become the primary users of blockchain infrastructure. Our ARIA AI assistant already processes on-chain data for internal use.</p>",
     },
     {
       title: "Lessons from Running a Global Payroll System",
@@ -5573,9 +5528,9 @@ async function main() {
     },
     {
       title:
-        "How TBH Is Bridging Traditional Enterprise Operations with Blockchain",
+        "How Manut Is Bridging Traditional Enterprise Operations with Blockchain",
       date: "2026-03-05",
-      link: "https://bloomberg.com/technology/2026/03/05/tbh-enterprise-blockchain",
+      link: "https://bloomberg.com/technology/2026/03/05/manut-enterprise-blockchain",
       img: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&h=400&fit=crop",
     },
     {
@@ -5587,15 +5542,15 @@ async function main() {
     },
     {
       title:
-        "TBH Partners with Binance Ecosystem for Cross-Platform Integration",
+        "Manut Partners with Binance Ecosystem for Cross-Platform Integration",
       date: "2026-02-15",
-      link: "https://theblock.co/post/2026/02/15/tbh-binance-partnership",
+      link: "https://theblock.co/post/2026/02/15/manut-binance-partnership",
       img: "https://images.unsplash.com/photo-1516245834210-c4c142787335?w=600&h=400&fit=crop",
     },
     {
       title: "Inside the Engineering Culture at Manut",
       date: "2026-02-01",
-      link: "https://hackernoon.com/inside-the-engineering-culture-at-tbh",
+      link: "https://hackernoon.com/inside-the-engineering-culture-at-manut",
       img: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&h=400&fit=crop",
     },
     {
@@ -5611,20 +5566,20 @@ async function main() {
       img: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=600&h=400&fit=crop",
     },
     {
-      title: "TBH Achieves ISO 27001 Certification Across All Operations",
+      title: "Manut Achieves ISO 27001 Certification Across All Operations",
       date: "2025-12-15",
-      link: "https://finextra.com/newsarticle/tbh-iso-27001",
+      link: "https://finextra.com/newsarticle/manut-iso-27001",
       img: "https://images.unsplash.com/photo-1563986768609-322da13575f2?w=600&h=400&fit=crop",
     },
     {
       title:
-        "The Future of DeFi Staking: An Interview with TBH CTO Dr. Sarah Chen",
+        "The Future of DeFi Staking: An Interview with Manut CTO Dr. Sarah Chen",
       date: "2025-12-01",
-      link: "https://cointelegraph.com/news/tbh-defi-staking-interview",
+      link: "https://cointelegraph.com/news/manut-defi-staking-interview",
       img: "https://images.unsplash.com/photo-1551434678-e076c223a692?w=600&h=400&fit=crop",
     },
     {
-      title: "TBH Smart Contracts Pass CertiK Security Audit with Clean Report",
+      title: "Manut Smart Contracts Pass CertiK Security Audit with Clean Report",
       date: "2025-11-20",
       link: "https://certik.com/projects/manut",
       img: "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=600&h=400&fit=crop",
@@ -5632,13 +5587,13 @@ async function main() {
     {
       title: "How Manut Built a 100K Community in 12 Months",
       date: "2025-11-05",
-      link: "https://decrypt.co/tbh-community-growth-story",
+      link: "https://decrypt.co/manut-community-growth-story",
       img: "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&h=400&fit=crop",
     },
     {
-      title: "TBH Featured at GITEX Global Dubai as Top Web3 Innovator",
+      title: "Manut Featured at GITEX Global Dubai as Top Web3 Innovator",
       date: "2025-10-25",
-      link: "https://gulfnews.com/business/tbh-gitex-global-2025",
+      link: "https://gulfnews.com/business/manut-gitex-global-2025",
       img: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&h=400&fit=crop",
     },
     {
@@ -5662,9 +5617,9 @@ async function main() {
       img: "https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=600&h=400&fit=crop",
     },
     {
-      title: "TBH Intranet: Building an Open-Source ERP for the Web3 Era",
+      title: "Manut Intranet: Building an Open-Source ERP for the Web3 Era",
       date: "2025-09-01",
-      link: "https://opensource.com/article/tbh-nexora-erp",
+      link: "https://opensource.com/article/manut-nexora-erp",
       img: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&h=400&fit=crop",
     },
     {
@@ -5676,13 +5631,13 @@ async function main() {
     {
       title: "Manut Joins Polygon Ecosystem as Official Partner",
       date: "2025-08-05",
-      link: "https://polygon.technology/blog/tbh-partnership",
+      link: "https://polygon.technology/blog/manut-partnership",
       img: "https://images.unsplash.com/photo-1639322537228-f710d846310a?w=600&h=400&fit=crop",
     },
     {
       title: "Why We Chose Supabase Over Firebase for Our Enterprise Platform",
       date: "2025-07-22",
-      link: "https://dev.to/tbhengineering/supabase-vs-firebase-enterprise",
+      link: "https://dev.to/manutengineering/supabase-vs-firebase-enterprise",
       img: "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=600&h=400&fit=crop",
     },
   ];
@@ -5709,14 +5664,14 @@ async function main() {
   }[] = [
     {
       filename: "annual-report-2025.pdf",
-      originalName: "TBH Annual Report 2025.pdf",
+      originalName: "Manut Annual Report 2025.pdf",
       mimeType: "application/pdf",
       size: 4500000,
       purpose: "document",
     },
     {
       filename: "pitch-deck-series-b.pdf",
-      originalName: "TBH Series B Pitch Deck.pdf",
+      originalName: "Manut Series B Pitch Deck.pdf",
       mimeType: "application/pdf",
       size: 8200000,
       purpose: "investor",
@@ -5759,7 +5714,7 @@ async function main() {
     },
     {
       filename: "brand-guidelines.pdf",
-      originalName: "TBH Brand Guidelines 2026.pdf",
+      originalName: "Manut Brand Guidelines 2026.pdf",
       mimeType: "application/pdf",
       size: 15000000,
       purpose: "marketing",

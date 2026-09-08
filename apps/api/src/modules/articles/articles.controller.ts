@@ -1,7 +1,7 @@
 import { Router } from "express";
 
 import { PERMISSIONS } from "@/common/constants/permissions";
-import { logger } from "@/common/utils/logger";
+import { logger, scrubLog } from "@/common/utils/logger";
 import { getRequiredParam } from "@/common/utils/params";
 import {
   authenticate,
@@ -37,7 +37,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const input = createArticleSchema.parse(req.body);
     const result = await articlesService.create(input, req.user!.id);
-    logger.info(`Article created: "${input.title}" by ${req.user!.email}`);
+    logger.info(scrubLog(`Article created: "${input.title}" by ${req.user!.email}`));
     res.status(201).json(result);
   }),
 );
@@ -75,7 +75,7 @@ router.put(
     const id = getRequiredParam(req.params, "id");
     const input = updateArticleSchema.parse(req.body);
     const result = await articlesService.update(id, input);
-    logger.info(`Article updated: ${id} by ${req.user!.email}`);
+    logger.info(scrubLog(`Article updated: ${id} by ${req.user!.email}`));
     res.json(result);
   }),
 );
@@ -86,7 +86,7 @@ router.delete(
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
     const result = await articlesService.remove(id);
-    logger.info(`Article deleted: ${id} by ${req.user!.email}`);
+    logger.info(scrubLog(`Article deleted: ${id} by ${req.user!.email}`));
     res.json(result);
   }),
 );

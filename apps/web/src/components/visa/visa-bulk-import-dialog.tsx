@@ -37,7 +37,7 @@ const TEMPLATE_SAMPLE_ROWS = [
   [
     "Kunanon Jarat",
     "kunanon@manut.xyz",
-    "TBH-001",
+    "MNT-001",
     "non-immigrant-b",
     "Thailand",
     "2025-01-15",
@@ -211,7 +211,7 @@ export function VisaBulkImportDialog({
             least one of <span className="font-mono">Employee Name</span>,{" "}
             <span className="font-mono">Email</span>, or{" "}
             <span className="font-mono">employeeId</span> (UUID or staff code
-            like <span className="font-mono">TBH-001</span>). Optional:{" "}
+            like <span className="font-mono">MNT-001</span>). Optional:{" "}
             <span className="font-mono">country</span> (defaults to Thailand),{" "}
             <span className="font-mono">issueDate</span>,{" "}
             <span className="font-mono">status</span> (active / expired /

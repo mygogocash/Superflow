@@ -38,31 +38,31 @@ export const PERMISSION_DEFINITIONS: PermissionDef[] = [
     description: "Delete company news",
   },
 
-  // ── ARIA (AI Assistant) ──
+  // ── Manut AI (assistant; routes/codes stay aria:*) ──
   {
     code: "aria:use",
     module: "aria",
     action: "use",
-    description: "Use ARIA assistant",
+    description: "Use Manut AI assistant",
   },
   {
     code: "aria:parse",
     module: "aria",
     action: "parse",
-    description: "Parse documents with ARIA",
+    description: "Parse documents with Manut AI",
   },
   {
     code: "aria:knowledge-manage",
     module: "aria",
     action: "knowledge-manage",
     description:
-      "Manage the ARIA knowledge corpus (immigration, HR policies, etc.)",
+      "Manage the Manut AI knowledge corpus (immigration, HR policies, etc.)",
   },
   {
     code: "aria:brief-subscribe",
     module: "aria",
     action: "brief-subscribe",
-    description: "Receive ARIA's proactive daily brief",
+    description: "Receive Manut AI's proactive daily brief",
   },
 
   // ── Integrations (Gmail, Drive via Anthropic MCP) ──

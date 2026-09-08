@@ -7,6 +7,7 @@ import {
   ForbiddenException,
   NotFoundException,
 } from "@/common/exceptions/http-exception";
+import { isValidEmail } from "@/common/utils/email";
 import { logger } from "@/common/utils/logger";
 import { prisma } from "@/infrastructure/database/prisma";
 import { sendEmail } from "@/infrastructure/email/email.service";
@@ -1008,7 +1009,7 @@ export class LeaveService {
     for (const raw of rawEmails) {
       const trimmed = raw.trim().toLowerCase();
       if (!trimmed) continue;
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      if (!isValidEmail(trimmed)) {
         throw new BadRequestException(`Invalid email: ${raw}`);
       }
       if (seen.has(trimmed)) continue;
@@ -1465,8 +1466,7 @@ export class LeaveService {
     const year = request.startDate.getFullYear();
     const days = Number(request.days);
     const source = (request.source === "carried" ? "carried" : "entitled") as
-      | "entitled"
-      | "carried";
+      "entitled" | "carried";
 
     const result = await prisma.$transaction(async (tx) => {
       if (current && current.status === "pending") {
@@ -1719,8 +1719,7 @@ export class LeaveService {
     const year = request.startDate.getFullYear();
     const days = Number(request.days);
     const source = (request.source === "carried" ? "carried" : "entitled") as
-      | "entitled"
-      | "carried";
+      "entitled" | "carried";
     const prefix =
       context === "deletion" ? "deletion_refund" : "cancellation_refund";
     const verb = context === "deletion" ? "deleted" : "cancelled";

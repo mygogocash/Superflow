@@ -14,14 +14,14 @@ export const SUMMARY_TRIGGER_THRESHOLD = 10;
 // prompt bounded even if the extractor goes wide.
 export const MEMORY_MAX_ENTRIES = 20;
 
-const SUMMARY_SYSTEM_PROMPT = `You compress ARIA chat history for an enterprise assistant.
+const SUMMARY_SYSTEM_PROMPT = `You compress Manut AI chat history for an enterprise assistant.
 Produce a single short summary (<= 1500 characters, plain text, no markdown headings) covering:
-- The factual asks the user has made and the answers ARIA gave.
+- The factual asks the user has made and the answers Manut AI gave.
 - Any decisions, deadlines, or open questions referenced.
 - Names, entities, and identifiers that recurred.
 Do not invent new facts. Do not refer to "the previous conversation" or "above" — write a self-contained briefing.`;
 
-const MEMORY_SYSTEM_PROMPT = `You extract durable facts from an ARIA chat turn for re-injection into future turns.
+const MEMORY_SYSTEM_PROMPT = `You extract durable facts from a Manut AI chat turn for re-injection into future turns.
 Return a JSON array (no prose, no markdown) of up to 5 objects with shape: {"key": string, "value": string}.
 - key: lowercase snake_case, <= 40 chars (e.g. "user_topic", "preferred_currency", "active_entity")
 - value: <= 200 chars, factual, present-tense
@@ -93,7 +93,7 @@ export async function loadMemoryBlock(
   const lines = entries
     .slice(0, MEMORY_MAX_ENTRIES)
     .map((e) => `- ${e.key}: ${e.value}`);
-  return `PINNED CONTEXT (facts ARIA has remembered from this conversation):\n${lines.join("\n")}`;
+  return `PINNED CONTEXT (facts Manut AI has remembered from this conversation):\n${lines.join("\n")}`;
 }
 
 /**
@@ -150,7 +150,7 @@ export async function maybeRegenerateSummary(
       messages: [
         {
           role: "user",
-          content: `Summarise this ARIA chat history:\n\n${truncated}`,
+          content: `Summarise this Manut AI chat history:\n\n${truncated}`,
         },
       ],
     });

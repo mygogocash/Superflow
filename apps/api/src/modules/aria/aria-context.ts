@@ -45,7 +45,7 @@ interface PeopleSnapshot {
   employeeCount: number;
   departmentBreakdown: Record<string, number>;
   /**
-   * Active-headcount per entity (e.g. "TBH Thailand" → 23). Drives
+   * Active-headcount per entity (e.g. "Manut Thailand" → 23). Drives
    * questions like "how many employees in the Thailand office?" — the
    * canonical answer is the FK `User.entityId`, not the free-text
    * `location` / `country` columns which are often blank or stale.
@@ -448,7 +448,7 @@ async function getPeopleSnapshot(
   for (const emp of employees) {
     const dept = emp.department ?? "Unassigned";
     byDepartment[dept] = (byDepartment[dept] ?? 0) + 1;
-    // Display name as "TBH Thailand (TH)" so the assistant can match
+    // Display name as "Manut Thailand (TH)" so the assistant can match
     // either the full label or the entity code in the prompt.
     const entityKey = emp.entity
       ? `${emp.entity.name} (${emp.entity.code})`

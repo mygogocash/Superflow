@@ -32,8 +32,9 @@ export type Bindings = {
   /** Better Auth Dash (dash.better-auth.com) API key. Unset = dash plugin off. */
   BETTER_AUTH_API_KEY?: string;
   TURNSTILE_SECRET?: string;
-  EMAIL_SERVICE_URL?: string;
-  EMAIL_SERVICE_API_KEY?: string;
+  // Transactional email via Resend (https://api.resend.com/emails).
+  RESEND_API_KEY?: string;
+  EMAIL_FROM?: string;
   VALIDATOR_MONITOR_GITHUB_TOKEN?: string;
   VALIDATOR_MONITOR_REPO?: string;
   VALIDATOR_MONITOR_BRANCH?: string;
@@ -56,6 +57,14 @@ export type Bindings = {
   FX_FALLBACK_BASE_URL?: string;
   ACCOUNTING_FIXED_ASSETS?: string;
   ACCOUNTING_GL_POSTING?: string;
+  /** Fail-closed: avatar generator routes only when === "true". */
+  AVATAR_GENERATOR_ENABLED?: string;
+  /** LINE Login (Better Auth socialProviders.line). Unset = login button hidden. */
+  LINE_LOGIN_CHANNEL_ID?: string;
+  LINE_LOGIN_CHANNEL_SECRET?: string;
+  /** LINE Messaging API (OA webhook + reply/push). */
+  LINE_MESSAGING_CHANNEL_SECRET?: string;
+  LINE_MESSAGING_CHANNEL_ACCESS_TOKEN?: string;
 };
 
 /** Minimal shape of the Rate Limiting binding (not yet in workers-types). */

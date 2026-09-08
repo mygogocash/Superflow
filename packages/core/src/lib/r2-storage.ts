@@ -26,7 +26,7 @@ export const MULTIPART_UPLOAD_MAX_BYTES = Math.max(...Object.values(MAX_FILE_SIZ
 
 const ALLOWED_MIME: Record<BucketName, string[]> = {
   article: ["image/jpeg", "image/png", "image/webp"],
-  avatars: ["image/jpeg", "image/png", "image/webp"],
+  avatars: ["image/jpeg", "image/png", "image/webp", "image/svg+xml"],
   blog: ["image/jpeg", "image/png", "image/webp"],
   receipts: ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"],
   documents: [
@@ -103,7 +103,7 @@ export async function resolveDisplayUrl(
   const parsed = parseR2Path(path);
   if (!parsed) return path;
   if (isPublicBucket(parsed.bucket)) {
-    return `${appUrl.replace(/\/$/, "")}/api/uploads/public/${uploadId}`;
+    return `${appUrl.replace(/\/$/, "")}/api/uploads/${uploadId}/file`;
   }
   return `${appUrl.replace(/\/$/, "")}/api/uploads/${uploadId}/signed-url`;
 }

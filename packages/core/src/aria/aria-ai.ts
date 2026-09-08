@@ -17,7 +17,7 @@ export async function streamChat(
     throw new HttpException(
       501,
       "NOT_IMPLEMENTED",
-      "ARIA chat streaming is not configured on edge (missing AI API keys)",
+      "Manut AI chat streaming is not configured on edge (missing AI API keys)",
     );
   }
   const mod = await import("./aria-ai-runtime.js");

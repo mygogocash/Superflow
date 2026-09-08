@@ -1,5 +1,7 @@
 import { create } from "zustand";
+import { authClient } from "@/lib/auth-client";
 import { api, ApiError } from "@/lib/api-client";
+import { usesBetterAuth } from "@/lib/env";
 import { clearSession, loadSession, saveSession, type ExpoSession } from "@/lib/session";
 
 export type AuthUser = {
@@ -8,6 +10,7 @@ export type AuthUser = {
   name: string;
   avatarUrl?: string | null;
   mustChangePassword?: boolean;
+  lineLinked?: boolean;
 };
 
 type AuthRole = { id: string; name: string; isSystem: boolean; defaultRoute: string | null };
@@ -67,6 +70,44 @@ function applyMe(get: () => AuthState, data: MeResponse) {
   });
 }
 
+function baErrorMessage(error: { message?: string | null; statusText?: string } | null | undefined): string {
+  return error?.message || error?.statusText || "Sign-in failed";
+}
+
+async function loginWithBetterAuth(
+  get: () => AuthState,
+  email: string,
+  password: string,
+  remember: boolean,
+): Promise<void> {
+  const { data, error } = await authClient.signIn.email({
+    email,
+    password,
+    rememberMe: remember,
+  });
+  if (error) throw new Error(baErrorMessage(error));
+  const token = data?.token;
+  if (!token) throw new Error("Sign-in did not return a session token");
+  // Better Auth session token works as Bearer; refresh is cookie/session based.
+  saveSession({ accessToken: token, refreshToken: token }, remember);
+  const me = await api.get<MeResponse>("/auth/me");
+  applyMe(get, me);
+}
+
+async function loginWithExpressJwt(
+  get: () => AuthState,
+  email: string,
+  password: string,
+  remember: boolean,
+): Promise<void> {
+  const data = await api.post<MeResponse>("/auth/login", { email, password });
+  if (!data.session?.accessToken || !data.session.refreshToken) {
+    throw new Error("Sign-in did not return a session");
+  }
+  saveSession(data.session, remember);
+  applyMe(get, data);
+}
+
 export const useAuth = create<AuthState>((set, get) => ({
   ...empty,
   setSession: ({
@@ -87,16 +128,19 @@ export const useAuth = create<AuthState>((set, get) => ({
     set(empty);
   },
   login: async (email, password, remember = true) => {
-    const data = await api.post<MeResponse>("/auth/login", { email, password });
-    if (!data.session?.accessToken || !data.session.refreshToken) {
-      throw new Error("Sign-in did not return a session");
+    if (usesBetterAuth()) {
+      await loginWithBetterAuth(get, email, password, remember);
+      return;
     }
-    saveSession(data.session, remember);
-    applyMe(get, data);
+    await loginWithExpressJwt(get, email, password, remember);
   },
   logout: async () => {
     try {
-      await api.post("/auth/logout");
+      if (usesBetterAuth()) {
+        await authClient.signOut();
+      } else {
+        await api.post("/auth/logout");
+      }
     } catch {
       // still clear local session
     }

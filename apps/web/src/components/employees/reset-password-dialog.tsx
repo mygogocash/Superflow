@@ -36,9 +36,18 @@ type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 
 function generatePassword(): string {
   const chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%";
-  return Array.from(crypto.getRandomValues(new Uint8Array(14)))
-    .map((b) => chars[b % chars.length])
-    .join("");
+  // Rejection sampling avoids the modulo bias of `b % chars.length`.
+  const max = Math.floor(256 / chars.length) * chars.length;
+  let out = "";
+  while (out.length < 14) {
+    for (const b of crypto.getRandomValues(new Uint8Array(14))) {
+      if (b < max) {
+        out += chars[b % chars.length];
+        if (out.length === 14) break;
+      }
+    }
+  }
+  return out;
 }
 
 interface ResetPasswordDialogProps {

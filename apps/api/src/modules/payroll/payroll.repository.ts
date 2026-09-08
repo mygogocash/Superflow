@@ -192,7 +192,7 @@ export class PayrollRepository {
    * Total Tax / Total Net) expressed in the run's entity currency.
    *
    * Headline totals now convert each off-currency payslip through the
-   * latest exchange rate so a TBH-Thailand run that pays a USD
+   * latest exchange rate so a Thailand-entity run that pays a USD
    * contractor + an INR contractor reports a real "Total Net (THB)"
    * — the previous version only summed THB-currency payslips, which
    * silently dropped 32 of 51 slips on the Jan-2026 run.

@@ -87,12 +87,17 @@ function coerceDate(raw: unknown): string | null {
 // Pull the trailing currency suffix off "Manit Parikh (THB)" → "THB".
 // Returns null when no parenthesised suffix is present.
 function extractCurrencyFromName(name: string): string | null {
-  const match = name.match(/\(([A-Z]{2,4})\)\s*$/);
+  // Bound length before the `\s*$`-anchored regexes to avoid polynomial
+  // backtracking on a pathological cell (CodeQL js/polynomial-redos).
+  const match = name.slice(0, 500).match(/\(([A-Z]{2,4})\)\s*$/);
   return match ? (match[1] ?? null) : null;
 }
 
 function stripCurrencySuffix(name: string): string {
-  return name.replace(/\s*\([A-Z]{2,4}\)\s*$/, "").trim();
+  return name
+    .slice(0, 500)
+    .replace(/\s*\([A-Z]{2,4}\)\s*$/, "")
+    .trim();
 }
 
 // Year extracted from "Equity Allocation 2026 (Number of Share)" or

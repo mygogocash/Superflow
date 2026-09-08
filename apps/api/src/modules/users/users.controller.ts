@@ -3,7 +3,7 @@ import multer from "multer";
 import * as XLSX from "xlsx";
 
 import { PERMISSIONS } from "@/common/constants/permissions";
-import { logger } from "@/common/utils/logger";
+import { logger, scrubLog } from "@/common/utils/logger";
 import { getRequiredParam } from "@/common/utils/params";
 import {
   authenticate,
@@ -124,7 +124,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const input = createUserSchema.parse(req.body);
     const result = await usersService.create(input, req.user!.id);
-    logger.info(`User created: ${input.email} by ${req.user!.email}`);
+    logger.info(scrubLog(`User created: ${input.email} by ${req.user!.email}`));
     void logAudit({
       action: "create",
       resource: "user",
@@ -155,7 +155,7 @@ router.get(
       entityCode: "AE",
       department: "Marketing",
       jobTitle: "Content Lead",
-      employeeId: "TBH-100",
+      employeeId: "MNT-100",
       employmentType: "full_time",
       startDate: "2026-05-07",
       dateOfBirth: "1998-10-31",
@@ -287,7 +287,7 @@ router.put(
     const id = getRequiredParam(req.params, "id");
     const input = updateUserSchema.parse(req.body);
     const result = await usersService.update(id, input, req.user!.id);
-    logger.info(`User updated: ${id} by ${req.user!.email}`);
+    logger.info(scrubLog(`User updated: ${id} by ${req.user!.email}`));
     void logAudit({
       action: "update",
       resource: "user",
@@ -304,7 +304,7 @@ router.delete(
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
     const result = await usersService.remove(id, req.user!.id);
-    logger.info(`User deleted: ${id} by ${req.user!.email}`);
+    logger.info(scrubLog(`User deleted: ${id} by ${req.user!.email}`));
     void logAudit({
       action: "delete",
       resource: "user",
@@ -322,7 +322,7 @@ router.post(
     const id = getRequiredParam(req.params, "id");
     const input = resetPasswordSchema.parse(req.body);
     const result = await usersService.resetPassword(id, input, req.user!.id);
-    logger.info(`Password reset for user: ${id} by ${req.user!.email}`);
+    logger.info(scrubLog(`Password reset for user: ${id} by ${req.user!.email}`));
     void logAudit({
       action: "reset-password",
       resource: "user",
@@ -340,7 +340,7 @@ router.put(
     const id = getRequiredParam(req.params, "id");
     const input = assignRolesSchema.parse(req.body);
     const result = await usersService.assignRoles(id, input, req.user!.id);
-    logger.info(`Roles assigned to user: ${id} by ${req.user!.email}`);
+    logger.info(scrubLog(`Roles assigned to user: ${id} by ${req.user!.email}`));
     void logAudit({
       action: "assign-roles",
       resource: "user",
@@ -413,7 +413,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
     const result = await usersService.restore(id, req.user!.id);
-    logger.info(`User restored: ${id} by ${req.user!.email}`);
+    logger.info(scrubLog(`User restored: ${id} by ${req.user!.email}`));
     void logAudit({
       action: "restore",
       resource: "user",
@@ -430,7 +430,7 @@ router.delete(
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
     const result = await usersService.permanentDelete(id, req.user!.id);
-    logger.info(`User permanently deleted: ${id} by ${req.user!.email}`);
+    logger.info(scrubLog(`User permanently deleted: ${id} by ${req.user!.email}`));
     void logAudit({
       action: "permanent-delete",
       resource: "user",

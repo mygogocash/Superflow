@@ -70,7 +70,7 @@ export default function AriaInsightsPage() {
       const insights = await getAriaInsights(days);
       setData(insights);
     } catch {
-      toast.error("Failed to load ARIA insights");
+      toast.error("Failed to load Manut AI insights");
     } finally {
       setLoading(false);
     }
@@ -169,14 +169,14 @@ export default function AriaInsightsPage() {
     return (
       <div className="space-y-4">
         <PageHeader
-          title="ARIA Insights"
-          subtitle="Telemetry from the ARIA assistant"
+          title="Manut AI Insights"
+          subtitle="Telemetry from the Manut AI assistant"
         />
         <Card>
           <CardContent
             className={`text-muted-foreground py-12 text-center text-sm`}
           >
-            You do not have permission to view ARIA insights.
+            You do not have permission to view Manut AI insights.
           </CardContent>
         </Card>
       </div>
@@ -191,7 +191,7 @@ export default function AriaInsightsPage() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="ARIA Insights"
+        title="Manut AI Insights"
         subtitle="Per-turn telemetry — retrieval hit-rate, latency, and token spend."
       />
 

@@ -1,3 +1,5 @@
+import { randomInt } from "node:crypto";
+
 import {
   normalizePermissionCode,
   PERMISSIONS,
@@ -40,7 +42,9 @@ function generateTempPassword(): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
   let out = "";
   for (let i = 0; i < 12; i += 1) {
-    out += alphabet[Math.floor(Math.random() * alphabet.length)];
+    // crypto.randomInt is CSPRNG-backed and unbiased — Math.random() is not
+    // acceptable for credentials (predictable + modulo-biased).
+    out += alphabet[randomInt(alphabet.length)];
   }
   return out;
 }
@@ -979,11 +983,12 @@ export interface BulkImportResult {
 // confuses email copy-paste.
 function generateTemporaryPassword(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-  const bytes = new Uint8Array(16);
-  for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = Math.floor(Math.random() * chars.length);
+  let out = "";
+  for (let i = 0; i < 16; i += 1) {
+    // CSPRNG-backed, unbiased index selection (was Math.random()).
+    out += chars[randomInt(chars.length)];
   }
-  return Array.from(bytes, (b) => chars[b % chars.length]).join("");
+  return out;
 }
 
 export const usersService = new UsersService();

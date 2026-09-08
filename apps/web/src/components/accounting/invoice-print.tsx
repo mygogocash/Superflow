@@ -33,7 +33,7 @@ interface InvoicePrintProps {
 }
 
 /**
- * On-screen, print-ready reproduction of the TBH invoice template. Purely
+ * On-screen, print-ready reproduction of the Manut invoice template. Purely
  * presentational — the parent page fetches + owns loading/not-found state.
  * Forced to white background + dark text so it reads correctly on paper and
  * regardless of the app's light/dark theme.

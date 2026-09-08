@@ -25,7 +25,7 @@ function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
     !props["aria-labelledby"];
   const placeholderLabel =
     unnamed && typeof props.placeholder === "string"
-      ? props.placeholder.replace(/[…….]+$/, "").trim()
+      ? props.placeholder.replace(/[….]+$/, "").trim()
       : undefined;
   const fallbackAutoComplete =
     unnamed && !props.autoComplete ? "off" : undefined;

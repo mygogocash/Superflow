@@ -1,7 +1,12 @@
 import "@/app/globals.css";
 
 import type { Metadata, Viewport } from "next";
-import { DM_Mono, Instrument_Serif, Inter } from "next/font/google";
+import {
+  DM_Mono,
+  Instrument_Serif,
+  Inter,
+  Noto_Sans_Thai,
+} from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 
 import { ServiceWorkerManager } from "@/components/pwa/service-worker-manager";
@@ -9,6 +14,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { AuthProvider } from "@/providers/auth-provider";
+import { I18nProvider } from "@/providers/i18n-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 
 // Manut Brand CI §8: Inter is the product UI face; Instrument Serif is the
@@ -23,7 +29,18 @@ import { ThemeProvider } from "@/providers/theme-provider";
 // pages that don't render them (e.g. /hr-crm). Next.js still loads
 // the font when its CSS variable is used; `preload: false` only
 // suppresses the `<link rel="preload">` hint.
-const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+
+// Noto Sans Thai covers the Thai script (Inter does not). It is composed into
+// the sans stack in globals.css so Thai glyphs render in a designed face rather
+// than an inconsistent per-glyph system fallback. `preload: false` keeps it off
+// the critical path for English sessions.
+const notoSansThai = Noto_Sans_Thai({
+  subsets: ["thai"],
+  variable: "--font-thai",
+  weight: ["400", "500", "600", "700"],
+  preload: false,
+});
 
 const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
@@ -119,6 +136,7 @@ export default function RootLayout({
         dmMono.variable,
         "font-sans",
         inter.variable,
+        notoSansThai.variable,
       )}
     >
       <body>
@@ -135,7 +153,9 @@ export default function RootLayout({
         />
         <ThemeProvider>
           <TooltipProvider>
-            <AuthProvider>{children}</AuthProvider>
+            <I18nProvider>
+              <AuthProvider>{children}</AuthProvider>
+            </I18nProvider>
             <ServiceWorkerManager />
             <Toaster richColors />
           </TooltipProvider>

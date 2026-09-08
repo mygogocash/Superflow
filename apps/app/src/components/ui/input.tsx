@@ -1,7 +1,6 @@
 import type { ComponentProps } from "react";
 import { Platform, TextInput } from "react-native";
 import { BRAND } from "@/lib/brand";
-import { shadowSm } from "@/lib/shadow";
 import { cn } from "@/lib/utils";
 
 function Input({ className, style, ...props }: ComponentProps<typeof TextInput>) {
@@ -21,7 +20,7 @@ function Input({ className, style, ...props }: ComponentProps<typeof TextInput>)
         }),
         className,
       )}
-      style={[shadowSm, style]}
+      style={style}
       {...props}
     />
   );

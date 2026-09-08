@@ -7,13 +7,15 @@ import type { AppEnv } from "../lib/context";
 import { requireAuth } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 
-function r2Storage(c: { env: AppEnv["Bindings"] }) {
+function r2Storage(c: { env: AppEnv["Bindings"] }, bucketHint?: string) {
+  const usePublic = bucketHint === "avatars" || bucketHint === "article" || bucketHint === "blog" || bucketHint === "uploads";
+  const bucket = usePublic ? c.env.R2_PUBLIC : c.env.R2_PRIVATE;
   return {
     async put(key: string, bytes: Uint8Array, contentType: string) {
-      await c.env.R2_PRIVATE.put(key, bytes, { httpMetadata: { contentType } });
+      await bucket.put(key, bytes, { httpMetadata: { contentType } });
     },
     async delete(key: string) {
-      await c.env.R2_PRIVATE.delete(key);
+      await bucket.delete(key);
     },
   };
 }
@@ -24,20 +26,28 @@ export const uploads = new Hono<AppEnv>()
     return c.json(await uploadsService.list(c.var.db, c.var.user!.id, page, limit));
   })
   .post("/", requireAuth, zValidator("json", uploadBase64Schema), async (c) => {
+    const body = c.req.valid("json");
     const data = await uploadsService.upload(
       c.var.db,
       c.var.user!.id,
       c.env.APP_URL,
-      c.req.valid("json"),
-      r2Storage(c),
+      body,
+      r2Storage(c, body.bucket),
     );
     return c.json({ data }, 201);
   })
   .get("/:id/signed-url", requireAuth, async (c) => {
-    const data = await uploadsService.getSignedUrl(c.var.db, c.req.param("id"), c.var.user!.id, r2Storage(c));
+    const data = await uploadsService.getSignedUrl(
+      c.var.db,
+      c.req.param("id"),
+      c.var.user!.id,
+      r2Storage(c),
+    );
     return c.json({ data });
   })
-  .get("/:id/file", requireAuth, async (c) => {
+  .get("/:id/file", async (c) => {
+    // Public buckets (avatars/article/blog/uploads) are readable without a session
+    // so <img src> works; private buckets still need auth via signed-url.
     const parsed = await uploadsService.getPublicFile(c.var.db, c.req.param("id"));
     const obj = await c.env.R2_PUBLIC.get(parsed.key);
     if (!obj) return c.json({ error: { code: "NOT_FOUND", message: "File not found" } }, 404);

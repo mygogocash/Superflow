@@ -59,9 +59,9 @@ export class UsersRepository {
     } as const;
 
     if (sortBy === "employeeId") {
-      // Natural-numeric order: extract trailing digits so e.g. TBH-0088 sorts
-      // as 88 (after TBH-009/TBH-045) instead of lexicographically between
-      // TBH-008 and TBH-009. Falls back to raw employee_id for ties.
+      // Natural-numeric order: extract trailing digits so e.g. MNT-0088 sorts
+      // as 88 (after MNT-009/MNT-045) instead of lexicographically between
+      // MNT-008 and MNT-009. Falls back to raw employee_id for ties.
       const dir = sortOrder === "desc" ? Prisma.raw("DESC") : Prisma.raw("ASC");
       const searchPattern = search ? `%${search.toLowerCase()}%` : null;
 
@@ -149,19 +149,19 @@ export class UsersRepository {
   }
 
   /**
-   * Next TBH-### code from existing TBH-{digits} employee_id values (seed convention).
+   * Next MNT-### code from existing MNT-{digits} employee_id values (seed convention).
    */
   async allocateNextEmployeeId(): Promise<string> {
     const rows = await prisma.$queryRaw<Array<{ max: number | null }>>`
       SELECT MAX(
-        ((regexp_match(employee_id, '^TBH-([0-9]+)$', 'i'))[1])::integer
+        ((regexp_match(employee_id, '^MNT-([0-9]+)$', 'i'))[1])::integer
       ) AS max
       FROM users
       WHERE employee_id IS NOT NULL
     `;
     const max = rows[0]?.max ?? 0;
     const next = max + 1;
-    return `TBH-${String(next).padStart(3, "0")}`;
+    return `MNT-${String(next).padStart(3, "0")}`;
   }
 
   async create(

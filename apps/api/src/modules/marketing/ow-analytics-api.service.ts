@@ -1,4 +1,4 @@
-// TBH Analytics API ("Rahul API") ingester — the sole source for the OneWave
+// Manut Analytics API ("Rahul API") ingester — the sole source for the OneWave
 // dashboard. This is the same upstream the team read when they filled in the
 // OW2.0 traction spreadsheet by hand, so it replaced that sheet rather than
 // supplementing it.

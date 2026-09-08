@@ -1,7 +1,7 @@
 import { Router } from "express";
 
 import { PERMISSIONS } from "@/common/constants/permissions";
-import { logger } from "@/common/utils/logger";
+import { logger, scrubLog } from "@/common/utils/logger";
 import { getRequiredParam } from "@/common/utils/params";
 import {
   authenticate,
@@ -37,7 +37,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const input = createBlogSchema.parse(req.body);
     const result = await blogsService.create(input, req.user!.id);
-    logger.info(`Blog created: "${input.title}" by ${req.user!.email}`);
+    logger.info(scrubLog(`Blog created: "${input.title}" by ${req.user!.email}`));
     res.status(201).json(result);
   }),
 );
@@ -75,7 +75,7 @@ router.put(
     const id = getRequiredParam(req.params, "id");
     const input = updateBlogSchema.parse(req.body);
     const result = await blogsService.update(id, input);
-    logger.info(`Blog updated: ${id} by ${req.user!.email}`);
+    logger.info(scrubLog(`Blog updated: ${id} by ${req.user!.email}`));
     res.json(result);
   }),
 );
@@ -86,7 +86,7 @@ router.delete(
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
     const result = await blogsService.remove(id);
-    logger.info(`Blog deleted: ${id} by ${req.user!.email}`);
+    logger.info(scrubLog(`Blog deleted: ${id} by ${req.user!.email}`));
     res.json(result);
   }),
 );

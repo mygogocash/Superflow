@@ -198,7 +198,7 @@ export function EmploymentSection({ form, entities }: EmploymentSectionProps) {
               <FormLabel>Employee ID</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="TBH-001"
+                  placeholder="MNT-001"
                   {...field}
                   onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                 />

@@ -21,3 +21,6 @@ export const BRAND = {
   /** Stone 500 #85857E — CI placeholder tone (§22); decorative/large only */
   stone500: "#85857E",
 } as const;
+
+/** User-facing product name for the in-app AI assistant (routes stay `/aria`). */
+export const ASSISTANT_DISPLAY_NAME = "Manut AI";

@@ -366,7 +366,7 @@ model ExpenseCategory {
 // Vendors / clients / suppliers / contacts directory. Mirrors the
 // "Contact Lists" xlsx the finance team uses today (Thai accounting
 // software exports). Records are entity-scoped — most reports live on
-// the TBH Thailand entity but a future expansion to other entities
+// the Manut Thailand entity but a future expansion to other entities
 // reuses the same shape.
 model Vendor {
   id               String   @id @default(uuid()) @db.Uuid

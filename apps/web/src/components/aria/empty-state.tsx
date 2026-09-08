@@ -24,7 +24,7 @@ export function EmptyState({
         <Sparkles className="size-7 text-violet-500" />
       </div>
       <h2 className="text-foreground mb-2 text-lg font-semibold">
-        Welcome to ARIA
+        Welcome to Manut AI
       </h2>
       <p
         className={`

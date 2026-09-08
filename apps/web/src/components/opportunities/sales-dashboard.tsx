@@ -486,7 +486,7 @@ export function SalesDashboard() {
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Report title bar — McKinsey-style exhibit header in TBH brand */}
+      {/* Report title bar — McKinsey-style exhibit header in Manut brand */}
       <div
         className={`
           border-foreground flex items-end justify-between border-b-2 pb-3

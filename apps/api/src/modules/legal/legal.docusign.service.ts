@@ -178,7 +178,9 @@ class DocusignService {
    * envelope id; callers store this on the LegalSignature row so the
    * Connect webhook can correlate status updates back.
    */
-  async createEnvelope(args: CreateEnvelopeArgs): Promise<CreateEnvelopeResult> {
+  async createEnvelope(
+    args: CreateEnvelopeArgs,
+  ): Promise<CreateEnvelopeResult> {
     this.assertConfigured();
     const token = await this.getAccessToken();
     const url = `${process.env.DOCUSIGN_API_BASE_URL}/v2.1/accounts/${process.env.DOCUSIGN_ACCOUNT_ID}/envelopes`;
@@ -250,7 +252,7 @@ class DocusignService {
   async getEnvelope(envelopeId: string): Promise<EnvelopeStatus> {
     this.assertConfigured();
     const token = await this.getAccessToken();
-    const url = `${process.env.DOCUSIGN_API_BASE_URL}/v2.1/accounts/${process.env.DOCUSIGN_ACCOUNT_ID}/envelopes/${envelopeId}`;
+    const url = `${process.env.DOCUSIGN_API_BASE_URL}/v2.1/accounts/${process.env.DOCUSIGN_ACCOUNT_ID}/envelopes/${encodeURIComponent(envelopeId)}`;
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -273,7 +275,7 @@ class DocusignService {
   async downloadCombinedDocument(envelopeId: string): Promise<Buffer> {
     this.assertConfigured();
     const token = await this.getAccessToken();
-    const url = `${process.env.DOCUSIGN_API_BASE_URL}/v2.1/accounts/${process.env.DOCUSIGN_ACCOUNT_ID}/envelopes/${envelopeId}/documents/combined`;
+    const url = `${process.env.DOCUSIGN_API_BASE_URL}/v2.1/accounts/${process.env.DOCUSIGN_ACCOUNT_ID}/envelopes/${encodeURIComponent(envelopeId)}/documents/combined`;
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
     });

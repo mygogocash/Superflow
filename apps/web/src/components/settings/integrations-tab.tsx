@@ -83,7 +83,7 @@ function AnthropicStatus({ s }: { s: IntegrationStatus }) {
         <div className="flex flex-1 flex-col gap-1">
           <span className="text-sm font-medium">Anthropic Claude API</span>
           <p className="text-muted-foreground text-xs">
-            Powers ARIA + integrations. Configured via Cloud Run env (admin).
+            Powers Manut AI + integrations. Configured via Cloud Run env (admin).
           </p>
           <div className="mt-1">
             {s.configured ? (

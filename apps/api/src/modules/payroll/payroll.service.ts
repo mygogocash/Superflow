@@ -1,6 +1,10 @@
 import type { InputJsonValue } from "@nexora/database";
 import * as XLSX from "xlsx";
 
+import {
+  APP_NAME_SETTING_KEY,
+  orgNameFromSetting,
+} from "@/common/constants/org";
 import { PERMISSIONS } from "@/common/constants/permissions";
 import {
   BadRequestException,
@@ -157,46 +161,42 @@ function matchImportRowToUser<
   return undefined;
 }
 
-// Admin-managed company legal block printed in the payslip footer.
-// Stored as a single global SystemSetting; the default is TBH Thailand
-// (HR feedback 2026-06-04) until edited in Payslip Management.
+// Admin-managed company legal block printed in the payslip footer. Stored as a
+// single global SystemSetting; the legal name defaults to the organization name
+// from admin setup (`app.name`) and the address / phone are left blank until
+// entered in Payslip Management, so the footer follows the org rather than a
+// hardcoded legal entity.
 const PAYSLIP_COMPANY_KEY = "payslip.company";
 export interface PayslipCompany {
   legalName: string;
   address: string;
   phone: string;
 }
-const DEFAULT_PAYSLIP_COMPANY: PayslipCompany = {
-  legalName: "Manut",
-  address:
-    "150 T-Place Building, 7th Floor, Rooms 702-703, Soi Sukhumvit 55 " +
-    "(Thong Lo), Khlong Tan Nuea, Watthana, Bangkok, 10110, Thailand",
-  phone: "+6620590383",
-};
+function buildDefaultPayslipCompany(orgName: string): PayslipCompany {
+  return { legalName: orgName, address: "", phone: "" };
+}
 
 export class PayrollService {
-  /** Read the global payslip company block (falls back to the default). */
+  /** Read the global payslip company block (falls back to the org default). */
   async getPayslipCompany(): Promise<PayslipCompany> {
-    const row = await prisma.systemSetting.findUnique({
-      where: { key: PAYSLIP_COMPANY_KEY },
-    });
+    const [row, appNameRow] = await Promise.all([
+      prisma.systemSetting.findUnique({ where: { key: PAYSLIP_COMPANY_KEY } }),
+      prisma.systemSetting.findUnique({ where: { key: APP_NAME_SETTING_KEY } }),
+    ]);
+    const fallback = buildDefaultPayslipCompany(
+      orgNameFromSetting(appNameRow?.value),
+    );
     const value = row?.value;
     if (value && typeof value === "object" && !Array.isArray(value)) {
       const v = value as Record<string, unknown>;
       return {
         legalName:
-          typeof v.legalName === "string"
-            ? v.legalName
-            : DEFAULT_PAYSLIP_COMPANY.legalName,
-        address:
-          typeof v.address === "string"
-            ? v.address
-            : DEFAULT_PAYSLIP_COMPANY.address,
-        phone:
-          typeof v.phone === "string" ? v.phone : DEFAULT_PAYSLIP_COMPANY.phone,
+          typeof v.legalName === "string" ? v.legalName : fallback.legalName,
+        address: typeof v.address === "string" ? v.address : fallback.address,
+        phone: typeof v.phone === "string" ? v.phone : fallback.phone,
       };
     }
-    return DEFAULT_PAYSLIP_COMPANY;
+    return fallback;
   }
 
   /** Admin upsert of the global payslip company block. */
@@ -470,7 +470,7 @@ export class PayrollService {
     // createRunWithPayslips stores a raw mixed-currency sum on the run
     // row. Re-aggregate with FX so the headline totals match the
     // entity currency across every payslip (THB + converted USD/INR
-    // for a TBH-Thailand run, etc.).
+    // for a Thailand-entity run, etc.).
     const recalc = await payrollRepository.sumPayslipTotalsForRun(result.id);
     await payrollRepository.setRunTotals(result.id, recalc);
 
@@ -932,7 +932,7 @@ export class PayrollService {
 
       // HR template stores the row's net-payout-in-entity-currency under a
       // header that depends on the run's entity (e.g. "Total Payout THB"
-      // for TBH Thailand). Read just that one cell — the other currency
+      // for the Thailand entity). Read just that one cell — the other currency
       // columns are informational only and never feed the headline.
       const totalPayoutBaseRaw = pickNumber(
         row,
@@ -1097,7 +1097,7 @@ export class PayrollService {
       //     the schema's `@@unique([run, employee, currency])` lets both
       //     land. Merging across currencies would mix units (50k THB +
       //     7k USD ≠ 57k of anything) and was the source of the by-currency
-      //     rollup corruption we hit on the Jan-2026 TBH-Thailand run.
+      //     rollup corruption we hit on the Jan-2026 Thailand-entity run.
       const indexByEmployeeCurrency = new Map<string, number>();
       const employeeCurrencyKey = (employeeId: string, currency: string) =>
         `${employeeId}|${currency}`;
@@ -1298,7 +1298,7 @@ export class PayrollService {
     // re-insert the canonical set. Lets HR re-upload a corrected file
     // without hitting the @@unique([payrollRunId, employeeId]) constraint.
     //
-    // Bucket totals by currency: a TBH-Thailand run that pays a USD
+    // Bucket totals by currency: a Thailand-entity run that pays a USD
     // contractor + an INR contractor used to sum 100,000 THB + 8,000
     // USD + 40,000 INR into a single `totalNet` cell. Now we split:
     // `currencyTotals` keeps the full per-currency rollup, and the

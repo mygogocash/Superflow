@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
 import { api, ApiError } from "@/lib/api-client";
+import { authClient } from "@/lib/auth-client";
 import { BRAND } from "@/lib/brand";
+import { getAppUrl, usesBetterAuth } from "@/lib/env";
 
 export default function MagicLinkScreen() {
   const [email, setEmail] = useState("");
@@ -19,8 +21,19 @@ export default function MagicLinkScreen() {
     setError(null);
     setMessage(null);
     try {
-      const res = await api.post<{ message?: string }>("/auth/magic-link", { email: email.trim() });
-      setMessage(res.message ?? "If that email is eligible, a sign-in link is on its way.");
+      if (usesBetterAuth()) {
+        const { error: baError } = await authClient.signIn.magicLink({
+          email: email.trim(),
+          callbackURL: `${getAppUrl()}/`,
+        });
+        if (baError) {
+          throw new Error(baError.message || baError.statusText || "Could not send magic link");
+        }
+        setMessage("If that email is eligible, a sign-in link is on its way.");
+      } else {
+        const res = await api.post<{ message?: string }>("/auth/magic-link", { email: email.trim() });
+        setMessage(res.message ?? "If that email is eligible, a sign-in link is on its way.");
+      }
     } catch (e) {
       setError(e instanceof ApiError ? e.message : e instanceof Error ? e.message : "Could not send magic link");
     } finally {

@@ -2,7 +2,6 @@ import { cva, type VariantProps } from "class-variance-authority";
 import type { ComponentProps } from "react";
 import { Platform, Pressable } from "react-native";
 import { TextClassContext } from "@/components/ui/text";
-import { shadowSm } from "@/lib/shadow";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
@@ -104,7 +103,6 @@ function Button({ className, variant, size, ...props }: ButtonProps) {
         className={cn(props.disabled && "opacity-50", buttonVariants({ variant, size }), className)}
         role="button"
         {...props}
-        style={typeof props.style === "function" ? props.style : [shadowSm, props.style]}
       />
     </TextClassContext.Provider>
   );

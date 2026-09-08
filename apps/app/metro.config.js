@@ -15,9 +15,16 @@ config.resolver.nodeModulesPaths = [
   path.resolve(projectRoot, "node_modules"),
   path.resolve(workspaceRoot, "node_modules"),
 ];
+const appReact = path.resolve(projectRoot, "node_modules/react");
+const appReactDom = path.resolve(projectRoot, "node_modules/react-dom");
+
 config.resolver.extraNodeModules = {
   ...(config.resolver.extraNodeModules ?? {}),
   "react-native-css-interop": path.resolve(projectRoot, "node_modules/react-native-css-interop"),
+  // Monorepo can hoist a second React (e.g. 19.2.x via Next/web). Two copies
+  // in the web export blank the SPA: ExpoRoot's useMemo hits a null dispatcher.
+  react: appReact,
+  "react-dom": appReactDom,
 };
 
 // pnpm + Metro cannot follow css-interop's nested jsx-runtime/package.json
@@ -29,6 +36,19 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
     moduleName === "react-native-css-interop/jsx-runtime" ||
     moduleName === "react-native-css-interop/jsx-dev-runtime"
   ) {
+    return {
+      type: "sourceFile",
+      filePath: require.resolve(moduleName, { paths: [projectRoot] }),
+    };
+  }
+  // Force every `react` / `react-dom` (and subpath) import onto the app copy.
+  if (moduleName === "react" || moduleName.startsWith("react/")) {
+    return {
+      type: "sourceFile",
+      filePath: require.resolve(moduleName, { paths: [projectRoot] }),
+    };
+  }
+  if (moduleName === "react-dom" || moduleName.startsWith("react-dom/")) {
     return {
       type: "sourceFile",
       filePath: require.resolve(moduleName, { paths: [projectRoot] }),

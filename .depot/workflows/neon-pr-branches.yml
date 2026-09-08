@@ -1,9 +1,13 @@
 # =============================================================================
 # Manut — Neon PR database branches (Depot CI)
 #
-# Adapted from Neon's "Create/Delete Branch for Pull Request" GitHub Action
-# template. Live CI is Depot (repo Actions is disabled); keep this file under
+# Live CI is Depot (repo Actions is disabled); keep this file under
 # `.depot/workflows/`.
+#
+# Uses the Neon REST API via curl (not neondatabase/* GitHub Actions). Depot
+# runners cannot download those actions — Neon's GitHub org has an IP allow
+# list (403 on release fetch). Symptom: Delete Neon Branch failed after PR
+# merge with "access denied: neondatabase/delete-branch-action".
 #
 # On open / reopen / synchronize: create (or reuse) a Neon branch from the
 # project primary, then run Drizzle migrate with the UNPOOLED URL.
@@ -41,22 +45,23 @@ jobs:
     name: Setup
     if: ${{ vars.NEON_PROJECT_ID != '' }}
     outputs:
-      branch: ${{ steps.branch_name.outputs.current_branch }}
       neon_branch: ${{ steps.names.outputs.neon_branch }}
     runs-on: depot-ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Get branch name
-        id: branch_name
-        uses: tj-actions/branch-names@v8
-
       - name: Neon branch name
         id: names
         run: |
           # Keep names short — Neon has a 63-char limit on branch names.
-          raw="preview/pr-${{ github.event.number }}-${{ steps.branch_name.outputs.current_branch }}"
+          # Prefer the PR head ref (no third-party branch-names action).
+          head_ref="${{ github.head_ref }}"
+          if [ -z "$head_ref" ]; then
+            head_ref="${GITHUB_REF_NAME:-unknown}"
+          fi
+          raw="preview/pr-${{ github.event.number }}-${head_ref}"
           safe="$(echo "$raw" | tr '/_' '-' | cut -c1-63)"
           echo "neon_branch=${safe}" >> "$GITHUB_OUTPUT"
+          echo "Neon branch name: ${safe}"
 
   create_neon_branch:
     name: Create Neon Branch
@@ -77,25 +82,90 @@ jobs:
           echo "::notice::NEON_API_KEY unset — Neon PR branch create skipped. See docs/ops/NEON_STAGING.md."
           exit 0
 
-      - name: Get branch expiration (14 days)
+      - name: Create or reuse Neon branch (API)
         if: ${{ secrets.NEON_API_KEY != '' }}
-        id: get_expiration_date
-        run: echo "EXPIRES_AT=$(date -u --date '+14 days' +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_ENV"
+        id: neon
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+          BRANCH_NAME: ${{ needs.setup.outputs.neon_branch }}
+        run: |
+          set -euo pipefail
+          API="https://console.neon.tech/api/v2"
+          AUTH=( -H "Authorization: Bearer ${NEON_API_KEY}" -H "Accept: application/json" )
+          export EXPIRES_AT="$(date -u --date '+14 days' +'%Y-%m-%dT%H:%M:%SZ')"
 
-      - name: Create Neon Branch
-        if: ${{ secrets.NEON_API_KEY != '' }}
-        id: create_neon_branch
-        uses: neondatabase/create-branch-action@v6
-        with:
-          project_id: ${{ vars.NEON_PROJECT_ID }}
-          branch_name: ${{ needs.setup.outputs.neon_branch }}
-          # Omit parent → project primary (staging). Set Depot var NEON_PARENT_BRANCH
-          # only if the primary is not the Neon default.
-          api_key: ${{ secrets.NEON_API_KEY }}
-          database: neondb
-          role: neondb_owner
-          ssl: require
-          expires_at: ${{ env.EXPIRES_AT }}
+          list_json="$(curl -fsS "${AUTH[@]}" \
+            "${API}/projects/${PROJECT_ID}/branches")"
+          branch_id="$(echo "$list_json" | python3 -c '
+          import json,sys
+          name=sys.argv[1]
+          data=json.load(sys.stdin)
+          branches=data.get("branches") or []
+          for b in branches:
+            if b.get("name")==name:
+              print(b["id"]); break
+          ' "$BRANCH_NAME")"
+
+          if [ -z "$branch_id" ]; then
+            echo "Creating Neon branch ${BRANCH_NAME} (expires ${EXPIRES_AT})…"
+            create_json="$(curl -fsS "${AUTH[@]}" \
+              -H "Content-Type: application/json" \
+              -X POST "${API}/projects/${PROJECT_ID}/branches" \
+              -d "$(python3 -c '
+          import json,os
+          print(json.dumps({
+            "branch": {"name": os.environ["BRANCH_NAME"], "expires_at": os.environ["EXPIRES_AT"]},
+            "endpoints": [{"type": "read_write"}],
+          }))
+          ')" )"
+            branch_id="$(echo "$create_json" | python3 -c '
+          import json,sys
+          data=json.load(sys.stdin)
+          print(data["branch"]["id"])
+          ')"
+            echo "Created ${branch_id}"
+          else
+            echo "Reusing existing Neon branch ${BRANCH_NAME} (${branch_id})"
+          fi
+
+          uri_json="$(curl -fsS "${AUTH[@]}" \
+            "${API}/projects/${PROJECT_ID}/connection_uri?branch_id=${branch_id}&database_name=neondb&role_name=neondb_owner&pooled=false")"
+          db_url="$(echo "$uri_json" | python3 -c '
+          import json,sys
+          from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+          data=json.load(sys.stdin)
+          raw=data.get("uri") or data.get("connection_uri") or ""
+          if not raw:
+            print(""); raise SystemExit(0)
+          # Neon often returns ?channel_binding=require&sslmode=require.
+          # sed stripping of "?channel_binding=require" leaves
+          # ".../neondb&sslmode=require" which postgres.js treats as the
+          # database name — migrate then fails with 3D000.
+          parts=urlsplit(raw)
+          q=[(k,v) for k,v in parse_qsl(parts.query, keep_blank_values=True)
+             if k != "channel_binding"]
+          print(urlunsplit(parts._replace(query=urlencode(q))))
+          ')"
+          if [ -z "$db_url" ]; then
+            echo "::error::Neon connection_uri empty for branch ${branch_id}"
+            echo "$uri_json" | head -c 500
+            exit 1
+          fi
+          # Sanity: path must be /neondb (not /neondb&sslmode=…)
+          db_path="$(python3 -c 'from urllib.parse import urlsplit; import sys; print(urlsplit(sys.argv[1]).path)' "$db_url")"
+          if [ "$db_path" != "/neondb" ]; then
+            echo "::error::Unexpected Neon DB path after URL normalize: ${db_path}"
+            exit 1
+          fi
+
+          {
+            echo "branch_id=${branch_id}"
+            # Delimiter form — URLs contain &/=
+            echo "db_url<<NEON_EOF"
+            echo "$db_url"
+            echo "NEON_EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v6
         if: ${{ secrets.NEON_API_KEY != '' }}
@@ -109,34 +179,16 @@ jobs:
       - name: Drizzle migrate (Neon PR branch, unpooled)
         if: ${{ secrets.NEON_API_KEY != '' }}
         env:
-          # create-branch-action@v6 outputs db_url (unpooled) and db_url_pooled.
-          # Migrate must use unpooled. Strip channel_binding for postgres.js.
-          DATABASE_URL: ${{ steps.create_neon_branch.outputs.db_url }}
+          DATABASE_URL: ${{ steps.neon.outputs.db_url }}
         run: |
           set -euo pipefail
           if [ -z "${DATABASE_URL:-}" ]; then
-            echo "::error::create-branch-action did not return db_url"
+            echo "::error::Neon API step did not return db_url"
             exit 1
           fi
-          # Strip channel_binding=require (Neon console appends it; postgres.js / Hyperdrive dislike it)
-          export DATABASE_URL="$(echo "$DATABASE_URL" | sed -E 's/[?&]channel_binding=require//g' | sed -E 's/\?&/?/g' | sed -E 's/\?$//')"
           pnpm --filter @nexora/db db:migrate
           # Idempotency pass (same as local verify recipe)
           pnpm --filter @nexora/db db:migrate
-
-      # Optional: post schema diff on the PR. Needs pull-requests: write.
-      # Uncomment when NEON_API_KEY is live and you want review comments:
-      #
-      # permissions (job-level):
-      #   contents: read
-      #   pull-requests: write
-      #
-      # - name: Post Schema Diff Comment to PR
-      #   uses: neondatabase/schema-diff-action@v1
-      #   with:
-      #     project_id: ${{ vars.NEON_PROJECT_ID }}
-      #     compare_branch: ${{ needs.setup.outputs.neon_branch }}
-      #     api_key: ${{ secrets.NEON_API_KEY }}
 
   delete_neon_branch:
     name: Delete Neon Branch
@@ -154,10 +206,42 @@ jobs:
           echo "::notice::NEON_API_KEY unset — Neon PR branch delete skipped."
           exit 0
 
-      - name: Delete Neon Branch
+      - name: Delete Neon Branch (API)
         if: ${{ secrets.NEON_API_KEY != '' }}
-        uses: neondatabase/delete-branch-action@v3
-        with:
-          project_id: ${{ vars.NEON_PROJECT_ID }}
-          branch: ${{ needs.setup.outputs.neon_branch }}
-          api_key: ${{ secrets.NEON_API_KEY }}
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+          BRANCH_NAME: ${{ needs.setup.outputs.neon_branch }}
+        run: |
+          set -euo pipefail
+          API="https://console.neon.tech/api/v2"
+          AUTH=( -H "Authorization: Bearer ${NEON_API_KEY}" -H "Accept: application/json" )
+
+          list_json="$(curl -fsS "${AUTH[@]}" \
+            "${API}/projects/${PROJECT_ID}/branches")"
+          branch_id="$(echo "$list_json" | python3 -c '
+          import json,sys
+          name=sys.argv[1]
+          data=json.load(sys.stdin)
+          branches=data.get("branches") or []
+          for b in branches:
+            if b.get("name")==name:
+              print(b["id"]); break
+          ' "$BRANCH_NAME")"
+
+          if [ -z "$branch_id" ]; then
+            echo "Neon branch ${BRANCH_NAME} already gone — nothing to delete."
+            exit 0
+          fi
+
+          echo "Deleting Neon branch ${BRANCH_NAME} (${branch_id})…"
+          # 404 = already deleted (idempotent)
+          code="$(curl -sS -o /tmp/neon-del.json -w '%{http_code}' "${AUTH[@]}" \
+            -X DELETE "${API}/projects/${PROJECT_ID}/branches/${branch_id}")"
+          if [ "$code" = "200" ] || [ "$code" = "204" ] || [ "$code" = "404" ]; then
+            echo "Delete OK (HTTP ${code})"
+            exit 0
+          fi
+          echo "::error::Neon delete failed HTTP ${code}"
+          cat /tmp/neon-del.json || true
+          exit 1

@@ -1,5 +1,5 @@
 /**
- * Invoice PDF generator (pdf-lib). Renders one A4 page faithful to the TBH
+ * Invoice PDF generator (pdf-lib). Renders one A4 page faithful to the Manut
  * invoice template: company letterhead, BILL TO + meta, a line-item table,
  * Subtotal / VAT / WHT / TOTAL DUE, and the bank payment block. Mirrors the
  * payslip-generator.ts pdf-lib idioms (Helvetica, rgb, Buffer return).

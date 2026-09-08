@@ -103,7 +103,7 @@ export function AriaDocumentParsePanel() {
 
         <TabsContent value="receipt" className="mt-4 space-y-4">
           <p className="text-muted-foreground text-[13px] leading-relaxed">
-            Upload a photo or PDF of a payment receipt. ARIA extracts totals,
+            Upload a photo or PDF of a payment receipt. Manut AI extracts totals,
             merchant, and suggested wording for an expense line — always verify
             before submitting.
           </p>

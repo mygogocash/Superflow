@@ -1,5 +1,9 @@
 import { Prisma } from "@nexora/database";
 
+import {
+  APP_NAME_SETTING_KEY,
+  orgNameFromSetting,
+} from "@/common/constants/org";
 import { PERMISSIONS } from "@/common/constants/permissions";
 import {
   BadRequestException,
@@ -236,7 +240,7 @@ import {
   resolveMappedAccount,
 } from "@/modules/accounting/gl-posting.service";
 import {
-  DEFAULT_INVOICE_COMPANY,
+  buildDefaultInvoiceCompany,
   type InvoiceCompany,
 } from "@/modules/accounting/invoice-shared";
 import {
@@ -7012,45 +7016,46 @@ export class AccountingService {
   // ─── Invoice company + bank block (global SystemSetting) ────────────────
   private static readonly INVOICE_COMPANY_KEY = "accounting.invoice_company";
 
-  /** Read the global invoice company block (falls back to the default). */
+  /**
+   * Read the global invoice company block. The default is built from the
+   * organization name in admin setup (`app.name`), and any admin-saved fields
+   * overlay it — so the printed company follows the org, not a hardcoded entity.
+   */
   async getInvoiceCompany(): Promise<InvoiceCompany> {
-    const row = await prisma.systemSetting.findUnique({
-      where: { key: AccountingService.INVOICE_COMPANY_KEY },
-    });
+    const [row, appNameRow] = await Promise.all([
+      prisma.systemSetting.findUnique({
+        where: { key: AccountingService.INVOICE_COMPANY_KEY },
+      }),
+      prisma.systemSetting.findUnique({ where: { key: APP_NAME_SETTING_KEY } }),
+    ]);
+    const fallback = buildDefaultInvoiceCompany(
+      orgNameFromSetting(appNameRow?.value),
+    );
     const value = row?.value;
     if (value && typeof value === "object" && !Array.isArray(value)) {
       const v = value as Record<string, unknown>;
       const str = (k: string, d: string) =>
         typeof v[k] === "string" ? (v[k] as string) : d;
       return {
-        name: str("name", DEFAULT_INVOICE_COMPANY.name),
+        name: str("name", fallback.name),
         addressLines: Array.isArray(v.addressLines)
           ? (v.addressLines as unknown[]).filter(
               (x): x is string => typeof x === "string",
             )
-          : DEFAULT_INVOICE_COMPANY.addressLines,
-        taxId: str("taxId", DEFAULT_INVOICE_COMPANY.taxId),
-        email: str("email", DEFAULT_INVOICE_COMPANY.email),
-        tel: str("tel", DEFAULT_INVOICE_COMPANY.tel),
-        bankName: str("bankName", DEFAULT_INVOICE_COMPANY.bankName),
-        bankAccountType: str(
-          "bankAccountType",
-          DEFAULT_INVOICE_COMPANY.bankAccountType,
-        ),
-        bankBranch: str("bankBranch", DEFAULT_INVOICE_COMPANY.bankBranch),
-        bankAccountName: str(
-          "bankAccountName",
-          DEFAULT_INVOICE_COMPANY.bankAccountName,
-        ),
-        bankAccountNo: str(
-          "bankAccountNo",
-          DEFAULT_INVOICE_COMPANY.bankAccountNo,
-        ),
-        bankSwift: str("bankSwift", DEFAULT_INVOICE_COMPANY.bankSwift),
-        footerNote: str("footerNote", DEFAULT_INVOICE_COMPANY.footerNote),
+          : fallback.addressLines,
+        taxId: str("taxId", fallback.taxId),
+        email: str("email", fallback.email),
+        tel: str("tel", fallback.tel),
+        bankName: str("bankName", fallback.bankName),
+        bankAccountType: str("bankAccountType", fallback.bankAccountType),
+        bankBranch: str("bankBranch", fallback.bankBranch),
+        bankAccountName: str("bankAccountName", fallback.bankAccountName),
+        bankAccountNo: str("bankAccountNo", fallback.bankAccountNo),
+        bankSwift: str("bankSwift", fallback.bankSwift),
+        footerNote: str("footerNote", fallback.footerNote),
       };
     }
-    return DEFAULT_INVOICE_COMPANY;
+    return fallback;
   }
 
   /** Admin upsert of the global invoice company block. */

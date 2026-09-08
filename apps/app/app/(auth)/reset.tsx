@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Text } from "@/components/ui/text";
 import { api, ApiError } from "@/lib/api-client";
+import { authClient } from "@/lib/auth-client";
 import { BRAND } from "@/lib/brand";
+import { getAppUrl, usesBetterAuth } from "@/lib/env";
 
 export default function ResetPasswordScreen() {
   const [email, setEmail] = useState("");
@@ -19,8 +21,19 @@ export default function ResetPasswordScreen() {
     setError(null);
     setMessage(null);
     try {
-      const res = await api.post<{ message?: string }>("/auth/forgot-password", { email: email.trim() });
-      setMessage(res.message ?? "If an account exists, a reset email is on its way.");
+      if (usesBetterAuth()) {
+        const { error: baError } = await authClient.requestPasswordReset({
+          email: email.trim(),
+          redirectTo: `${getAppUrl()}/reset`,
+        });
+        if (baError) {
+          throw new Error(baError.message || baError.statusText || "Could not start reset");
+        }
+        setMessage("If an account exists, a reset email is on its way.");
+      } else {
+        const res = await api.post<{ message?: string }>("/auth/forgot-password", { email: email.trim() });
+        setMessage(res.message ?? "If an account exists, a reset email is on its way.");
+      }
     } catch (e) {
       setError(e instanceof ApiError ? e.message : e instanceof Error ? e.message : "Could not start reset");
     } finally {

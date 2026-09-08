@@ -605,7 +605,7 @@ export function InvestorFormDialog({
                     <FormItem>
                       <FormLabel>Revenue stream</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. TBH + SunJoy" {...field} />
+                        <Input placeholder="e.g. Manut + SunJoy" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -676,7 +676,7 @@ export function InvestorFormDialog({
                     <FormItem>
                       <FormLabel>Cross-sell</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g. TBH + SunJoy" {...field} />
+                        <Input placeholder="e.g. Manut + SunJoy" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

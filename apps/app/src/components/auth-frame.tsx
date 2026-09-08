@@ -3,7 +3,6 @@ import type { ReactNode } from "react";
 import { ScrollView, View } from "react-native";
 import { ManutSymbol } from "@/components/brand/manut-symbol";
 import { Text } from "@/components/ui/text";
-import { shadowMd } from "@/lib/shadow";
 
 export function AuthLink({ href, children }: { href: Href; children: string }) {
   return (
@@ -29,16 +28,10 @@ export function AuthFrame({
       contentContainerStyle={{ flexGrow: 1 }}
       keyboardShouldPersistTaps="handled"
     >
-      <View
-        className="w-full max-w-[440px] rounded-[14px] border border-border bg-card p-6 sm:p-8"
-        style={shadowMd}
-      >
-        <View className="mb-6 flex-row items-center gap-3">
-          <ManutSymbol size={38} />
-          <View>
-            <Text className="text-[15px] font-bold tracking-wide text-foreground">Manut</Text>
-            <Text className="text-[10px] font-medium uppercase tracking-[1.4px] text-muted-foreground">Manut</Text>
-          </View>
+      <View className="w-full max-w-[440px] rounded-[14px] border border-border bg-card p-6 sm:p-8">
+        <View className="mb-8 flex-row items-center gap-3">
+          <ManutSymbol size={42} />
+          <Text className="font-display text-[32px] leading-none tracking-tight text-foreground">Manut</Text>
         </View>
         <Text className="text-xl font-semibold text-foreground">{title}</Text>
         {subtitle ? <Text className="mt-1 text-[13px] leading-5 text-muted-foreground">{subtitle}</Text> : null}

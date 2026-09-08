@@ -1,12 +1,41 @@
+import type { LucideIcon } from "lucide-react-native";
+import {
+  BriefcaseBusiness,
+  Building2,
+  CalendarDays,
+  CircleHelp,
+  ClipboardList,
+  FileText,
+  FolderKanban,
+  HandCoins,
+  Home,
+  Landmark,
+  LayoutDashboard,
+  MessageSquare,
+  Newspaper,
+  Plane,
+  Scale,
+  Settings2,
+  Sparkles,
+  Users,
+  Wallet,
+} from "lucide-react-native";
+import { ASSISTANT_DISPLAY_NAME } from "@/lib/brand";
+
+export type NavIcon = LucideIcon;
+
 export type NavItem = {
   href: string;
   label: string;
   permissions?: string[];
+  icon?: NavIcon;
 };
 
 export type NavGroup = {
   label: string;
   items: NavItem[];
+  /** Collapse secondary groups by default on first paint. */
+  defaultCollapsed?: boolean;
 };
 
 /** Public URL for the signed-in home. Matches Next.js `/dashboard`. */
@@ -17,70 +46,74 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     label: "Workspace",
     items: [
-      { href: DASHBOARD_HOME, label: "Home", permissions: ["home:read"] },
-      { href: "/aria", label: "ARIA", permissions: ["aria:use"] },
-      { href: "/messages", label: "Messaging", permissions: ["messages:read"] },
-      { href: "/docs", label: "Repository", permissions: ["docs:read"] },
-      { href: "/projects", label: "Projects", permissions: ["projects:read"] },
-      { href: "/proposals", label: "Proposals", permissions: ["proposals:read", "projects:manage"] },
-      { href: "/partners", label: "Partners", permissions: ["partners:read"] },
-      { href: "/deals", label: "Sales CRM", permissions: ["crm:read", "deals:read"] },
-      { href: "/leads", label: "Leads", permissions: ["crm:read"] },
-      { href: "/accounts", label: "Accounts", permissions: ["crm:read"] },
-      { href: "/contacts", label: "Contacts", permissions: ["crm:read"] },
-      { href: "/product-crm", label: "Product CRM", permissions: ["product-crm:read", "product-crm:read-all"] },
-      { href: "/it-crm", label: "IT CRM", permissions: ["it-crm:read", "it-crm:read-all"] },
-      { href: "/legal-crm", label: "Legal CRM", permissions: ["legal-crm:read", "legal-crm:read-all"] },
-      { href: "/qa-crm", label: "QA CRM", permissions: ["qa-crm:read", "qa-crm:read-all"] },
-      { href: "/voucher-crm", label: "Voucher CRM", permissions: ["voucher-crm:read", "voucher-crm:read-all"] },
-      { href: "/helpdesk", label: "IT Helpdesk", permissions: ["it:read", "it:read-all", "it:create"] },
+      { href: DASHBOARD_HOME, label: "Home", permissions: ["home:read"], icon: Home },
+      { href: "/aria", label: ASSISTANT_DISPLAY_NAME, permissions: ["aria:use"], icon: Sparkles },
+      { href: "/messages", label: "Messaging", permissions: ["messages:read"], icon: MessageSquare },
+      { href: "/docs", label: "Repository", permissions: ["docs:read"], icon: FolderKanban },
+      { href: "/projects", label: "Projects", permissions: ["projects:read"], icon: LayoutDashboard },
+      { href: "/proposals", label: "Proposals", permissions: ["proposals:read", "projects:manage"], icon: FileText },
+      { href: "/partners", label: "Partners", permissions: ["partners:read"], icon: Building2 },
+      { href: "/deals", label: "Sales CRM", permissions: ["crm:read", "deals:read"], icon: BriefcaseBusiness },
+      { href: "/leads", label: "Leads", permissions: ["crm:read"], icon: Users },
+      { href: "/accounts", label: "Accounts", permissions: ["crm:read"], icon: Building2 },
+      { href: "/contacts", label: "Contacts", permissions: ["crm:read"], icon: Users },
+      { href: "/product-crm", label: "Product CRM", permissions: ["product-crm:read", "product-crm:read-all"], icon: ClipboardList },
+      { href: "/it-crm", label: "IT CRM", permissions: ["it-crm:read", "it-crm:read-all"], icon: Settings2 },
+      { href: "/legal-crm", label: "Legal CRM", permissions: ["legal-crm:read", "legal-crm:read-all"], icon: Scale },
+      { href: "/qa-crm", label: "QA CRM", permissions: ["qa-crm:read", "qa-crm:read-all"], icon: CircleHelp },
+      { href: "/voucher-crm", label: "Voucher CRM", permissions: ["voucher-crm:read", "voucher-crm:read-all"], icon: HandCoins },
+      { href: "/helpdesk", label: "IT Helpdesk", permissions: ["it:read", "it:read-all", "it:create"], icon: CircleHelp },
     ],
   },
   {
     label: "People",
+    defaultCollapsed: true,
     items: [
-      { href: "/hrms", label: "HRMS", permissions: ["hrms:read", "hrms:esop-manage"] },
-      { href: "/leave", label: "Leave", permissions: ["leave:read"] },
-      { href: "/travel", label: "Travel", permissions: ["travel:read"] },
-      { href: "/payroll", label: "Payroll", permissions: ["payroll:read"] },
-      { href: "/learning", label: "Learning", permissions: ["learning:read"] },
-      { href: "/visa", label: "Visa", permissions: ["visa:read", "visa:hr-read"] },
-      { href: "/benefits", label: "Benefits", permissions: ["benefits:read"] },
-      { href: "/office", label: "Office", permissions: ["office:read"] },
-      { href: "/policies", label: "Policies", permissions: ["policy:read"] },
-      { href: "/survey", label: "Survey" },
-      { href: "/survey-forms", label: "Awards" },
-      { href: "/certificates", label: "Certificates", permissions: ["certificate:manage"] },
-      { href: "/career", label: "Careers", permissions: ["career:read"] },
-      { href: "/performance", label: "Performance", permissions: ["performance:read"] },
+      { href: "/hrms", label: "HRMS", permissions: ["hrms:read", "hrms:esop-manage"], icon: Users },
+      { href: "/leave", label: "Leave", permissions: ["leave:read"], icon: CalendarDays },
+      { href: "/travel", label: "Travel", permissions: ["travel:read"], icon: Plane },
+      { href: "/payroll", label: "Payroll", permissions: ["payroll:read"], icon: Wallet },
+      { href: "/learning", label: "Learning", permissions: ["learning:read"], icon: FileText },
+      { href: "/visa", label: "Visa", permissions: ["visa:read", "visa:hr-read"], icon: FileText },
+      { href: "/benefits", label: "Benefits", permissions: ["benefits:read"], icon: HandCoins },
+      { href: "/office", label: "Office", permissions: ["office:read"], icon: Building2 },
+      { href: "/policies", label: "Policies", permissions: ["policy:read"], icon: FileText },
+      { href: "/survey", label: "Survey", icon: ClipboardList },
+      { href: "/survey-forms", label: "Awards", icon: ClipboardList },
+      { href: "/certificates", label: "Certificates", permissions: ["certificate:manage"], icon: FileText },
+      { href: "/career", label: "Careers", permissions: ["career:read"], icon: BriefcaseBusiness },
+      { href: "/performance", label: "Performance", permissions: ["performance:read"], icon: LayoutDashboard },
     ],
   },
   {
     label: "Finance",
+    defaultCollapsed: true,
     items: [
-      { href: "/accounting", label: "Accounting", permissions: ["accounting:read"] },
-      { href: "/accounting-crm", label: "Accounting CRM", permissions: ["accounting-crm:read"] },
-      { href: "/expenses", label: "Expenses", permissions: ["expense:read"] },
-      { href: "/cash-advance", label: "Cash Advance", permissions: ["cash-advance:read"] },
-      { href: "/vendors", label: "Vendors", permissions: ["vendor:read"] },
-      { href: "/exchange-rates", label: "Exchange rates", permissions: ["exchange-rate:read"] },
+      { href: "/accounting", label: "Accounting", permissions: ["accounting:read"], icon: Landmark },
+      { href: "/accounting-crm", label: "Accounting CRM", permissions: ["accounting-crm:read"], icon: Landmark },
+      { href: "/expenses", label: "Expenses", permissions: ["expense:read"], icon: Wallet },
+      { href: "/cash-advance", label: "Cash Advance", permissions: ["cash-advance:read"], icon: HandCoins },
+      { href: "/vendors", label: "Vendors", permissions: ["vendor:read"], icon: Building2 },
+      { href: "/exchange-rates", label: "Exchange rates", permissions: ["exchange-rate:read"], icon: Landmark },
     ],
   },
   {
     label: "Fundraising",
+    defaultCollapsed: true,
     items: [
-      { href: "/investors", label: "Investors", permissions: ["investor-dashboard:read", "investors:read"] },
-      { href: "/dataroom", label: "Data Room", permissions: ["dataroom:read"] },
-      { href: "/investor-updates", label: "Updates", permissions: ["investor-updates:read"] },
+      { href: "/investors", label: "Investors", permissions: ["investor-dashboard:read", "investors:read"], icon: Landmark },
+      { href: "/dataroom", label: "Data Room", permissions: ["dataroom:read"], icon: FolderKanban },
+      { href: "/investor-updates", label: "Updates", permissions: ["investor-updates:read"], icon: Newspaper },
     ],
   },
   {
     label: "Content",
+    defaultCollapsed: true,
     items: [
-      { href: "/blogs", label: "Blogs", permissions: ["blog:read"] },
-      { href: "/articles", label: "PR Articles", permissions: ["pr:read"] },
-      { href: "/news", label: "News", permissions: ["news:read"] },
-      { href: "/wall", label: "Wall", permissions: ["wall:read"] },
+      { href: "/blogs", label: "Blogs", permissions: ["blog:read"], icon: Newspaper },
+      { href: "/articles", label: "PR Articles", permissions: ["pr:read"], icon: Newspaper },
+      { href: "/news", label: "News", permissions: ["news:read"], icon: Newspaper },
+      { href: "/wall", label: "Wall", permissions: ["wall:read"], icon: MessageSquare },
     ],
   },
 ];
@@ -89,20 +122,21 @@ export const EMPLOYEE_NAV_GROUPS: NavGroup[] = [
   {
     label: "Personal",
     items: [
-      { href: DASHBOARD_HOME, label: "Home" },
-      { href: "/messages", label: "Messaging", permissions: ["messages:read"] },
-      { href: "/leave", label: "Leave", permissions: ["leave:read"] },
-      { href: "/travel", label: "Travel", permissions: ["travel:read"] },
-      { href: "/expenses", label: "Expenses", permissions: ["expense:read"] },
-      { href: "/cash-advance", label: "Cash Advance", permissions: ["cash-advance:read"] },
-      { href: "/helpdesk", label: "IT Helpdesk", permissions: ["it:read", "it:create"] },
-      { href: "/survey", label: "Survey" },
-      { href: "/hrms", label: "HRMS", permissions: ["hrms:read"] },
-      { href: "/learning", label: "Learning", permissions: ["learning:read"] },
-      { href: "/visa", label: "Visa", permissions: ["visa:read"] },
-      { href: "/benefits", label: "Benefits", permissions: ["benefits:read"] },
-      { href: "/office", label: "Office", permissions: ["office:read"] },
-      { href: "/policies", label: "Policies", permissions: ["policy:read"] },
+      { href: DASHBOARD_HOME, label: "Home", icon: Home },
+      { href: "/aria", label: ASSISTANT_DISPLAY_NAME, permissions: ["aria:use"], icon: Sparkles },
+      { href: "/messages", label: "Messaging", permissions: ["messages:read"], icon: MessageSquare },
+      { href: "/leave", label: "Leave", permissions: ["leave:read"], icon: CalendarDays },
+      { href: "/travel", label: "Travel", permissions: ["travel:read"], icon: Plane },
+      { href: "/expenses", label: "Expenses", permissions: ["expense:read"], icon: Wallet },
+      { href: "/cash-advance", label: "Cash Advance", permissions: ["cash-advance:read"], icon: HandCoins },
+      { href: "/helpdesk", label: "IT Helpdesk", permissions: ["it:read", "it:create"], icon: CircleHelp },
+      { href: "/survey", label: "Survey", icon: ClipboardList },
+      { href: "/hrms", label: "HRMS", permissions: ["hrms:read"], icon: Users },
+      { href: "/learning", label: "Learning", permissions: ["learning:read"], icon: FileText },
+      { href: "/visa", label: "Visa", permissions: ["visa:read"], icon: FileText },
+      { href: "/benefits", label: "Benefits", permissions: ["benefits:read"], icon: HandCoins },
+      { href: "/office", label: "Office", permissions: ["office:read"], icon: Building2 },
+      { href: "/policies", label: "Policies", permissions: ["policy:read"], icon: FileText },
     ],
   },
 ];
@@ -116,7 +150,7 @@ export function itemVisible(
 }
 
 export function navItemActive(pathname: string, href: string): boolean {
-  if (href === DASHBOARD_HOME) return pathname === DASHBOARD_HOME || pathname === "/";
+  if (href === DASHBOARD_HOME) return pathname === href || pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

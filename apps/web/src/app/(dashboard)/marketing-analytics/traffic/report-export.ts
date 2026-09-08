@@ -162,7 +162,7 @@ export async function generateTelcoReport(
   <table><thead><tr><th>Metric</th><th class="num">Prior</th><th class="num">Current</th><th class="num">Uplift</th></tr></thead><tbody>${rows}</tbody></table>
   <h2>Campaigns in period</h2>
   <table><thead><tr><th>Campaign</th><th>Date</th><th>Channel</th><th>Status</th><th class="num">Reach</th></tr></thead><tbody>${campaignRows}</tbody></table>
-  <div class="foot">OneWave / TBH — generated ${currTo}. Share only with authorised partners.</div>
+  <div class="foot">OneWave / Manut — generated ${currTo}. Share only with authorised partners.</div>
   <script>window.onload=function(){setTimeout(function(){window.print();},300);};</scr${""}ipt>
 </body></html>`;
 

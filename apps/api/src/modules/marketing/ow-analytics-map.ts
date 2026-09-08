@@ -1,4 +1,4 @@
-// Pure mapping between the TBH Analytics API (POST /v1/metrics/query) and
+// Pure mapping between the Manut Analytics API (POST /v1/metrics/query) and
 // the OneWave OwMetricRow contract. No I/O — unit tested.
 import { type OwMetricKey, type OwTelco } from "@/modules/marketing/ow-aliases";
 import type { OwMetricRow, OwRawTab } from "@/modules/marketing/ow-types";

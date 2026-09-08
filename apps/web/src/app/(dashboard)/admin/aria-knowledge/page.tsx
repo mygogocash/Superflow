@@ -173,7 +173,7 @@ export default function AriaKnowledgeAdminPage() {
   if (!canManage) {
     return (
       <div className="text-muted-foreground p-8 text-sm">
-        You don&apos;t have permission to manage the ARIA knowledge corpus.
+        You don&apos;t have permission to manage the Manut AI knowledge corpus.
       </div>
     );
   }
@@ -181,8 +181,8 @@ export default function AriaKnowledgeAdminPage() {
   return (
     <div>
       <PageHeader
-        title="ARIA knowledge"
-        subtitle="Curated articles surfaced into ARIA chat answers via keyword retrieval"
+        title="Manut AI knowledge"
+        subtitle="Curated articles surfaced into Manut AI chat answers via keyword retrieval"
       >
         <Button onClick={openCreate}>
           <Plus className="size-3.5" />
@@ -304,7 +304,7 @@ export default function AriaKnowledgeAdminPage() {
               {form.id ? "Edit article" : "New article"}
             </DialogTitle>
             <DialogDescription>
-              ARIA prepends the matching article body to its chat system prompt.
+              Manut AI prepends the matching article body to its chat system prompt.
               Keep titles + bodies focused so the model has clean context.
             </DialogDescription>
           </DialogHeader>
@@ -355,7 +355,7 @@ export default function AriaKnowledgeAdminPage() {
                 rows={10}
                 value={form.body}
                 onChange={(e) => setForm({ ...form, body: e.target.value })}
-                placeholder="Markdown-ish text. ARIA prepends this verbatim into its chat system prompt when keywords match the user's question."
+                placeholder="Markdown-ish text. Manut AI prepends this verbatim into its chat system prompt when keywords match the user's question."
                 className="mt-1 font-mono text-xs"
               />
             </div>
@@ -401,7 +401,7 @@ export default function AriaKnowledgeAdminPage() {
                 Leave empty for an article every signed-in user can see. Add
                 codes (e.g. <code>payroll:read</code>, <code>visa:hr-read</code>
                 ) to gate it: the caller must hold AT LEAST ONE of these codes
-                for ARIA to surface the article in chat. Codes are free strings
+                for Manut AI to surface the article in chat. Codes are free strings
                 — admins can reference future permissions without redeploying.
               </p>
             </div>
