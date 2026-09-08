@@ -1,4 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
+
 import { type Request, Router } from "express";
 
 import { asyncHandler } from "@/core/middleware/async-handler";
