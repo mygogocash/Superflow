@@ -14,6 +14,7 @@ import {
 import {
   listActiveMemberUserIds,
   resolveActorOrgScope,
+  type OrgTenancyOptions,
 } from "../organizations/organizations.service";
 import * as repo from "./repository";
 
@@ -75,7 +76,12 @@ function detailDTO(user: NonNullable<Awaited<ReturnType<typeof repo.findById>>>)
  * active members of their active organization (template for org tenancy).
  * Platform admins may optionally filter with `organizationId`.
  */
-export async function list(db: Db, query: ListUsersQuery, actorId?: string) {
+export async function list(
+  db: Db,
+  query: ListUsersQuery,
+  actorId?: string,
+  options: OrgTenancyOptions = {},
+) {
   const scoped: ListUsersQuery = { ...query };
 
   if (actorId) {
@@ -83,6 +89,9 @@ export async function list(db: Db, query: ListUsersQuery, actorId?: string) {
     if (!scope.isPlatformAdmin) {
       const orgId = scope.activeOrganizationId;
       if (!orgId) {
+        if (options.tenancyEnforced) {
+          throw new ForbiddenException("Active organization required");
+        }
         return {
           data: [],
           meta: {
@@ -112,15 +121,49 @@ export async function list(db: Db, query: ListUsersQuery, actorId?: string) {
   };
 }
 
-export async function getById(db: Db, id: string) {
+async function assertActorCanAccessUser(
+  db: Db,
+  actorId: string,
+  targetUserId: string,
+  options: OrgTenancyOptions = {},
+) {
+  const scope = await resolveActorOrgScope(db, actorId);
+  if (scope.isPlatformAdmin) return;
+  const orgId = scope.activeOrganizationId;
+  if (!orgId) {
+    throw new ForbiddenException(
+      options.tenancyEnforced
+        ? "Active organization required"
+        : "Cannot access user outside your organization",
+    );
+  }
+  const memberIds = await listActiveMemberUserIds(db, orgId);
+  if (!memberIds.includes(targetUserId)) {
+    throw new ForbiddenException("Cannot access user outside your organization");
+  }
+}
+
+export async function getById(
+  db: Db,
+  id: string,
+  actorId?: string,
+  options: OrgTenancyOptions = {},
+) {
   const user = await repo.findById(db, id);
   if (!user) throw new NotFoundException("User not found");
+  if (actorId) {
+    await assertActorCanAccessUser(db, actorId, id, options);
+  }
   return { data: detailDTO(user) };
 }
 
 export async function update(db: Db, id: string, input: UpdateUserInput, actorId?: string) {
   const user = await repo.findById(db, id);
   if (!user) throw new NotFoundException("User not found");
+
+  if (actorId) {
+    await assertActorCanAccessUser(db, actorId, id);
+  }
 
   if (input.isActive === false && user.isActive) {
     await assertActorMayManageAdminUser(db, actorId, id);

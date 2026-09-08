@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  assertSameOrg,
   canAssignOrgRole,
+  isOrgTenancyEnforced,
   isPlatformAdmin,
+  isSameOrg,
   mergeOrgAwarePermissions,
   orgRolePermissionCodes,
   orgRoleRank,
+  OrgScopeError,
 } from "./org-rbac";
 
 describe("org-rbac", () => {
@@ -50,4 +54,25 @@ describe("org-rbac", () => {
     expect(canAssignOrgRole({ platformRole: null, orgRole: "admin" }, "user")).toBe(true);
     expect(canAssignOrgRole({ platformRole: null, orgRole: "user" }, "admin")).toBe(false);
   });
+
+  it("isSameOrg / assertSameOrg gate cross-org access", () => {
+    expect(isSameOrg("org-a", "org-a")).toBe(true);
+    expect(isSameOrg("org-a", "org-b")).toBe(false);
+    expect(isSameOrg(null, "org-a")).toBe(false);
+    expect(isSameOrg("org-a", null)).toBe(false);
+    expect(() => assertSameOrg("org-a", "org-a")).not.toThrow();
+    expect(() => assertSameOrg("org-a", "org-b")).toThrow(OrgScopeError);
+  });
+
+  it("parses ORG_TENANCY_ENFORCED flag values", () => {
+    expect(isOrgTenancyEnforced("true")).toBe(true);
+    expect(isOrgTenancyEnforced("1")).toBe(true);
+    expect(isOrgTenancyEnforced("yes")).toBe(true);
+    expect(isOrgTenancyEnforced("on")).toBe(true);
+    expect(isOrgTenancyEnforced("false")).toBe(false);
+    expect(isOrgTenancyEnforced("")).toBe(false);
+    expect(isOrgTenancyEnforced(undefined)).toBe(false);
+    expect(isOrgTenancyEnforced(true)).toBe(true);
+  });
 });
+

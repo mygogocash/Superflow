@@ -20,7 +20,7 @@ Allowlist for intentional public / alt-auth surfaces: `scripts/security/allowlis
 | SEC-002 | 0 | P2 | Workflow email-action public controller | open | `projects/workflow/workflow-public.controller.ts` uses `verifyActionToken`. Wave 4: replay/expiry/binding audit | |
 | SEC-003 | 0 | P2 | Expo session in web storage | mitigated | Wave 1: logout clears `intranet.session.v1` + legacy keys; residual XSS blast radius remains (Bearer-in-storage for Expo) | |
 | SEC-004 | 0 | P1 | Soft-delete restore IDOR pattern | done | Wave 2: owner-or-HR/read-all in service for accounting restore + permanent delete IncludingDeleted | |
-| SEC-005 | 0 | P0/P1 | Org tenancy incomplete on ERP rows | open | Wave 3; see `docs/ORG_TENANCY_RBAC_PLAN.md` | |
+| SEC-005 | 0 | P0/P1 | Org tenancy incomplete on ERP rows | mitigated | Wave 3: `assertSameOrg` + users/membership scoping + `ORG_TENANCY_ENFORCED` fail-closed (users/org only). ERP column backfill still debt — see Wave 3 tenancy debt below | |
 | SEC-006 | 0 | P1 | Cron/webhook secret compare | open | Wave 4: timing-safe + fail-closed empty secret | |
 | SEC-007 | 0 | P2 | CF Access fail-open when AUD unset | accepted | Wave 1: documented residual risk + compensating controls; set `CF_ACCESS_AUD` when Zero Trust is cut over | |
 | SEC-008 | 0 | P3 | No CI audit/secret-scan gate | open | Wave 7 | |
@@ -107,5 +107,42 @@ Do **not** use `*` origins. Add any new Expo web preview host explicitly before 
 
 - Leave/visa restore paths were already owner-or-HR; spot-checked, no change.
 - Approval-chain `assertCanActOnStep` identity checks unchanged this wave (already service-enforced).
-- Cross-tenant IDOR remains Wave 3 (ERP rows still globally scoped).
+- Cross-tenant IDOR for ERP rows addressed in Wave 3 readiness (invariants + debt list); full column backfill remains ORG plan work.
+
+## Wave 3 — org tenancy readiness (2026-09-08)
+
+### Landed
+
+| Surface | Change |
+|---------|--------|
+| `@nexora/auth` `org-rbac` | `isSameOrg` / `assertSameOrg` / `OrgScopeError` / `isOrgTenancyEnforced` |
+| Organizations service | `assertOrgResourceScope` on get/list-members/upsert/update when `tenancyEnforced` |
+| Users service | Non–platform-admin list/get scoped to active-org members; IDOR on `getById`; fail-closed when `tenancyEnforced` and no active org |
+| Edge | `ORG_TENANCY_ENFORCED` (default `false`) wired through users + organizations routes |
+| Inventory | `pnpm security:tenancy-inventory` — Prisma models with vs without `organizationId` |
+
+### Flag semantics
+
+| `ORG_TENANCY_ENFORCED` | Behavior |
+|------------------------|----------|
+| unset / `false` | Soft: no active org → empty user list; get still denies cross-org members |
+| `true` | Fail-closed on users + org membership: missing active org → 403 |
+
+Platform admin (`platform_admin`) bypasses org scope. Org Super Admin does **not** get platform bypass.
+
+### Tenancy debt (ordered by PII / finance sensitivity)
+
+`pnpm security:tenancy-inventory` (2026-09-08): **2 / 281** models have `organizationId` (`Entity`, `OrganizationMembership`). Everything else is application-layer debt until backfilled per `docs/ORG_TENANCY_RBAC_PLAN.md`.
+
+| Priority | Domain | Why first | Notes |
+|----------|--------|-----------|-------|
+| P0 | Payroll / compensation | Salary, tax IDs, bank-adjacent fields on users + payslips | Highest cross-tenant blast radius |
+| P0 | Expenses / cash-advance / travel | Finance PII + approval artifacts | Soft-delete IDOR hardened in Wave 2; still no `organizationId` |
+| P1 | Accounting (journals / invoices / FA) | Statutory ledgers, amounts | Restore authz Wave 2; column still global |
+| P1 | Leave / attendance / visa | HR PII | Owner-or-HR today; not org-keyed |
+| P2 | CRM (sales / investor / project boards) | Customer + deal data | Large surface; stage after HR/finance |
+| P3 | Content / comms / wall / news | Lower sensitivity | Last for column backfill |
+| — | Auth / org tables | Already scoped | Membership + Entity only today |
+
+Do **not** claim multi-org ERP is done until debt rows above carry `organizationId` (or equivalent RLS) and handlers filter on active org.
 
