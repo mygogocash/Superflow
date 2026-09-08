@@ -21,7 +21,12 @@ export const news = new Hono<AppEnv>()
     return c.json({ data });
   })
   .put("/:id", requirePermission(PERMISSIONS.NEWS_CREATE), zValidator("json", updateNewsSchema), async (c) => {
-    const data = await newsService.updateNews(c.var.db, c.req.param("id"), c.req.valid("json"));
+    const data = await newsService.updateNews(
+      c.var.db,
+      c.req.param("id"),
+      { userId: c.var.user!.id, permissions: c.var.user!.permissions },
+      c.req.valid("json"),
+    );
     return c.json({ data });
   })
   .delete("/:id", requirePermission(PERMISSIONS.NEWS_DELETE), async (c) => {

@@ -21,11 +21,21 @@ export const policies = new Hono<AppEnv>()
     return c.json({ data });
   })
   .get("/:id/download", requirePermission(PERMISSIONS.POLICY_READ, PERMISSIONS.POLICY_MANAGE), async (c) => {
-    const data = await policiesService.getDownloadUrl(c.var.db, c.req.param("id"));
+    const data = await policiesService.getDownloadUrl(
+      c.var.db,
+      c.req.param("id"),
+      c.var.user!.id,
+      c.var.user!.permissions,
+    );
     return c.json({ data });
   })
   .get("/:id", requirePermission(PERMISSIONS.POLICY_READ, PERMISSIONS.POLICY_MANAGE), async (c) => {
-    const data = await policiesService.getById(c.var.db, c.req.param("id"));
+    const data = await policiesService.getById(
+      c.var.db,
+      c.req.param("id"),
+      c.var.user!.id,
+      c.var.user!.permissions,
+    );
     return c.json({ data });
   })
   .post("/", requirePermission(PERMISSIONS.POLICY_MANAGE), zValidator("json", createPolicySchema), async (c) => {

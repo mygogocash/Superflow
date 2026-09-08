@@ -1,12 +1,12 @@
 import { PERMISSIONS } from "@nexora/contracts";
-import type { Db } from "@nexora/db";
-import { eq } from "drizzle-orm";
-import { schema } from "@nexora/db";
 import type {
   CreatePolicyInput,
   ListPolicyQuery,
   UpdatePolicyInput,
 } from "@nexora/contracts/modules/policies/policies.validation";
+import type { Db } from "@nexora/db";
+import { eq } from "drizzle-orm";
+import { schema } from "@nexora/db";
 import { NotFoundException } from "../http-exception";
 import * as repo from "./policies.repository";
 
@@ -37,9 +37,41 @@ export async function listForUser(
   });
 }
 
-export async function getById(db: Db, id: string) {
+/**
+ * Same visibility as list: managers see everything; everyone else only
+ * global (`entityId` null) + their own entity, and only active rows.
+ * Cross-entity / inactive misses return 404 (not 403) so we don't
+ * advertise another entity's handbook exists.
+ */
+async function assertReadable(
+  db: Db,
+  policy: { entityId: string | null; isActive: boolean },
+  userId: string,
+  userPermissions: readonly string[],
+) {
+  const canManage = userPermissions.includes(PERMISSIONS.POLICY_MANAGE);
+  if (canManage) return;
+  if (!policy.isActive) throw new NotFoundException("Policy not found");
+  if (policy.entityId == null) return;
+  const [user] = await db
+    .select({ entityId: schema.users.entityId })
+    .from(schema.users)
+    .where(eq(schema.users.id, userId))
+    .limit(1);
+  if (user?.entityId !== policy.entityId) {
+    throw new NotFoundException("Policy not found");
+  }
+}
+
+export async function getById(
+  db: Db,
+  id: string,
+  userId: string,
+  userPermissions: readonly string[],
+) {
   const policy = await repo.findById(db, id);
   if (!policy) throw new NotFoundException("Policy not found");
+  await assertReadable(db, policy, userId, userPermissions);
   return policy;
 }
 
@@ -47,8 +79,13 @@ export async function getById(db: Db, id: string) {
  * Until R2 signed downloads land with uploads, return the stored URL.
  * Private-bucket policies will need a Worker R2 signed URL later.
  */
-export async function getDownloadUrl(db: Db, id: string) {
-  const policy = await getById(db, id);
+export async function getDownloadUrl(
+  db: Db,
+  id: string,
+  userId: string,
+  userPermissions: readonly string[],
+) {
+  const policy = await getById(db, id, userId, userPermissions);
   return { url: policy.fileUrl };
 }
 

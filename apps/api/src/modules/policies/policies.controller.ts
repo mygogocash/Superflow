@@ -40,7 +40,11 @@ router.get(
   requirePermission(PERMISSIONS.POLICY_READ, PERMISSIONS.POLICY_MANAGE),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
-    const data = await policiesService.getDownloadUrl(id);
+    const data = await policiesService.getDownloadUrl(
+      id,
+      req.user!.id,
+      req.user!.permissions,
+    );
     res.json({ data });
   }),
 );
@@ -50,7 +54,11 @@ router.get(
   requirePermission(PERMISSIONS.POLICY_READ, PERMISSIONS.POLICY_MANAGE),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
-    const data = await policiesService.getById(id);
+    const data = await policiesService.getById(
+      id,
+      req.user!.id,
+      req.user!.permissions,
+    );
     res.json({ data });
   }),
 );

@@ -51,14 +51,47 @@ export class PoliciesService {
     });
   }
 
-  async getById(id: string) {
+  /**
+   * Same visibility as list: managers see everything; everyone else only
+   * global (`entityId` null) + their own entity, and only active rows.
+   * Cross-entity / inactive misses return 404 so we don't advertise
+   * another entity's handbook exists.
+   */
+  private async assertReadable(
+    policy: { entityId: string | null; isActive: boolean },
+    userId: string,
+    userPermissions: readonly string[],
+  ) {
+    const canManage = userPermissions.includes(PERMISSIONS.POLICY_MANAGE);
+    if (canManage) return;
+    if (!policy.isActive) throw new NotFoundException("Policy not found");
+    if (policy.entityId == null) return;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { entityId: true },
+    });
+    if (user?.entityId !== policy.entityId) {
+      throw new NotFoundException("Policy not found");
+    }
+  }
+
+  async getById(
+    id: string,
+    userId: string,
+    userPermissions: readonly string[],
+  ) {
     const policy = await policiesRepository.findById(id);
     if (!policy) throw new NotFoundException("Policy not found");
+    await this.assertReadable(policy, userId, userPermissions);
     return policy;
   }
 
-  async getDownloadUrl(id: string) {
-    const policy = await this.getById(id);
+  async getDownloadUrl(
+    id: string,
+    userId: string,
+    userPermissions: readonly string[],
+  ) {
+    const policy = await this.getById(id, userId, userPermissions);
     const parsed = parseStorageUrl(policy.fileUrl);
     if (!parsed) {
       throw new BadRequestException(

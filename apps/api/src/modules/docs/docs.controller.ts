@@ -37,8 +37,10 @@ router.use(authenticate, requireActive);
 async function viewerOf(req: Express.Request): Promise<{
   id: string;
   isAdmin: boolean;
+  canSeeUnpublished: boolean;
 }> {
   const id = req.user!.id;
+  const permissions = req.user!.permissions ?? [];
   const userRoles = await prisma.userRole.findMany({
     where: { userId: id },
     include: { role: { select: { isSystem: true, name: true } } },
@@ -46,7 +48,11 @@ async function viewerOf(req: Express.Request): Promise<{
   const isAdmin = userRoles.some(
     (ur) => ur.role.isSystem && ur.role.name === "Admin",
   );
-  return { id, isAdmin };
+  const canSeeUnpublished =
+    isAdmin ||
+    permissions.includes(PERMISSIONS.DOCS_CREATE) ||
+    permissions.includes(PERMISSIONS.DOCS_UPDATE);
+  return { id, isAdmin, canSeeUnpublished };
 }
 
 // ── AI auto-fill from an uploaded attachment ────────────────────

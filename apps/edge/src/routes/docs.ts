@@ -15,7 +15,14 @@ import { requirePermission } from "../middleware/rbac";
 
 function viewerOf(c: { var: AppEnv["Variables"] }) {
   const user = c.var.user!;
-  return { id: user.id, isAdmin: user.isSystemAdmin };
+  const permissions = user.permissions ?? [];
+  return {
+    id: user.id,
+    isAdmin: user.isSystemAdmin,
+    canSeeUnpublished:
+      permissions.includes(PERMISSIONS.DOCS_CREATE) ||
+      permissions.includes(PERMISSIONS.DOCS_UPDATE),
+  };
 }
 
 export const docs = new Hono<AppEnv>()

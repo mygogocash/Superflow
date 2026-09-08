@@ -14,7 +14,20 @@ import {
 } from "../http-exception";
 import * as repo from "./docs.repository";
 
-export type DocsViewer = { id: string; isAdmin: boolean };
+/**
+ * `canSeeUnpublished` is true for docs:create / docs:update holders
+ * (editors). Bare docs:read must not list or open drafts — including
+ * via `?includeUnpublished=true` or direct id/slug fetch.
+ */
+export type DocsViewer = {
+  id: string;
+  isAdmin: boolean;
+  canSeeUnpublished?: boolean;
+};
+
+function maySeeUnpublished(viewer: DocsViewer): boolean {
+  return viewer.isAdmin || viewer.canSeeUnpublished === true;
+}
 
 type AccessLevel = "read" | "edit";
 
@@ -86,9 +99,10 @@ async function snapshotVersion(
 
 export async function list(db: Db, query: ListWikiPagesQuery, viewer: DocsViewer) {
   const { page, limit, includeUnpublished, folder, search } = query;
+  const allowUnpublished = Boolean(includeUnpublished && maySeeUnpublished(viewer));
   const { data: rows, total } = await repo.findManyForList(
     db,
-    { includeUnpublished, folder, search },
+    { includeUnpublished: allowUnpublished, folder, search },
     page,
     limit,
   );
@@ -105,13 +119,21 @@ export async function list(db: Db, query: ListWikiPagesQuery, viewer: DocsViewer
 }
 
 export async function tree(db: Db, viewer: DocsViewer, includeUnpublished: boolean) {
-  const rows = await repo.findAllForTree(db, includeUnpublished);
+  const allowUnpublished = Boolean(includeUnpublished && maySeeUnpublished(viewer));
+  const rows = await repo.findAllForTree(db, allowUnpublished);
   return filterReadable(db, rows, viewer);
 }
 
 export async function getByIdOrSlug(db: Db, idOrSlug: string, viewer: DocsViewer) {
   const row = await repo.findPageByIdOrSlug(db, idOrSlug);
   if (!row) throw new NotFoundException("Page not found");
+  if (
+    !row.isPublished &&
+    row.createdById !== viewer.id &&
+    !maySeeUnpublished(viewer)
+  ) {
+    throw new NotFoundException("Page not found");
+  }
   const ok = await canAccess(db, row.id, viewer.id, "read", viewer.isAdmin);
   if (!ok) throw new ForbiddenException("You don't have access to this page");
   return row;

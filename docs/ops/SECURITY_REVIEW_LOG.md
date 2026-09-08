@@ -307,3 +307,30 @@ Do **not** claim multi-org ERP is done until debt rows above carry `organization
 - Manual: employee with only `projects:read` / `*:crm:read` → 403 on team CRM dashboard + reminder-settings GET; 200 on membership-scoped list.
 - Manual: `investor-updates:read` only → list/get drafts 404/empty; create/send holders still see drafts.
 - Manual: non-admin → 403 on approval-chain GET.
+
+## Wave 8 — Content / comms deep-dive (2026-09-08)
+
+### Findings fixed
+
+| id | Sev | Finding | Fix |
+|----|-----|---------|-----|
+| SEC-032 | P0 | Company news `PUT` allowed any holder of `news:create` to edit any post (author IDOR) | Edge (`@nexora/core`) + Express: update requires author **or** `news:delete` (moderation) |
+| SEC-033 | P1 | Docs wiki: bare `docs:read` could pass `includeUnpublished` / open drafts by id/slug | Edge + Express: unpublished list/tree/get only for `docs:create` \| `docs:update` (or system admin); others get drafts forced off / 404 (creator still sees own draft) |
+| SEC-034 | P1 | Policies list was entity-scoped but get + attachment download were not | Edge + Express: get/download assert readable (active + global or viewer's entity; manage bypass); miss → 404 |
+| SEC-035 | P1 | Legal announcements get/attachment/ack ignored entity + publish gates that list already applied | Express: `assertReadable` on get, attachment signed URL, and ack (published + entity match for non-manage) |
+
+### Residual (Content batch)
+
+| id | Finding | Disposition |
+|----|---------|-------------|
+| SEC-036 | Edge `packages/core` legal-announcements service remains a stub (empty list / `{ id }` get); Express is source of truth for SEC-035 | follow-up when edge legal is fully ported — stub cannot leak real rows today |
+| SEC-037 | Wall / surveys / messages / uploads spot-check: owner or membership gates already present | accepted; no change this batch |
+| SEC-038 | Blogs / PR not on employee permission seed | accepted; out of employee blast radius |
+
+### Verify
+
+- Manual: `news:create` only → update own post 200; update colleague's post 403; `news:delete` can moderate.
+- Manual: `docs:read` only → `includeUnpublished=true` ignored; draft id/slug → 404; editors still see drafts.
+- Manual: `policy:read` on entity A → get/download entity B policy → 404.
+- Manual: legal announcement-read on entity A → get/download/ack entity B or draft → 404.
+- `pnpm --filter @nexora/core --filter @nexora/api --filter @nexora/edge exec tsc --noEmit`

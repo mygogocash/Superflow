@@ -1,6 +1,10 @@
 import type { Prisma } from "@nexora/database";
 
-import { NotFoundException } from "@/common/exceptions/http-exception";
+import { PERMISSIONS } from "@/common/constants/permissions";
+import {
+  ForbiddenException,
+  NotFoundException,
+} from "@/common/exceptions/http-exception";
 import { newsRepository } from "@/modules/news/news.repository";
 import type {
   CreateNewsInput,
@@ -36,9 +40,23 @@ export const newsService = {
     });
   },
 
-  async updateNews(id: string, input: UpdateNewsInput) {
+  /**
+   * Authors may edit their own posts. Moderators with `news:delete` may
+   * edit any post (same privilege that already lets them remove it).
+   * Bare `news:create` alone must not update a colleague's article.
+   */
+  async updateNews(
+    id: string,
+    actor: { userId: string; permissions: readonly string[] },
+    input: UpdateNewsInput,
+  ) {
     const news = await newsRepository.findById(id);
     if (!news) throw new NotFoundException("News not found");
+    const isAuthor = news.authorId === actor.userId;
+    const canModerate = actor.permissions.includes(PERMISSIONS.NEWS_DELETE);
+    if (!isAuthor && !canModerate) {
+      throw new ForbiddenException("You can only update your own news posts");
+    }
     return newsRepository.update(id, input);
   },
 
