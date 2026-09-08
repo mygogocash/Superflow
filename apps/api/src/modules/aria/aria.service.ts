@@ -816,7 +816,7 @@ export const ariaService = {
             role: "user",
             content: [
               `User question:\n${question}`,
-              `ARIA reply that received thumbs-down:\n${flaggedAnswer}`,
+              `Manut AI reply that received thumbs-down:\n${flaggedAnswer}`,
               reason
                 ? `User reason for thumbs-down:\n${reason}`
                 : "User reason: (none provided)",

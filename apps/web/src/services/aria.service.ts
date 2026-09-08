@@ -128,8 +128,7 @@ function parseApiErrorBody(text: string): {
           ? err
           : String(errObj?.message ?? "Unknown error"),
       details: errObj?.details as
-        | Array<{ field?: string; message: string }>
-        | undefined,
+        Array<{ field?: string; message: string }> | undefined,
     };
   } catch {
     return {
@@ -362,7 +361,7 @@ export async function streamAriaChat(
       throw new ApiError(
         res.status || 0,
         "UNEXPECTED_RESPONSE",
-        "Expected NDJSON stream from ARIA chat",
+        "Expected NDJSON stream from Manut AI chat",
       );
     }
 
@@ -372,7 +371,7 @@ export async function streamAriaChat(
   const res = await postStream(false);
   const reader = res.body?.getReader();
   if (!reader) {
-    throw new ApiError(0, "NO_BODY", "No response body from ARIA chat");
+    throw new ApiError(0, "NO_BODY", "No response body from Manut AI chat");
   }
 
   const decoder = new TextDecoder();
