@@ -69,6 +69,7 @@ router.get(
     const result = await legalAnnouncementService.getById(
       id,
       req.user!.id,
+      req.user!.entityId ?? null,
       canManage,
     );
     res.json(result);
@@ -105,6 +106,9 @@ router.post(
   requirePermission(PERMISSIONS.LEGAL_ANNOUNCEMENT_READ),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
+    const canManage = (req.user!.permissions ?? []).includes(
+      PERMISSIONS.LEGAL_ANNOUNCEMENT_MANAGE,
+    );
     const ip =
       (req.headers["x-forwarded-for"] as string | undefined)?.split(",")[0] ??
       req.socket.remoteAddress ??
@@ -112,6 +116,8 @@ router.post(
     const result = await legalAnnouncementService.acknowledge(
       id,
       req.user!.id,
+      req.user!.entityId ?? null,
+      canManage,
       ip,
     );
     res.json(result);
@@ -137,9 +143,15 @@ router.get(
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
     const attachmentId = getRequiredParam(req.params, "attachmentId");
+    const canManage = (req.user!.permissions ?? []).includes(
+      PERMISSIONS.LEGAL_ANNOUNCEMENT_MANAGE,
+    );
     const result = await legalAnnouncementService.getAttachmentDownloadUrl(
       id,
       attachmentId,
+      req.user!.id,
+      req.user!.entityId ?? null,
+      canManage,
     );
     res.json(result);
   }),

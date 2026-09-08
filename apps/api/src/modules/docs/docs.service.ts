@@ -71,11 +71,14 @@ export class DocsService {
 
   async list(
     query: ListWikiPagesQuery,
-    viewer: { id: string; isAdmin: boolean },
+    viewer: { id: string; isAdmin: boolean; canSeeUnpublished?: boolean },
   ) {
     const { page, limit, includeUnpublished, folder, search } = query;
+    const allowUnpublished = Boolean(
+      includeUnpublished && (viewer.isAdmin || viewer.canSeeUnpublished),
+    );
     const where = {
-      ...(includeUnpublished ? {} : { isPublished: true }),
+      ...(allowUnpublished ? {} : { isPublished: true }),
       ...(folder ? { folder } : {}),
       ...(search
         ? {
@@ -117,11 +120,14 @@ export class DocsService {
    * need the full tree get a single network round-trip.
    */
   async tree(
-    viewer: { id: string; isAdmin: boolean },
+    viewer: { id: string; isAdmin: boolean; canSeeUnpublished?: boolean },
     includeUnpublished: boolean,
   ) {
+    const allowUnpublished = Boolean(
+      includeUnpublished && (viewer.isAdmin || viewer.canSeeUnpublished),
+    );
     const rows = await prisma.wikiPage.findMany({
-      where: includeUnpublished ? undefined : { isPublished: true },
+      where: allowUnpublished ? undefined : { isPublished: true },
       select: listSelect,
       orderBy: [{ position: "asc" }, { title: "asc" }],
     });
@@ -149,7 +155,7 @@ export class DocsService {
 
   async getByIdOrSlug(
     idOrSlug: string,
-    viewer: { id: string; isAdmin: boolean },
+    viewer: { id: string; isAdmin: boolean; canSeeUnpublished?: boolean },
   ) {
     const row = await prisma.wikiPage.findFirst({
       where: { OR: [{ id: idOrSlug }, { slug: idOrSlug }] },
@@ -159,6 +165,13 @@ export class DocsService {
       },
     });
     if (!row) throw new NotFoundException("Page not found");
+    if (
+      !row.isPublished &&
+      row.createdById !== viewer.id &&
+      !(viewer.isAdmin || viewer.canSeeUnpublished)
+    ) {
+      throw new NotFoundException("Page not found");
+    }
     const ok = await this.canAccess(row.id, viewer.id, "read", viewer.isAdmin);
     if (!ok) throw new ForbiddenException("You don't have access to this page");
     return row;

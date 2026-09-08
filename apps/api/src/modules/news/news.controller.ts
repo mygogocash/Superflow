@@ -53,7 +53,11 @@ router.put(
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
     const input = updateNewsSchema.parse(req.body);
-    const data = await newsService.updateNews(id, input);
+    const data = await newsService.updateNews(
+      id,
+      { userId: req.user!.id, permissions: req.user!.permissions },
+      input,
+    );
     res.json({ data });
   }),
 );

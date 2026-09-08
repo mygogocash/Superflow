@@ -64,13 +64,35 @@ export class LegalAnnouncementService {
     };
   }
 
-  async getById(id: string, userId: string, canManage: boolean) {
+  async getById(
+    id: string,
+    userId: string,
+    userEntityId: string | null,
+    canManage: boolean,
+  ) {
     const row = await legalAnnouncementRepository.findById(id, userId);
     if (!row) throw new NotFoundException("Announcement not found");
-    if (!canManage && row.status !== "published") {
+    this.assertReadable(row, userEntityId, canManage);
+    return { data: serialize(row, userId) };
+  }
+
+  /**
+   * Match list `scope=mine`: non-managers only see published rows that
+   * are global (`entityId` null) or tagged to their entity. Cross-entity
+   * / draft misses return 404 (not 403) so we don't leak existence.
+   */
+  private assertReadable(
+    row: { status: string; entityId: string | null },
+    userEntityId: string | null,
+    canManage: boolean,
+  ) {
+    if (canManage) return;
+    if (row.status !== "published") {
       throw new NotFoundException("Announcement not found");
     }
-    return { data: serialize(row, userId) };
+    if (row.entityId != null && row.entityId !== userEntityId) {
+      throw new NotFoundException("Announcement not found");
+    }
   }
 
   async create(input: CreateAnnouncementInput, authorId: string) {
@@ -146,9 +168,18 @@ export class LegalAnnouncementService {
     return { data: { id } };
   }
 
-  async acknowledge(id: string, userId: string, ip: string | null) {
+  async acknowledge(
+    id: string,
+    userId: string,
+    userEntityId: string | null,
+    canManage: boolean,
+    ip: string | null,
+  ) {
     const row = await legalAnnouncementRepository.findById(id);
     if (!row) throw new NotFoundException("Announcement not found");
+    // Same entity/publish gate as getById — prevent ack of another
+    // entity's announcement (or a draft) by guessing the id.
+    this.assertReadable(row, userEntityId, canManage);
     if (row.status !== "published") {
       throw new BadRequestException(
         "Only published announcements can be acknowledged",
@@ -202,7 +233,23 @@ export class LegalAnnouncementService {
 
   // Mints a short-lived signed URL for an inline attachment. The
   // `documents` bucket is private, so the raw fileUrl 404s.
-  async getAttachmentDownloadUrl(announcementId: string, attachmentId: string) {
+  async getAttachmentDownloadUrl(
+    announcementId: string,
+    attachmentId: string,
+    userId: string,
+    userEntityId: string | null,
+    canManage: boolean,
+  ) {
+    // Enforce the same entity/publish gate as getById before minting a
+    // signed URL — otherwise a reader with only announcement-read can
+    // download another entity's attachment by guessing ids.
+    const announcement = await legalAnnouncementRepository.findById(
+      announcementId,
+      userId,
+    );
+    if (!announcement) throw new NotFoundException("Announcement not found");
+    this.assertReadable(announcement, userEntityId, canManage);
+
     const att = await prisma.legalAnnouncementAttachment.findUnique({
       where: { id: attachmentId },
     });
