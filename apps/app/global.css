@@ -82,6 +82,15 @@
     --shadow-md: 0 8px 24px rgba(11, 11, 10, 0.08);
     --shadow-lg: 0 20px 48px rgba(11, 11, 10, 0.12);
 
+    /* Liquid Glass chrome (docs/LIQUID_GLASS.md) — frosted shell only */
+    --glass-chrome: rgba(255, 255, 255, 0.72);
+    --glass-control: rgba(255, 255, 255, 0.64);
+    --glass-sheet: rgba(255, 255, 255, 0.88);
+    --glass-border: rgba(227, 226, 220, 0.7);
+    --glass-blur-chrome: 16px;
+    --glass-blur-control: 12px;
+    --glass-blur-sheet: 20px;
+
     /* Motion (CI §27) */
     --motion-fast: 120ms;
     --motion-normal: 180ms;
@@ -131,6 +140,41 @@
     --sidebar-foreground-strong: 50 23% 95%;
     --sidebar-primary: 240 71% 69%;
     --sidebar-border: 60 3% 18%;
+
+    --glass-chrome: rgba(24, 24, 23, 0.78);
+    --glass-control: rgba(32, 32, 30, 0.72);
+    --glass-sheet: rgba(24, 24, 23, 0.9);
+    --glass-border: rgba(48, 48, 45, 0.75);
+  }
+
+  /* Prefer solid fallback when blur is unsupported or motion is reduced */
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    :root {
+      --glass-chrome: #ffffff;
+      --glass-control: #ffffff;
+      --glass-sheet: #ffffff;
+    }
+    .dark {
+      --glass-chrome: #181817;
+      --glass-control: #20201e;
+      --glass-sheet: #181817;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --glass-blur-chrome: 0px;
+      --glass-blur-control: 0px;
+      --glass-blur-sheet: 0px;
+      --glass-chrome: #ffffff;
+      --glass-control: #ffffff;
+      --glass-sheet: #ffffff;
+    }
+    .dark {
+      --glass-chrome: #181817;
+      --glass-control: #20201e;
+      --glass-sheet: #181817;
+    }
   }
 
   html,

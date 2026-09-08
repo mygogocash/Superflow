@@ -129,6 +129,15 @@ dark `#30302D`. Elevation tokens (`--shadow-xs/sm/md/lg`, CI §13) are for
 menus, dropdowns, dialogs, floating AI actions — normal cards are
 **border + white surface**, no shadow.
 
+### Liquid Glass chrome (Manut frosted)
+
+Workspace chrome (sidebar, top bar, phone dock, tablet rail, floating
+controls) may use **frosted translucency**: light fill + `backdrop-filter`
+blur + hairline border. Content cards and form fields stay opaque.
+Primary Ink / AI / destructive buttons stay solid for AA. Full rules:
+[`docs/LIQUID_GLASS.md`](./LIQUID_GLASS.md). This is **not** 3D
+glassmorphism (still forbidden by §8).
+
 ## 5. Spacing, layout, motion
 
 - 4px base grid: `4 / 8 / 12 / 16 / 20 / 24 / 32 / 40 / 48 / 64 / 80 / 96 / 128`.
