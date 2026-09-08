@@ -27,7 +27,6 @@ vi.mock("./travel.repository", () => ({
     nextStepOrder: vi.fn(),
     createDecisions: vi.fn(),
     findDecisions: vi.fn(),
-    findDecisionsForRequests: vi.fn(),
     updateDecision: vi.fn(),
   },
 }));
@@ -298,7 +297,6 @@ describe("TravelService — approval chain", () => {
         currentStepOrder: 1,
       });
       (travelRepository.findDecisions as Mock).mockResolvedValue([]);
-      (travelRepository.findDecisionsForRequests as Mock).mockResolvedValue([]);
     });
 
     it("allows the direct manager to open a report's request", async () => {
