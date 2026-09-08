@@ -384,6 +384,13 @@ Do **not** claim multi-org ERP is done until debt rows above carry `organization
 | SEC-053 | Telemetry ingest still auth-gated but payload schema may accept free-form client fields | accepted for this batch; tighten field allowlist in a follow-up if PII shows up in warehouses |
 | SEC-054 | Express push module (if still mounted) should keep the same ownership + secret-stripping invariants as edge | follow-up if Express push remains in the dual-stack window |
 
+### Program close-out (2026-09-08)
+
+- Waves **0–8** merged to `main` (inventory → auth → IDOR → tenancy → cron/webhooks → XSS/uploads → raw SQL → CI gates → module deep-dives).
+- Lint unblock after Wave 8: `110b2267` (`simple-import-sort` on investor-updates + unused import cleanup); **Validate** green on that SHA.
+- **Open P0/P1:** none. Remaining open row is **SEC-002 (P2)** workflow email-action token replay/expiry audit.
+- Email HTML free-text escape re-confirmed against Wave 5 (`apps/api` `templates.ts` + `apps/edge` auth mail).
+
 ### Verify
 
 - Manual: user A cannot unsubscribe user B’s push endpoint (removed=false).

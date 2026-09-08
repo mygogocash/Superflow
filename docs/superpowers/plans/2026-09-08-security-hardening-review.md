@@ -255,7 +255,7 @@ Run as **separate PRs** per domain, using Wave 0–2 checklists:
 - [x] Every mutating route: auth + permission + service ownership/org check _(Finance; HR; CRM investor-updates + reminder writes)_  
 - [x] List endpoints: server-side scope (never trust client filter alone) _(Finance journals/quotes; HR certificates/attendance; CRM investor-updates sent-only)_  
 - [x] Soft-delete restore/permanent IDOR test _(journals/invoices pre-existing; travel/leave prior waves)_  
-- [ ] Email/notification paths escape user content _(not re-audited this batch)_  
+- [x] Email/notification paths escape user content _(Wave 5 `escapeHtml` on API templates + edge auth emails; 2026-09-08 spot-check — free-text fields still escaped; subjects remain plain-text)_  
 - [x] No new ungated route without allowlist entry  
 - [x] Parity: edge route exists if Express had it _(HR + CRM investor-updates in `@nexora/core` + Express)_  
 
@@ -275,7 +275,7 @@ Run as **separate PRs** per domain, using Wave 0–2 checklists:
 ## Definition of done (program)
 
 - [x] Waves 0–7 merged (or explicitly waived with written residual risk).  
-- [ ] SECURITY_REVIEW_LOG has no open P0/P1.  
+- [x] SECURITY_REVIEW_LOG has no open P0/P1 _(only open finding: SEC-002 P2 workflow email-action token audit; SEC-005 org ERP tenancy is **mitigated** with documented debt, not open)_  
 - [x] Org tenancy debt list is prioritized and linked to `ORG_TENANCY_RBAC_PLAN.md` implementation issues.  
 - [x] CI runs audit + secret scan.  
 - [x] Soft-delete and webhook/cron hardening tests are required and green.
