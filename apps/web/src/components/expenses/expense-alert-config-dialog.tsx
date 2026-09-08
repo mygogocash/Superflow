@@ -190,7 +190,7 @@ export function ExpenseAlertConfigDialog({ open, onOpenChange }: Props) {
                   htmlFor="enable-thailand"
                   className="cursor-pointer text-sm font-medium"
                 >
-                  TBH Thailand (TH entity)
+                  Manut Thailand (TH entity)
                 </Label>
                 <Switch
                   id="enable-thailand"

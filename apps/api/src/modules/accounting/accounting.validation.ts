@@ -235,7 +235,7 @@ export const updateInvoiceStatusSchema = z.object({
 
 // Admin-editable company + bank block that heads every generated invoice
 // (PDF / print / docx). Stored as one global SystemSetting; falls back to the
-// TBH Thailand default constant in the service.
+// default-entity constant in the service.
 export const invoiceCompanySchema = z.object({
   name: z.string().max(300),
   addressLines: z.array(z.string().max(300)).max(12).optional(),

@@ -3,8 +3,8 @@
  * + deploy.yml). ONE Cron Trigger fires every 10 minutes; `dueJobs()` returns the jobs
  * whose local (Asia/Bangkok) wall-clock schedule matches that tick.
  *
- * TODO(founder): verify hours/minutes against the live snapshot:
- *   gcloud scheduler jobs list --project=tbh-nexora --location=asia-southeast1 --format=json
+ * The GCP Cloud Scheduler project these were migrated from has been retired;
+ * this list is now the source of truth for the schedule.
  */
 export type JobName =
   | "expense-monthly-reminders" | "accounting-status" | "it-billing-reminders" | "crm-deadline-reminders"
@@ -45,14 +45,21 @@ export const JOBS: readonly JobDef[] = [
   { name: "crm-email-sync", schedule: { kind: "every", minutes: 10 }, source: "docs/ops", fanOut: "per-item" },
 ];
 
-export type LocalTime = { day: number; hour: number; minute: number };
+export type LocalTime = { year: number; month: number; day: number; hour: number; minute: number };
 
-/** Wall-clock parts of `at` in `timeZone` (month day, hour, minute). */
+/** Wall-clock parts of `at` in `timeZone` (year, month, day, hour, minute). */
 export function localTime(at: Date, timeZone: string): LocalTime {
-  const parts = new Intl.DateTimeFormat("en-US", { timeZone, day: "numeric", hour: "numeric", minute: "numeric", hourCycle: "h23" })
-    .formatToParts(at);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    hourCycle: "h23",
+  }).formatToParts(at);
   const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? NaN);
-  return { day: get("day"), hour: get("hour"), minute: get("minute") };
+  return { year: get("year"), month: get("month"), day: get("day"), hour: get("hour"), minute: get("minute") };
 }
 
 /** Jobs whose schedule matches this tick. Ticks arrive on 10-minute boundaries; minutes compare on the same grid. */
@@ -73,5 +80,7 @@ export function dueJobs(at: Date, timeZone: string, jobs: readonly JobDef[] = JO
 export function tickKey(name: JobName, at: Date, timeZone: string): string {
   const t = localTime(at, timeZone);
   const grid = Math.floor(t.minute / 10) * 10;
-  return `job:${name}:${at.toISOString().slice(0, 10)}T${String(t.hour).padStart(2, "0")}${String(grid).padStart(2, "0")}`;
+  // Use the *local* calendar date — UTC `toISOString().slice(0,10)` drifts near midnight in Asia/Bangkok.
+  const ymd = `${t.year}-${String(t.month).padStart(2, "0")}-${String(t.day).padStart(2, "0")}`;
+  return `job:${name}:${ymd}T${String(t.hour).padStart(2, "0")}${String(grid).padStart(2, "0")}`;
 }

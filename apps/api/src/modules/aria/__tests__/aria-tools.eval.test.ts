@@ -4,6 +4,7 @@ import {
   executeTool,
   normalizeVisaTypeQuery,
   toolDefinitions,
+  toolDefinitionsFor,
   toolNames,
 } from "@/modules/aria/aria-tools";
 
@@ -177,6 +178,57 @@ describe("ARIA tool registry shape", () => {
         expect(Object.keys(props)).toContain(r);
       }
     }
+  });
+
+  it("toolDefinitionsFor omits gated tools the caller cannot use", () => {
+    const bare = toolDefinitionsFor(new Set());
+    const bareNames = bare.map((t) => t.name).sort();
+    // Always-on / self-scoped tools stay advertised so the model can
+    // attempt them; handlers still enforce ownership on the result.
+    expect(bareNames).toEqual(
+      [
+        "aria_memory_forget",
+        "list_my_pending_approvals",
+        "lookup_expense_report",
+        "lookup_helpdesk_ticket",
+        "lookup_leave_balance",
+        "search_policy",
+      ].sort(),
+    );
+    expect(bareNames).not.toContain("lookup_employee");
+    expect(bareNames).not.toContain("lookup_account");
+    expect(bareNames).not.toContain("lookup_my_calendar");
+    expect(bareNames).not.toContain("submit_leave_request");
+  });
+
+  it("toolDefinitionsFor advertises CRM tools when crm:read is held", () => {
+    const names = toolDefinitionsFor(new Set(["crm:read"])).map((t) => t.name);
+    expect(names).toEqual(
+      expect.arrayContaining([
+        "lookup_account",
+        "lookup_opportunity",
+        "list_my_pipeline",
+        "account_email_summary",
+      ]),
+    );
+    expect(names).not.toContain("lookup_employee");
+  });
+
+  it("toolDefinitionsFor with full perms matches toolDefinitions()", () => {
+    const full = new Set([
+      "directory:read",
+      "visa:read",
+      "partners:read",
+      "projects:read",
+      "crm:read",
+      "integrations:use",
+      "leave:request",
+    ]);
+    expect(toolDefinitionsFor(full).map((t) => t.name).sort()).toEqual(
+      toolDefinitions()
+        .map((t) => t.name)
+        .sort(),
+    );
   });
 });
 

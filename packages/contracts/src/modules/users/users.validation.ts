@@ -7,7 +7,7 @@ const emptyToUndefined = z
 const optionalId = emptyToUndefined.pipe(z.string().min(1).optional());
 const optionalString = emptyToUndefined.pipe(z.string().optional());
 
-/** Trim; empty / whitespace-only becomes undefined (server assigns TBH-### when omitted). */
+/** Trim; empty / whitespace-only becomes undefined (server assigns MNT-### when omitted). */
 const optionalEmployeeId = z
   .string()
   .optional()

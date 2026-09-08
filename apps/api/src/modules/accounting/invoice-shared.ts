@@ -3,6 +3,8 @@
 // company block, totals math, and number formatting stay identical across
 // every rendering path.
 
+import { DEFAULT_ORG_NAME } from "@/common/constants/org";
+
 /** Admin-editable company + bank block that heads every generated invoice. */
 export interface InvoiceCompany {
   name: string;
@@ -19,27 +21,38 @@ export interface InvoiceCompany {
   footerNote: string;
 }
 
-// Default is TBH Thailand (from the invoice template) until edited in
-// Accounting → Invoices → company settings and stored as a SystemSetting.
-export const DEFAULT_INVOICE_COMPANY: InvoiceCompany = {
-  name: "The Binary Holding (Thailand) Co., Ltd.",
-  addressLines: [
-    "T-Place Building, 7th Floor, Unit 702-703, 150 Soi Sukhumvit 55 (Thonglor)",
-    "Klongtan Nua, Wattana, Bangkok 10110 (Head Office)",
-  ],
-  taxId: "0-1055-6703-813-4",
-  email: "accounts@manut.xyz",
-  tel: "+66-2-059-0383",
-  bankName: "Bank of Ayudhya PCL (Krungsri)",
-  bankAccountType: "Savings Account",
-  bankBranch: "Thonglor",
-  bankAccountName: "The Binary (Thailand) Co., Ltd.",
-  bankAccountNo: "687-1-12394-9",
-  bankSwift: "AYUDTHBK",
-  footerNote:
-    "Please reference the invoice number in your payment. Late payments are " +
-    "subject to a 1.5% monthly interest charge. Thank you for your business.",
-};
+// The company block is modular: the name defaults to the organization name from
+// admin setup (Settings → System `app.name`), and the legal / bank / tax
+// identity is intentionally left blank so it MUST be entered in Accounting →
+// Invoices → company settings. Shipping a hardcoded legal entity would print
+// the wrong company (and wrong bank account) on a rebranded org, so the only
+// non-identity default kept here is the generic payment-terms footer note.
+export function buildDefaultInvoiceCompany(orgName: string): InvoiceCompany {
+  return {
+    name: orgName,
+    addressLines: [],
+    taxId: "",
+    email: "",
+    tel: "",
+    bankName: "",
+    bankAccountType: "",
+    bankBranch: "",
+    bankAccountName: "",
+    bankAccountNo: "",
+    bankSwift: "",
+    footerNote:
+      "Please reference the invoice number in your payment. Late payments are " +
+      "subject to a 1.5% monthly interest charge. Thank you for your business.",
+  };
+}
+
+/**
+ * Static fallback for callers that cannot resolve the org name from the
+ * database (unit tests, generator smoke paths). The live service overlays the
+ * admin-configured block on top of a name resolved from `app.name`.
+ */
+export const DEFAULT_INVOICE_COMPANY: InvoiceCompany =
+  buildDefaultInvoiceCompany(DEFAULT_ORG_NAME);
 
 const round2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
 

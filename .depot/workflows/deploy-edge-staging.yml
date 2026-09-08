@@ -12,6 +12,7 @@ on:
       - "apps/app/**"
       - "packages/db/**"
       - "packages/auth/**"
+      - "packages/core/**"
       - "packages/contracts/**"
       - "pnpm-lock.yaml"
       - ".depot/workflows/deploy-edge-staging.yml"
@@ -19,7 +20,8 @@ on:
 
 concurrency:
   group: deploy-edge-staging
-  cancel-in-progress: true
+  # Don't cancel a mid-migrate/deploy when a second push lands — leaves Workers half-updated.
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -35,8 +37,27 @@ jobs:
         with:
           turbo-cache-key: deploy-edge-staging
 
+      - name: Require staging secrets
+        env:
+          STAGING_DIRECT_URL: ${{ secrets.STAGING_DIRECT_URL }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in STAGING_DIRECT_URL CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID BETTER_AUTH_SECRET; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::${name} is unset in Depot — staging deploy cannot proceed."
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+          echo "Required staging secrets present (values not printed)."
+
       - name: Drizzle migrate (staging)
-        if: ${{ secrets.STAGING_DIRECT_URL != '' }}
         env:
           DATABASE_URL: ${{ secrets.STAGING_DIRECT_URL }}
         run: pnpm --filter @nexora/db db:migrate
@@ -45,21 +66,37 @@ jobs:
         run: pnpm --filter @nexora/app export:web
 
       - name: Deploy edge Worker
-        # Skips when CLOUDFLARE_API_TOKEN is unset (founder has not provisioned yet).
-        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm --filter @nexora/edge deploy:staging
 
       - name: Deploy edge-jobs Worker
-        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm --filter @nexora/edge-jobs deploy:staging
 
-      - name: Skip notice
-        if: ${{ secrets.CLOUDFLARE_API_TOKEN == '' }}
+      # Worker secrets cannot exist until the script is created by wrangler deploy.
+      - name: Put edge staging Worker secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          BETTER_AUTH_API_KEY: ${{ secrets.BETTER_AUTH_API_KEY }}
+        working-directory: apps/edge
         run: |
-          echo "::notice::CLOUDFLARE_API_TOKEN unset — wrangler deploy skipped. See docs/CLOUDFLARE_DEPLOYMENT.md."
+          set -euo pipefail
+          # Auth cannot work without the signing secret — fail closed.
+          if [ -z "${BETTER_AUTH_SECRET:-}" ]; then
+            echo "::error::BETTER_AUTH_SECRET unset — refusing to leave staging without auth secret."
+            exit 1
+          fi
+          printf '%s' "$BETTER_AUTH_SECRET" | npx wrangler secret put BETTER_AUTH_SECRET --env staging
+          echo "Put BETTER_AUTH_SECRET on intranet-edge-staging."
+          if [ -n "${BETTER_AUTH_API_KEY:-}" ]; then
+            printf '%s' "$BETTER_AUTH_API_KEY" | npx wrangler secret put BETTER_AUTH_API_KEY --env staging
+            echo "Put BETTER_AUTH_API_KEY on intranet-edge-staging."
+          else
+            echo "::notice::BETTER_AUTH_API_KEY unset — Dash plugin stays off (optional)."
+          fi

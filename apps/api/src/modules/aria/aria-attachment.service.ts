@@ -116,7 +116,7 @@ async function uploadAttachment(
   const plan = planFor(file.mimeType);
   if (!plan) {
     throw new BadRequestException(
-      `Unsupported file type "${file.mimeType}". ARIA accepts images (JPEG/PNG/WebP), PDF, text files (.txt/.csv/.md), Office docs (.docx/.xlsx/.pptx), and video/audio (.mp4/.mov/.webm/.m4a).`,
+      `Unsupported file type "${file.mimeType}". Manut AI accepts images (JPEG/PNG/WebP), PDF, text files (.txt/.csv/.md), Office docs (.docx/.xlsx/.pptx), and video/audio (.mp4/.mov/.webm/.m4a).`,
     );
   }
   if (file.size > plan.cap) {

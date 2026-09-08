@@ -1,4 +1,4 @@
-import { getAppUrl } from "./env";
+import { getAppUrl, usesBetterAuth } from "./env";
 import {
   clearSession,
   getAccessToken,
@@ -36,6 +36,8 @@ function applyAuthHeaders(headers: Headers): void {
 let refreshInFlight: Promise<boolean> | null = null;
 
 async function refreshAccessToken(): Promise<boolean> {
+  // Better Auth sessions are cookie + session-token; no Express /auth/refresh.
+  if (usesBetterAuth()) return false;
   if (refreshInFlight) return refreshInFlight;
   const refreshToken = getRefreshToken();
   if (!refreshToken) return false;
@@ -79,8 +81,19 @@ export async function apiRequest(path: string, init: RequestInit = {}, isRetry =
   }
   applyAuthHeaders(headers);
 
-  const res = await fetch(apiUrl(path), { ...init, headers });
-  if (res.status === 401 && !isRetry && !path.includes("/auth/login") && !path.includes("/auth/refresh")) {
+  const res = await fetch(apiUrl(path), {
+    ...init,
+    headers,
+    // Same-origin SPA + Better Auth cookies; harmless for Express Bearer too.
+    credentials: init.credentials ?? "include",
+  });
+  if (
+    res.status === 401 &&
+    !isRetry &&
+    !usesBetterAuth() &&
+    !path.includes("/auth/login") &&
+    !path.includes("/auth/refresh")
+  ) {
     const ok = await refreshAccessToken();
     if (ok) return apiRequest(path, init, true);
   }
@@ -114,6 +127,14 @@ export const api = {
     return parseJson<T>(
       await apiRequest(path, {
         method: "POST",
+        body: body != null ? JSON.stringify(body) : undefined,
+      }),
+    );
+  },
+  async put<T>(path: string, body?: unknown): Promise<T> {
+    return parseJson<T>(
+      await apiRequest(path, {
+        method: "PUT",
         body: body != null ? JSON.stringify(body) : undefined,
       }),
     );

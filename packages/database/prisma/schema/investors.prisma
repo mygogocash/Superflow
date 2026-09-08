@@ -13,7 +13,7 @@ model Investor {
   // stages stay freely editable). Default is the leftmost intake stage.
   status       String   @default("investors")
   // BD-feedback (2026-05-28) — pipeline-tracking fields aligned with
-  // the "TBH Pipeline Master" xlsx so the team can import / export
+  // the "Manut Pipeline Master" xlsx so the team can import / export
   // the same column set they already work in. `title` is the key
   // contact's title; `linkedinUrl` accepts either a profile or
   // company URL; `revenueStream` / `nextAction` / `crossSell` /

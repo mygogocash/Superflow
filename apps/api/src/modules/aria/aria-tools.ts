@@ -54,7 +54,7 @@ function visaTypeLabel(raw: string): string {
  * etc.) into the set of canonical `visa_type` values it should match.
  *
  * Thailand-specific note: a Thai "Non-Immigrant B" is informally
- * called a "business visa" by HR but TBH usually catalogues it under
+ * called a "business visa" by HR but Manut usually catalogues it under
  * `work_visa` because the same row also carries the work-permit
  * fields. We deliberately expand "business" → `business_visa` +
  * `work_visa` so HR queries like "Manit's Thailand business visa"
@@ -192,7 +192,7 @@ const lookupEmployee: ToolEntry<{ query: string }> = {
   definition: {
     name: "lookup_employee",
     description:
-      "Find one or more employees by name, email, or employee ID. Returns up to 5 matches with name, email, job title, department, entity, and manager. Use this whenever the user names a person ARIA does not already know about. Returns JSON string {results: [...]} (empty array when no match).",
+      "Find one or more employees by name, email, or employee ID. Returns up to 5 matches with name, email, job title, department, entity, and manager. Use this whenever the user names a person Manut AI does not already know about. Returns JSON string {results: [...]} (empty array when no match).",
     input_schema: {
       type: "object",
       properties: {
@@ -258,7 +258,7 @@ const lookupVisa: ToolEntry<{
       "Each record carries the raw `visaType` (one of: work_visa | residence_visa | tourist_visa | business_visa | transit_visa | other) plus a human `visaTypeLabel`, country, issue/expiry dates, work-permit fields, and holder info.",
       'Defaults: holderType="employee" (only the employee\'s own visas; pass "dependent" or "all" to include family). Empty filters return every active employee row.',
       'Country filter is case-insensitive substring match ("thailand" matches "Thailand").',
-      'visaTypeQuery accepts natural language ("business", "non-b", "work permit", "tourist"). A Thai Non-Immigrant B is informally a "business visa" but TBH usually catalogues it under work_visa — passing visaTypeQuery="business" matches both business_visa and work_visa rows so HR-style questions surface the Non-B record.',
+      'visaTypeQuery accepts natural language ("business", "non-b", "work permit", "tourist"). A Thai Non-Immigrant B is informally a "business visa" but Manut usually catalogues it under work_visa — passing visaTypeQuery="business" matches both business_visa and work_visa rows so HR-style questions surface the Non-B record.',
       "Caller's own visa is always accessible; others require visa:read or visa:hr-read.",
     ].join(" "),
     input_schema: {
@@ -1537,7 +1537,7 @@ const submitLeaveRequest: ToolEntry<{
   definition: {
     name: "submit_leave_request",
     description:
-      "Draft a leave request for the requesting officer (e.g. annual, sick, personal). DOES NOT submit immediately — emits a signed `aria-confirm` block that the user must Approve in the chat UI before the request is filed. Use this when the user clearly asks ARIA to file leave on their behalf.",
+      "Draft a leave request for the requesting officer (e.g. annual, sick, personal). DOES NOT submit immediately — emits a signed `aria-confirm` block that the user must Approve in the chat UI before the request is filed. Use this when the user clearly asks Manut AI to file leave on their behalf.",
     input_schema: {
       type: "object",
       properties: {
@@ -1637,14 +1637,14 @@ const ariaMemoryForget: ToolEntry<{ matching: string }> = {
   definition: {
     name: "aria_memory_forget",
     description:
-      "Delete pinned memory entries on this conversation whose key or value contains the given fragment (case-insensitive). Use this when the requesting officer says 'forget …' or asks ARIA to drop a previously-remembered fact. Returns the deleted entries so the response can acknowledge what was forgotten.",
+      "Delete pinned memory entries on this conversation whose key or value contains the given fragment (case-insensitive). Use this when the requesting officer says 'forget …' or asks Manut AI to drop a previously-remembered fact. Returns the deleted entries so the response can acknowledge what was forgotten.",
     input_schema: {
       type: "object",
       properties: {
         matching: {
           type: "string",
           description:
-            "Substring to match against memory key or value (e.g. 'meal preference', 'TBH Vietnam').",
+            "Substring to match against memory key or value (e.g. 'meal preference', 'Manut Vietnam').",
         },
       },
       required: ["matching"],
@@ -1657,7 +1657,7 @@ const ariaMemoryForget: ToolEntry<{ matching: string }> = {
       if (!conversationId) {
         return {
           error: "no_conversation",
-          message: "This tool only runs inside an active ARIA conversation.",
+          message: "This tool only runs inside an active Manut AI conversation.",
         };
       }
       const deleted = await ariaRepository.deleteMemoryEntriesMatching(
@@ -1693,6 +1693,53 @@ const REGISTRY: Record<string, ToolEntry<never>> = {
 
 export function toolDefinitions(): ToolDefinition[] {
   return Object.values(REGISTRY).map((t) => t.definition);
+}
+
+/**
+ * Permission gates for advertising tools to the model. Empty = always
+ * exposed (tool still enforces ownership / finer gates in the handler).
+ * Values are OR'd — any matching code is enough to advertise the tool.
+ */
+const TOOL_REQUIRED_ANY_OF: Record<string, readonly string[]> = {
+  lookup_employee: [PERMISSIONS.DIRECTORY_READ],
+  lookup_visa: [
+    PERMISSIONS.VISA_READ,
+    PERMISSIONS.VISA_HR_READ,
+    PERMISSIONS.VISA_MANAGE,
+  ],
+  list_expiring_visas: [
+    PERMISSIONS.VISA_READ,
+    PERMISSIONS.VISA_HR_READ,
+    PERMISSIONS.VISA_MANAGE,
+  ],
+  lookup_leave_balance: [],
+  list_my_pending_approvals: [],
+  lookup_expense_report: [],
+  lookup_helpdesk_ticket: [],
+  lookup_partner: [PERMISSIONS.PARTNERS_READ],
+  lookup_project: [PERMISSIONS.PROJECTS_READ],
+  search_policy: [],
+  lookup_account: [PERMISSIONS.CRM_READ],
+  lookup_opportunity: [PERMISSIONS.CRM_READ],
+  list_my_pipeline: [PERMISSIONS.CRM_READ],
+  account_email_summary: [PERMISSIONS.CRM_READ],
+  lookup_my_calendar: [PERMISSIONS.INTEGRATIONS_USE],
+  aria_memory_forget: [],
+  submit_leave_request: [PERMISSIONS.LEAVE_REQUEST],
+};
+
+/**
+ * Tools the model may call for this caller. Forbidden tools are omitted
+ * so they cannot burn a tool-loop iteration on a known permission deny.
+ */
+export function toolDefinitionsFor(perms: Set<string>): ToolDefinition[] {
+  return Object.entries(REGISTRY)
+    .filter(([name]) => {
+      const need = TOOL_REQUIRED_ANY_OF[name] ?? [];
+      if (need.length === 0) return true;
+      return need.some((p) => perms.has(p));
+    })
+    .map(([, entry]) => entry.definition);
 }
 
 /**

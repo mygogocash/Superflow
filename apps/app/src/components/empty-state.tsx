@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
+import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 
 export function EmptyState({
@@ -28,7 +29,11 @@ export function EmptyState({
         }
       >
         {icon ?? (
-          <Text className={isError ? "text-lg font-semibold text-destructive" : "text-lg font-semibold text-muted-foreground"}>
+          <Text
+            className={
+              isError ? "text-lg font-semibold text-destructive" : "text-lg font-semibold text-muted-foreground"
+            }
+          >
             {isError ? "!" : "–"}
           </Text>
         )}
@@ -38,13 +43,9 @@ export function EmptyState({
         <Text className="mt-1 max-w-sm text-center text-[13px] leading-5 text-muted-foreground">{description}</Text>
       ) : null}
       {actionLabel && onAction ? (
-        <Pressable
-          accessibilityRole="button"
-          onPress={onAction}
-          className="mt-4 h-10 items-center justify-center rounded-md bg-primary px-4"
-        >
-          <Text className="text-sm font-medium text-primary-foreground">{actionLabel}</Text>
-        </Pressable>
+        <Button onPress={onAction} className="mt-4" variant={isError ? "outline" : "default"}>
+          <Text>{actionLabel}</Text>
+        </Button>
       ) : null}
     </View>
   );

@@ -198,7 +198,7 @@ async function syncLeaveTypes(): Promise<SyncStats> {
 async function syncPublicHolidays(): Promise<SyncStats> {
   // Group active holidays by (entity, year) and emit one article per
   // bucket. A per-row article would be noisy and miss the "list all
-  // holidays for TBH-TH in 2026" use case.
+  // holidays for the TH entity in 2026" use case.
   const rows = await prisma.publicHoliday.findMany({
     where: { isActive: true },
     include: { entity: { select: { id: true, name: true, code: true } } },

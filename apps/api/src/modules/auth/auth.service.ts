@@ -352,6 +352,7 @@ export class AuthService {
         jobTitle: user.jobTitle,
         entity: user.entity,
         mustChangePassword: user.mustChangePassword,
+        locale: user.locale ?? null,
       },
       roles,
       permissions: Array.from(permissions).filter(isValidPermissionCode),
@@ -753,6 +754,7 @@ export class AuthService {
         entity: user.entity,
         mustChangePassword: user.mustChangePassword,
         platformRole: user.platformRole ?? null,
+        locale: user.locale ?? null,
       },
       roles,
       permissions: permissions.filter(isValidPermissionCode),
@@ -974,6 +976,7 @@ export class AuthService {
         location: user.location,
         country: user.country,
         timezone: user.timezone,
+        locale: user.locale,
         entity: user.entity,
         roles: user.userRoles.map((ur) => ur.role),
       },
@@ -988,6 +991,7 @@ export class AuthService {
       location?: string;
       country?: string;
       timezone?: string;
+      locale?: string;
       avatarUrl?: string;
     },
   ) {
@@ -1005,6 +1009,7 @@ export class AuthService {
         ...(input.timezone !== undefined && {
           timezone: input.timezone || null,
         }),
+        ...(input.locale !== undefined && { locale: input.locale || null }),
         ...(input.avatarUrl !== undefined && {
           avatarUrl: input.avatarUrl || null,
         }),
@@ -1022,6 +1027,7 @@ export class AuthService {
       location: user.location,
       country: user.country,
       timezone: user.timezone,
+      locale: user.locale,
     };
   }
 

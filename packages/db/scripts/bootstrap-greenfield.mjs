@@ -69,6 +69,7 @@ const sql = postgres(url, {
   prepare: false,
   fetch_types: false,
   connect_timeout: 30,
+  ssl: "require",
 });
 
 try {

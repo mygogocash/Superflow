@@ -16,6 +16,7 @@ on:
       - "apps/app/**"
       - "packages/db/**"
       - "packages/auth/**"
+      - "packages/core/**"
       - "packages/contracts/**"
       - "pnpm-lock.yaml"
       - ".depot/workflows/deploy-edge-production.yml"

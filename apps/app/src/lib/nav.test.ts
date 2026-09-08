@@ -24,6 +24,7 @@ describe("filterNavGroups", () => {
   it("employee nav is a subset of personal routes", () => {
     const hrefs = EMPLOYEE_NAV_GROUPS.flatMap((g) => g.items.map((i) => i.href));
     expect(hrefs).toContain("/leave");
+    expect(hrefs).toContain("/aria");
     expect(hrefs).toContain(DASHBOARD_HOME);
     expect(hrefs).not.toContain("/accounting");
     expect(DASHBOARD_HOME).toBe("/dashboard");

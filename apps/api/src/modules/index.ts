@@ -7,6 +7,7 @@ import { adminRoutes, adminUsageRoutes } from "@/modules/admin";
 import { applicationsRoutes } from "@/modules/applications";
 import { approvalChainsRoutes } from "@/modules/approval-chains";
 import { ariaRoutes } from "@/modules/aria";
+import { ariaTrainingRoutes } from "@/modules/aria-training";
 import { articlesRoutes } from "@/modules/articles";
 import { authRoutes } from "@/modules/auth";
 import { benefitsRoutes } from "@/modules/benefits";
@@ -117,6 +118,7 @@ export function registerModules(app: Express) {
   app.use("/api/dashboard", dashboardRoutes);
   app.use("/api/messages", messagesRoutes);
   app.use("/api/aria", ariaRoutes);
+  app.use("/api/aria-training", ariaTrainingRoutes);
   app.use("/api/integrations", integrationsRoutes);
   app.use("/api/investors", investorsRoutes);
   app.use("/api/investor/tasks", investorTasksRoutes);

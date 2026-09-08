@@ -58,12 +58,33 @@ npx wrangler d1 migrations apply EDGE_DB --local --env staging
 
 ### Secrets (staging)
 
+Depot CI puts these after `wrangler deploy --env staging` (secrets cannot exist
+before the Worker script exists). Required:
+
+| Secret | Notes |
+|---|---|
+| `BETTER_AUTH_SECRET` | **Required** — deploy fails closed if unset |
+| `BETTER_AUTH_API_KEY` | Optional — Better Auth Dash; skipped when unset |
+| `EMAIL_SERVICE_API_KEY` | Optional until magic-link / reset email is used |
+
 ```bash
 cd apps/edge
 npx wrangler secret put BETTER_AUTH_SECRET --env staging
+# optional:
+npx wrangler secret put BETTER_AUTH_API_KEY --env staging
 npx wrangler secret put EMAIL_SERVICE_API_KEY --env staging
-# add TURNSTILE_SECRET, ANTHROPIC_API_KEY, GEMINI_API_KEY, … as routes land
 ```
+
+Expo on `staging.manut.xyz` uses Better Auth (`authClient.signIn.email` →
+cookie/Bearer session → `GET /api/auth/me`). Local Express `:3001` still uses
+JWT `/auth/login`.
+
+### Bot Fight Mode
+
+Zone `manut.xyz` has **Bot Fight Mode** on (cannot be skipped per-hostname via
+WAF). Browsers pass the JS challenge; bare `curl` to staging often gets **403**.
+Use a real browser (or Cloudflare Access / Super Bot Fight Mode with Skip rules)
+for API smoke tests — do **not** turn Bot Fight Mode off to make curl work.
 
 ### Custom domain (staging)
 

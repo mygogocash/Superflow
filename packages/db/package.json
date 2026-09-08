@@ -19,8 +19,11 @@
     "db:baseline": "node scripts/baseline.mjs",
     "db:bootstrap-greenfield": "node scripts/bootstrap-greenfield.mjs",
     "db:seed-better-auth-admin": "node scripts/seed-better-auth-admin.mjs",
+    "db:seed-project-crm-chains": "node scripts/seed-project-crm-chains.mjs",
+    "db:seed-staging-proposals": "node scripts/seed-staging-proposals.mjs",
+    "db:export-erp-snapshot": "node scripts/export-erp-snapshot.mjs",
     "db:parity": "node scripts/schema-parity.mjs",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "db:migrate-auth": "node scripts/migrate-supabase-auth.mjs"
   },
   "dependencies": {

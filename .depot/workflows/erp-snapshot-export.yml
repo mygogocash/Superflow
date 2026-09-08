@@ -1,0 +1,116 @@
+# =============================================================================
+# ERP snapshot export → Databricks bronze landing (Depot CI)
+#
+# Reads Neon staging via STAGING_DIRECT_URL (Drizzle ledger). Writes CSV
+# partitions under OUT_DIR and optionally syncs to S3 when S3_BUCKET is set.
+# Default dispatch is dry-run (counts only) — same safety default as db-backfill.
+#
+# Explicitly excludes marketing / BNII / ow_* / parked revenue_* tables
+# (see packages/db/scripts/erp-snapshot-tables.mjs).
+#
+# Databricks workspace + Unity Catalog ingest are founder-provisioned; this
+# workflow only produces the bronze files. See docs/ops/DATABRICKS_ERP_EXPORT.md.
+# =============================================================================
+name: ERP snapshot export (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      slice:
+        description: "Table slice (p0 core/HR/finance, p1 CRM/projects, all)"
+        required: true
+        default: p0
+        type: choice
+        options:
+          - p0
+          - p1
+          - all
+      dry_run:
+        description: "Report row counts only (no files / no S3)"
+        required: true
+        default: true
+        type: boolean
+      as_of_date:
+        description: "Partition date YYYY-MM-DD (empty = today UTC)"
+        required: false
+        type: string
+
+concurrency:
+  group: erp-snapshot-export
+  cancel-in-progress: false
+
+jobs:
+  export:
+    name: ${{ inputs.dry_run && 'Dry run' || 'WRITE' }} ERP snapshot (${{ inputs.slice }})
+    runs-on: depot-ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Fail fast when STAGING_DIRECT_URL is missing
+        env:
+          URL: ${{ secrets.STAGING_DIRECT_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${URL:-}" ]; then
+            echo "::error::STAGING_DIRECT_URL secret is not configured."
+            exit 1
+          fi
+          echo "STAGING_DIRECT_URL present (value not printed)."
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Export ERP snapshot
+        env:
+          STAGING_DIRECT_URL: ${{ secrets.STAGING_DIRECT_URL }}
+          OUT_DIR: ${{ runner.temp }}/erp-snapshot
+          S3_BUCKET: ${{ secrets.ERP_SNAPSHOT_S3_BUCKET }}
+          S3_PREFIX: ${{ secrets.ERP_SNAPSHOT_S3_PREFIX }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          set -euo pipefail
+          # Only export AS_OF_DATE when the dispatcher typed a real date —
+          # an empty workflow_dispatch string must not override "today UTC".
+          if [ -n "${{ inputs.as_of_date }}" ]; then
+            export AS_OF_DATE="${{ inputs.as_of_date }}"
+          fi
+          ARGS="--slice=${{ inputs.slice }}"
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            ARGS="$ARGS --dry-run"
+          else
+            ARGS="$ARGS --write"
+            mkdir -p "$OUT_DIR"
+            # Write mode in CI must land in S3 — local-only is a false green.
+            if [ -z "${S3_BUCKET:-}" ]; then
+              echo "::error::ERP_SNAPSHOT_S3_BUCKET unset — refusing write without S3 destination."
+              exit 1
+            fi
+            export ERP_SNAPSHOT_REQUIRE_S3=true
+          fi
+          pnpm --filter @nexora/db db:export-erp-snapshot -- $ARGS
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### ERP snapshot export"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Slice | \`${{ inputs.slice }}\` |"
+            echo "| Mode | ${{ inputs.dry_run && 'dry run (counts only)' || 'WRITE' }} |"
+            echo "| as_of_date | \`${{ inputs.as_of_date || 'today UTC' }}\` |"
+            echo "| Result | ${{ job.status }} |"
+          } >> "$GITHUB_STEP_SUMMARY"

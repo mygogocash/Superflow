@@ -1,15 +1,14 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useTheme } from "next-themes";
 
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 import { AccountMenuItems } from "@/components/layout/account-menu";
 import { CompanySwitcher } from "@/components/layout/company-switcher";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { NAV_GROUPS } from "@/components/layout/sidebar";
+import { ThemeSwitcher } from "@/components/layout/theme-switcher";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useAuth } from "@/providers/auth-provider";
+import { updateMyProfile } from "@/services/my-portal.service";
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard": "Home",
@@ -43,7 +43,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/investor-updates": "Investor Updates",
   "/admin": "Administration",
   "/settings": "Settings",
-  "/aria": "ARIA",
+  "/aria": "Manut AI",
 };
 
 /**
@@ -85,36 +85,6 @@ function resolveTitle(pathname: string): string {
   if (!bestHref) return "Manut";
   // A matched route may still have a friendlier name in the explicit map.
   return PAGE_TITLES[bestHref] ?? bestLabel;
-}
-
-function ThemeToggle() {
-  const { theme, setTheme } = useTheme();
-
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      className={`
-        text-muted-foreground relative size-7
-        hover:text-foreground
-      `}
-    >
-      <Sun
-        className={`
-          size-4 scale-100 rotate-0 transition-all
-          dark:scale-0 dark:-rotate-90
-        `}
-      />
-      <Moon
-        className={`
-          absolute size-4 scale-0 rotate-90 transition-all
-          dark:scale-100 dark:rotate-0
-        `}
-      />
-      <span className="sr-only">Toggle theme</span>
-    </Button>
-  );
 }
 
 export function Topbar() {
@@ -182,7 +152,15 @@ export function Topbar() {
         `}
       >
         <CompanySwitcher />
-        <ThemeToggle />
+        <LanguageSwitcher
+          className="h-7 w-auto gap-1.5 text-xs"
+          onChange={(locale) => {
+            // Persist to the profile so the preference follows the user across
+            // devices. Fire-and-forget: the switcher already applied it locally.
+            void updateMyProfile({ locale });
+          }}
+        />
+        <ThemeSwitcher />
       </div>
       <NotificationBell />
       {/* The avatar opens the account menu rather than linking straight to

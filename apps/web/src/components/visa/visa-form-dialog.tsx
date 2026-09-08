@@ -630,7 +630,7 @@ export function VisaFormDialog({
                           For an expat dependent — spouse, child, parent — whose
                           visa we track even though they are not an employee.
                           Fill in the holder name below and pick a sponsor
-                          employee so reminders still route to a TBH inbox.
+                          employee so reminders still route to a Manut inbox.
                         </p>
                       )}
                       <FormMessage />

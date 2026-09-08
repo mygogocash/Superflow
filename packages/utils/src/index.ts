@@ -1,3 +1,4 @@
+export { ASSISTANT_DISPLAY_NAME } from "./brand";
 export { formatCurrency, formatDate, formatNumber } from "./formatters";
 export {
   type CurrencyOption,

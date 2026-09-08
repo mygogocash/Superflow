@@ -41,7 +41,7 @@ export function exportConversationMarkdown(
   const header = `# ${title}\n\n_Exported ${new Date().toLocaleString()}_\n\n---\n\n`;
   const body = msgs
     .map((m) => {
-      const who = m.role === "user" ? "You" : "ARIA";
+      const who = m.role === "user" ? "You" : "Manut AI";
       const when = new Date(m.createdAt).toLocaleString();
       return `### ${who}  ·  ${when}\n\n${m.content}\n`;
     })
@@ -72,7 +72,7 @@ export function exportConversationPDF(
 
   const rows = msgs
     .map((m) => {
-      const who = m.role === "user" ? "You" : "ARIA";
+      const who = m.role === "user" ? "You" : "Manut AI";
       const when = new Date(m.createdAt).toLocaleString();
       const content = escapeHtml(m.content).replace(/\n/g, "<br/>");
       const tone = m.role === "user" ? "user" : "assistant";

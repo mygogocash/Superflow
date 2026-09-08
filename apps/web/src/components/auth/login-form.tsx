@@ -3,8 +3,9 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, LogIn } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { z } from "zod";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -21,23 +22,29 @@ import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api-client";
 import { useAuth } from "@/providers/auth-provider";
 
-const loginSchema = z.object({
-  email: z
-    .string()
-    .min(1, "Email is required")
-    .email("Please enter a valid email address"),
-  password: z
-    .string()
-    .min(1, "Password is required")
-    .min(6, "Password must be at least 6 characters"),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
+type LoginFormValues = { email: string; password: string };
 
 export function LoginForm() {
   const { login } = useAuth();
+  const { t } = useTranslation();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Built with `t` so validation messages follow the selected language.
+  const loginSchema = useMemo(
+    () =>
+      z.object({
+        email: z
+          .string()
+          .min(1, t("auth.emailRequired"))
+          .email(t("auth.emailInvalid")),
+        password: z
+          .string()
+          .min(1, t("auth.passwordRequired"))
+          .min(6, t("auth.passwordMin")),
+      }),
+    [t],
+  );
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -57,7 +64,7 @@ export function LoginForm() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError(err instanceof Error ? err.message : "Login failed");
+        setError(err instanceof Error ? err.message : t("auth.loginFailed"));
       }
 
       setLoading(false);
@@ -81,13 +88,13 @@ export function LoginForm() {
                   tracking-[0.08em] uppercase
                 `}
               >
-                Email
+                {t("auth.email")}
               </FormLabel>
               <FormControl>
                 <Input
                   {...field}
                   type="email"
-                  placeholder="you@manut.xyz"
+                  placeholder={t("auth.emailPlaceholder")}
                   autoComplete="email"
                   className={`
                     bg-background-secondary h-10
@@ -113,7 +120,7 @@ export function LoginForm() {
                     tracking-[0.08em] uppercase
                   `}
                 >
-                  Password
+                  {t("auth.password")}
                 </FormLabel>
                 <Link
                   href="/forgot-password"
@@ -122,14 +129,14 @@ export function LoginForm() {
                     hover:underline
                   `}
                 >
-                  Forgot password?
+                  {t("auth.forgotPassword")}
                 </Link>
               </div>
               <FormControl>
                 <Input
                   {...field}
                   type="password"
-                  placeholder="Enter your password"
+                  placeholder={t("auth.passwordPlaceholder")}
                   autoComplete="current-password"
                   className={`
                     bg-background-secondary h-10
@@ -160,7 +167,7 @@ export function LoginForm() {
           ) : (
             <LogIn className="size-4" />
           )}
-          Sign in
+          {loading ? t("auth.signingIn") : t("auth.signIn")}
         </Button>
 
         {/*

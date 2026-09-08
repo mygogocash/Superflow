@@ -22,3 +22,20 @@ export function getAppUrl(): string {
   }
   return EXPRESS_DEV;
 }
+
+/**
+ * Edge / staging / production Workers speak Better Auth (`/api/auth/*`).
+ * Local Express (`:3001`) still uses JWT `/auth/login` + Bearer.
+ * Same-origin SPA on manut.xyz / staging.manut.xyz → Better Auth + cookies.
+ */
+export function usesBetterAuth(): boolean {
+  try {
+    const { hostname, port } = new URL(getAppUrl());
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return port === "8787";
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}

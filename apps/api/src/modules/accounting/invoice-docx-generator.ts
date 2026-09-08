@@ -1,6 +1,6 @@
 /**
  * Invoice Word (.docx) generator (docx lib). Builds the document
- * programmatically to reproduce the TBH invoice template layout — company
+ * programmatically to reproduce the Manut invoice template layout — company
  * letterhead, BILL TO + meta, line-item table, Subtotal / VAT / WHT /
  * TOTAL DUE, and the bank block. (Faithful reproduction rather than a
  * byte-for-byte fill of the source .docx; a docxtemplater-based exact-file

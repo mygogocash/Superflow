@@ -399,7 +399,7 @@ export function LeavePolicyDialog({
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    Pick a specific entity (e.g. TBH Thailand) to scope this
+                    Pick a specific entity (e.g. Manut Thailand) to scope this
                     policy. Global policies apply to every employee.
                   </FormDescription>
                   <FormMessage />

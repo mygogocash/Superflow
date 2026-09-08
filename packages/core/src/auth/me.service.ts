@@ -34,6 +34,8 @@ export type MePayload = {
     entity: { id: string; name: string; code: string } | null;
     mustChangePassword: boolean;
     platformRole: string | null;
+    /** True when users.line_user_id is set (Messaging and/or Login linked). */
+    lineLinked: boolean;
   };
   roles: Array<{ id: string; name: string; defaultRoute: string | null; isSystem: boolean }>;
   permissions: string[];
@@ -59,6 +61,7 @@ export async function getMe(db: Db, userId: string): Promise<MePayload> {
       activeOrganizationId: schema.users.activeOrganizationId,
       platformRole: schema.users.platformRole,
       mustChangePassword: schema.users.mustChangePassword,
+      lineUserId: schema.users.lineUserId,
     })
     .from(schema.users)
     .where(and(eq(schema.users.id, userId), isNull(schema.users.deletedAt)))
@@ -176,6 +179,7 @@ export async function getMe(db: Db, userId: string): Promise<MePayload> {
       entity,
       mustChangePassword: user.mustChangePassword,
       platformRole: user.platformRole ?? null,
+      lineLinked: Boolean(user.lineUserId),
     },
     roles: roles.map((r) => ({
       id: r.id,

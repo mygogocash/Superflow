@@ -10,7 +10,7 @@ export interface SurveyFormTemplate {
   questions: QuestionInput[];
 }
 
-const TBH_VALUES = [
+const COMPANY_VALUES = [
   "Integrity",
   "Collaboration",
   "Excellence",
@@ -175,7 +175,7 @@ Our values: Integrity · Collaboration · Excellence · Innovation · Accountabi
       prompt: "Which values did this nominee demonstrate?",
       helperText: "Select all that apply.",
       required: true,
-      options: [...TBH_VALUES],
+      options: [...COMPANY_VALUES],
       settings: {},
     },
     {

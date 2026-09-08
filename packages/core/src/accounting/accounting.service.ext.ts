@@ -44,10 +44,11 @@ import {
   netIncome,
 } from "./reports";
 import {
-  DEFAULT_INVOICE_COMPANY,
+  buildDefaultInvoiceCompany,
   INVOICE_COMPANY_KEY,
   type InvoiceCompany,
 } from "./invoice-company.defaults";
+import { APP_NAME_SETTING_KEY, orgNameFromSetting } from "../lib/org";
 import {
   DEFAULT_SECOND_APPROVAL,
   type SecondApprovalConfig,
@@ -71,29 +72,32 @@ function dayBeforeIso(startDate: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-function parseInvoiceCompany(value: unknown): InvoiceCompany {
+function parseInvoiceCompany(
+  value: unknown,
+  fallback: InvoiceCompany,
+): InvoiceCompany {
   if (value && typeof value === "object" && !Array.isArray(value)) {
     const v = value as Record<string, unknown>;
     const str = (k: keyof InvoiceCompany, d: string) =>
       typeof v[k] === "string" ? (v[k] as string) : d;
     return {
-      name: str("name", DEFAULT_INVOICE_COMPANY.name),
+      name: str("name", fallback.name),
       addressLines: Array.isArray(v.addressLines)
         ? (v.addressLines as unknown[]).filter((x): x is string => typeof x === "string")
-        : DEFAULT_INVOICE_COMPANY.addressLines,
-      taxId: str("taxId", DEFAULT_INVOICE_COMPANY.taxId),
-      email: str("email", DEFAULT_INVOICE_COMPANY.email),
-      tel: str("tel", DEFAULT_INVOICE_COMPANY.tel),
-      bankName: str("bankName", DEFAULT_INVOICE_COMPANY.bankName),
-      bankAccountType: str("bankAccountType", DEFAULT_INVOICE_COMPANY.bankAccountType),
-      bankBranch: str("bankBranch", DEFAULT_INVOICE_COMPANY.bankBranch),
-      bankAccountName: str("bankAccountName", DEFAULT_INVOICE_COMPANY.bankAccountName),
-      bankAccountNo: str("bankAccountNo", DEFAULT_INVOICE_COMPANY.bankAccountNo),
-      bankSwift: str("bankSwift", DEFAULT_INVOICE_COMPANY.bankSwift),
-      footerNote: str("footerNote", DEFAULT_INVOICE_COMPANY.footerNote),
+        : fallback.addressLines,
+      taxId: str("taxId", fallback.taxId),
+      email: str("email", fallback.email),
+      tel: str("tel", fallback.tel),
+      bankName: str("bankName", fallback.bankName),
+      bankAccountType: str("bankAccountType", fallback.bankAccountType),
+      bankBranch: str("bankBranch", fallback.bankBranch),
+      bankAccountName: str("bankAccountName", fallback.bankAccountName),
+      bankAccountNo: str("bankAccountNo", fallback.bankAccountNo),
+      bankSwift: str("bankSwift", fallback.bankSwift),
+      footerNote: str("footerNote", fallback.footerNote),
     };
   }
-  return DEFAULT_INVOICE_COMPANY;
+  return fallback;
 }
 
 function parseSecondApproval(value: unknown): SecondApprovalConfig {
@@ -330,8 +334,12 @@ export async function setSecondApprovalConfig(db: Db, input: SecondApprovalConfi
 // ── Invoice company block ───────────────────────────────────────────────────
 
 export async function getInvoiceCompany(db: Db): Promise<InvoiceCompany> {
-  const raw = await getSetting(db, INVOICE_COMPANY_KEY);
-  return parseInvoiceCompany(raw);
+  const [raw, appName] = await Promise.all([
+    getSetting(db, INVOICE_COMPANY_KEY),
+    getSetting(db, APP_NAME_SETTING_KEY),
+  ]);
+  const fallback = buildDefaultInvoiceCompany(orgNameFromSetting(appName));
+  return parseInvoiceCompany(raw, fallback);
 }
 
 export async function setInvoiceCompany(db: Db, input: InvoiceCompanyInput): Promise<InvoiceCompany> {

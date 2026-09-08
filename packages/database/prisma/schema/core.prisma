@@ -82,6 +82,8 @@ model User {
   email              String    @unique
   name               String
   avatarUrl          String?   @map("avatar_url")
+  /// LINE Messaging / Login subject (`userId` from LINE). Unique when set.
+  lineUserId         String?   @unique @map("line_user_id")
   phone              String?
   phonePublic        Boolean   @default(false) @map("phone_public")
   entityId           String?   @map("entity_id")
@@ -107,6 +109,10 @@ model User {
   location           String?
   country            String?
   timezone           String?
+  // Preferred UI language (BCP-47 primary subtag, e.g. "en" / "th"). Resolved
+  // as user.locale -> app.locale (org default) -> browser. Null = follow the
+  // org/browser default.
+  locale             String?
   dateOfBirth        DateTime? @map("date_of_birth") @db.Date
   passportNumber     String?   @map("passport_number")
   nationality        String?
@@ -276,6 +282,9 @@ model User {
   ariaConversations            AriaConversation[]
   ariaKnowledgeArticles        AriaKnowledgeArticle[]    @relation("AriaKnowledgeArticleAuthor")
   ariaQueryLogs                AriaQueryLog[]
+  ariaInteractionTraces        AriaInteractionTrace[]    @relation("AriaInteractionTraceUser")
+  ariaTrainingDatasets         AriaTrainingDataset[]     @relation("AriaTrainingDatasetAuthor")
+  ariaModelVersions            AriaModelVersion[]        @relation("AriaModelVersionAuthor")
   ariaFeedback                 AriaFeedback[]            @relation("AriaFeedbackAuthor")
   ariaFeedbackReviewed         AriaFeedback[]            @relation("AriaFeedbackReviewer")
   ariaAttachments              AriaAttachment[]          @relation("AriaAttachmentUploader")
@@ -350,6 +359,7 @@ model User {
   mktCampaignsCreated          MktCampaign[]             @relation("MktCampaignCreator")
   mktCreativesUploaded         MktCreative[]             @relation("MktCreativeUploader")
   mktPredictionsUploaded       MktPrediction[]           @relation("MktPredictionUploader")
+  lineMessageLogs              LineMessageLog[]
 
   @@index([entityId])
   @@index([email])
@@ -358,6 +368,26 @@ model User {
   @@index([activeOrganizationId])
   @@index([platformRole])
   @@map("users")
+}
+
+/// Inbound/outbound LINE Messaging API audit (PII-light preview + optional raw).
+model LineMessageLog {
+  id          String   @id @default(cuid())
+  lineUserId  String   @map("line_user_id")
+  userId      String?  @map("user_id") @db.Uuid
+  eventType   String   @map("event_type")
+  direction   String   @default("inbound")
+  messageType String?  @map("message_type")
+  preview     String?
+  raw         Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([lineUserId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("line_message_logs")
 }
 
 // Multi-company foundation (Accounting Phase-1, PRD Rule 7). Which

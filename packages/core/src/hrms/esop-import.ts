@@ -150,11 +150,15 @@ function normaliseCell(v: unknown): string {
     return Number.isFinite(v) ? String(v) : "";
   }
   // Strip non-breaking and thin spaces that Excel/SheetJS sometimes
-  // emits, then collapse runs of whitespace and trim.
+  // emits, then collapse runs of whitespace and trim. The final slice bounds
+  // the length so the many regexes that run on this value cannot backtrack
+  // polynomially on a pathological cell (CodeQL js/polynomial-redos); a real
+  // ESOP cell is never anywhere near 2000 chars.
   return String(v)
     .replace(/[\u00a0\u2009\u200a\u202f]/g, " ")
     .replace(/\s+/g, " ")
-    .trim();
+    .trim()
+    .slice(0, 2000);
 }
 
 const SKIP_TOKENS = new Set(["", "n/a", "na", "-", "—", "separately", "none"]);
@@ -515,7 +519,7 @@ function parseCurrencyText(
   | { error: string }
   | null {
   if (!text || shouldSkip(text)) return null;
-  const stripMonth = text.replace(/\/\s*month\s*$/i, "").trim();
+  const stripMonth = text.slice(0, 2000).replace(/\/\s*month\s*$/i, "").trim();
   const ccyMatch = stripMonth.match(/^([A-Za-z]{3})\s+([\d,\s.+-]+)$/);
   if (ccyMatch) {
     const code = ccyMatch[1]!.toUpperCase() as (typeof ESOP_CURRENCIES)[number];
@@ -602,7 +606,9 @@ export function parsePersonHeaderV1(rawText: string): PersonHeaderV1 | null {
       });
     } else if (label.includes("shark tank")) {
       // V1 expresses Shark Tank as a token count, e.g. "50,000 Tokens".
-      const sharesMatch = value.match(/^([\d,\s.]+)\s*(?:tokens?|shares?)?$/i);
+      const sharesMatch = value
+        .slice(0, 2000)
+        .match(/^([\d,\s.]+)\s*(?:tokens?|shares?)?$/i);
       const n = sharesMatch ? coerceImportNumber(sharesMatch[1]!) : null;
       if (n !== null && n > 0) {
         extras.push({

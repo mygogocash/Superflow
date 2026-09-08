@@ -118,7 +118,7 @@ function writeExpandedToStorage(periods: Set<string>): void {
 }
 
 // Renders the per-currency gross-total summary in the group header.
-// Mixed-currency months are common (TBH operates across THB / INR / VND
+// Mixed-currency months are common (Manut operates across THB / INR / VND
 // / USD), so a single number wouldn't be meaningful.
 function formatGroupTotals(totals: Record<string, number>): string {
   const entries = Object.entries(totals);

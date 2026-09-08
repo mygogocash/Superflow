@@ -92,6 +92,7 @@ import { push } from "./push";
 import { messages } from "./messages";
 import { uploads } from "./uploads";
 import { handbook } from "./handbook";
+import { line } from "./line";
 
 /**
  * All `/api/*` routes. Modules are mounted here wave by wave; each module file
@@ -104,6 +105,7 @@ import { handbook } from "./handbook";
 export const api = new Hono<AppEnv>()
   .route("/health", health)
   .route("/auth/me", me)
+  .route("/line", line)
   .route("/users", users)
   .route("/roles", roles)
   .route("/dashboard", dashboard)

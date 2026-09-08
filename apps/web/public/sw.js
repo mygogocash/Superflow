@@ -88,6 +88,10 @@ self.addEventListener("activate", (event) => {
 /* ── Update handshake ─────────────────────────────────────────────── */
 
 self.addEventListener("message", (event) => {
+  // Only accept messages from same-origin controlled clients (defence in depth
+  // — CodeQL js/missing-origin-check). event.origin is "" for some same-origin
+  // client posts, so allow empty or an exact origin match.
+  if (event.origin && event.origin !== self.location.origin) return;
   // Sent by the client when the user accepts the update prompt.
   if (event.data && event.data.type === "SKIP_WAITING") {
     self.skipWaiting();

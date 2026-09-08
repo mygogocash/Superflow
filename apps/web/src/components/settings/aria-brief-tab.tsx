@@ -182,7 +182,7 @@ export function AriaBriefTab() {
       if ("empty" in result && result.empty) {
         toast.info("Nothing on your plate right now — empty brief.");
       } else {
-        toast.success("Brief generated. Check your ARIA conversations.");
+        toast.success("Brief generated. Check your Manut AI conversations.");
       }
       await load();
     } catch (err) {
@@ -212,7 +212,7 @@ export function AriaBriefTab() {
             <Bell className="size-4" /> Daily brief
           </CardTitle>
           <CardDescription>
-            ARIA can send a short, personalised summary every morning —
+            Manut AI can send a short, personalised summary every morning —
             today&apos;s calendar, pending approvals, anything that needs your
             attention. The summary itself doesn&apos;t cost any AI credit; only
             follow-up questions do.

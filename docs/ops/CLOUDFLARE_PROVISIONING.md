@@ -33,9 +33,9 @@ DATABASE_URL="$STAGING_DIRECT_URL" pnpm --filter @nexora/db db:migrate
 npx wrangler kv namespace create KV_SESSIONS --env staging
 npx wrangler kv namespace create KV_CACHE --env staging
 
-# R2
-npx wrangler r2 bucket create manut-staging-public
-npx wrangler r2 bucket create manut-staging-private
+# R2 — names must match apps/edge/wrangler.jsonc env.staging.r2_buckets
+npx wrangler r2 bucket create intranet-staging-public
+npx wrangler r2 bucket create intranet-staging-private
 
 # Queues (producer + consumer + DLQ)
 npx wrangler queues create intranet-jobs-staging
@@ -63,8 +63,8 @@ R2 buckets and queues are referenced **by name** — no IDs to paste.
 ```bash
 npx wrangler secret put BETTER_AUTH_SECRET --env staging
 npx wrangler secret put BETTER_AUTH_API_KEY --env staging   # Better Auth Dash
-npx wrangler secret put EMAIL_SERVICE_API_KEY --env staging
-npx wrangler secret put EMAIL_SERVICE_URL --env staging     # if the sender needs it
+npx wrangler secret put RESEND_API_KEY --env staging        # transactional email (Resend)
+npx wrangler secret put EMAIL_FROM --env staging            # Resend-verified sender, e.g. "Manut <noreply@manut.xyz>"
 npx wrangler secret put TURNSTILE_SECRET --env staging      # when captcha is enabled
 npx wrangler secret put ANTHROPIC_API_KEY --env staging     # ARIA
 npx wrangler secret put GEMINI_API_KEY --env staging        # ARIA

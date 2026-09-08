@@ -26,7 +26,7 @@ const sampleDoc: InvoiceDoc = {
   dueDate: new Date("2026-08-19T00:00:00.000Z"),
   status: "sent",
   notes: "Service Period: 1 June 2026 – 30 June 2026",
-  entityName: "The Binary Holding (Thailand) Co., Ltd.",
+  entityName: "Manut (Thailand) Co., Ltd.",
   amount: 17000,
   lineItems: [
     {

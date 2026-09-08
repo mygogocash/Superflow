@@ -77,6 +77,68 @@ function statusBadge(label: string, color: string): string {
   return `<span style="display:inline-block;padding:4px 12px;font-size:12px;font-weight:600;color:#ffffff;background-color:${color};border-radius:20px;">${label}</span>`;
 }
 
+/** "it-crm-task-assigned" -> "It Crm Task Assigned"; "employeeName" -> "Employee Name". */
+export function humanizeTemplateId(id: string): string {
+  return id
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[-_]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .map((w) => (w ? w[0]!.toUpperCase() + w.slice(1) : w))
+    .join(" ");
+}
+
+const GENERIC_SKIP_KEYS = new Set([
+  "subject",
+  "title",
+  "body",
+  "url",
+  "actionurl",
+  "cta",
+  "ctaurl",
+  "actionlabel",
+]);
+
+/**
+ * Branded fallback for senders that only provide a templateId + variables
+ * (the legacy onewave server-side templates that had no local HTML). Renders a
+ * readable, on-brand email from the variables so no notification is lost after
+ * the Resend cutover; bespoke templates can replace these incrementally.
+ */
+export function renderGenericEmail(
+  templateId: string,
+  variables: TemplateVariables = {},
+): { subject: string; html: string } {
+  const pick = (k: string): string | undefined => {
+    const hit = Object.entries(variables).find(
+      ([key]) => key.toLowerCase() === k,
+    );
+    return hit && hit[1] != null ? String(hit[1]) : undefined;
+  };
+  const subject =
+    pick("subject") ?? pick("title") ?? humanizeTemplateId(templateId);
+  const intro = pick("body");
+  const url = pick("url") ?? pick("actionurl") ?? pick("ctaurl");
+  const ctaLabel =
+    pick("actionlabel") ?? pick("cta") ?? `Open in ${BRAND.name}`;
+  const rows = Object.entries(variables)
+    .filter(
+      ([k, v]) =>
+        v != null && v !== "" && !GENERIC_SKIP_KEYS.has(k.toLowerCase()),
+    )
+    .map(
+      ([k, v]) =>
+        `<tr><td style="padding:8px 16px;font-size:13px;border-bottom:1px solid ${BRAND.borderColor};width:40%;color:${BRAND.mutedColor};"><strong>${escapeHtml(humanizeTemplateId(k))}</strong></td><td style="padding:8px 16px;font-size:13px;border-bottom:1px solid ${BRAND.borderColor};">${escapeHtml(String(v))}</td></tr>`,
+    )
+    .join("");
+  const body = `${intro ? `<p style="margin:0 0 16px;">${escapeHtml(intro)}</p>` : ""}${
+    rows
+      ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:8px;border:1px solid ${BRAND.borderColor};border-radius:8px;overflow:hidden;">${rows}</table>`
+      : ""
+  }${url ? actionButton(escapeHtml(ctaLabel), url) : ""}`;
+  return { subject, html: baseLayout(body) };
+}
+
 // ─── Leave Emails ────────────────────────────────────────
 
 export function leaveSubmittedEmail(data: {

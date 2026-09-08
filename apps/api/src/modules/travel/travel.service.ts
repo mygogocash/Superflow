@@ -11,6 +11,7 @@ import {
   buildUserScopeFilter,
   resolveDataScope,
 } from "@/common/utils/data-scope";
+import { isValidEmail } from "@/common/utils/email";
 import { prisma } from "@/infrastructure/database/prisma";
 import { sendEmail } from "@/infrastructure/email/email.service";
 import {
@@ -921,7 +922,7 @@ export class TravelService {
     for (const raw of rawEmails) {
       const trimmed = raw.trim().toLowerCase();
       if (!trimmed) continue;
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+      if (!isValidEmail(trimmed)) {
         throw new BadRequestException(`Invalid email: ${raw}`);
       }
       if (seen.has(trimmed)) continue;

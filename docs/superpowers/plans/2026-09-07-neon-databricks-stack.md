@@ -1,7 +1,7 @@
 # Plan: Neon (Hyperdrive) + Databricks ERP lakehouse
 
 **Date:** 2026-09-07  
-**Status:** Phase 1 infra done on Neon (bootstrap + migrate + Hyperdrive + Depot `NEON_*`/`STAGING_DIRECT_URL` + Better Auth admin seed). **Blocked on deploy:** Manut-scoped `CLOUDFLARE_API_TOKEN` + staging Worker `BETTER_AUTH_SECRET` still needed before `staging.manut.xyz` smoke.  
+**Status:** Phase 1 infra done on Neon (bootstrap + migrate + Hyperdrive + Depot `NEON_*`/`STAGING_DIRECT_URL` + Better Auth admin seed). Phase 3 **export code** landed (`erp-snapshot-export.yml` + allowlisted CSV exporter) — still needs Databricks AWS workspace + optional S3 secrets. **Blocked on staging smoke:** Manut-scoped `CLOUDFLARE_API_TOKEN` + `main`→`preview` merge-commit promote + Worker `BETTER_AUTH_SECRET` (Workers `intranet-edge-staging` not created yet).  
 **Credits:** ~$1k Neon + ~$1k Databricks  
 **Out of scope:** Marketing / BNII / OneWave analytics (explicitly excluded)
 
@@ -9,7 +9,7 @@
 
 | Topic | Decision |
 |---|---|
-| Neon region | **APAC** (`ap-southeast-1`) — project `ep-restless-truth-b3te5bwz` |
+| Neon region | **APAC** (`aws-ap-southeast-1`) — project `patient-mode-86465099` (unpooled `ep-restless-truth-b3te5bwz`) |
 | Staging data | **Greenfield** — `db:bootstrap-greenfield` + `db:migrate` (done on Neon) |
 | Databricks cloud | **AWS** (cheapest for v1 Jobs Compute; avoid Azure 2× Jobs DBU) |
 | Databricks region | Prefer **`ap-southeast-1`** if credit/workspace allows (near Neon APAC); else **`us-east-1`** for lowest list rates — document whichever the credit unlocks |
@@ -45,8 +45,8 @@
 | Auth (edge) | Better Auth + KV sessions | Unchanged; staging users seeded without Supabase `auth.users` |
 | Auth (Express legacy) | Supabase JWT | Leave alone until Phase 9 decommission |
 | D1 | Sidecar 3 tables | Unchanged |
-| Analytics warehouse | None in-repo | Databricks Delta + SQL warehouse |
-| Jobs | `apps/edge-jobs` cron → `/api/cron/*` | Add export/CDC job(s) behind same pattern |
+| Analytics warehouse | None in-repo | Databricks **AWS** Delta + SQL warehouse (auto-stop) |
+| Jobs | `apps/edge-jobs` cron → `/api/cron/*` | ERP export v1 = **Depot workflow**; edge-jobs unchanged for reminders |
 
 Authoritative wiring: `apps/edge/wrangler.jsonc`, `.depot/workflows/deploy-edge-staging.yml`, `docs/ops/CLOUDFLARE_PROVISIONING.md`, ADR `docs/adr/0001-cloudflare-edge-rewrite.md`.
 
@@ -152,7 +152,7 @@ Update in the same PR as wiring:
 
 ### 2.3 Automation
 
-- Live: `.depot/workflows/neon-pr-branches.yml` (Neon create/delete-branch actions + Drizzle migrate ×2 on unpooled URL).
+- Live: `.depot/workflows/neon-pr-branches.yml` (Neon REST API via curl for create/delete — not `neondatabase/*` Actions — + Drizzle migrate ×2 on unpooled URL; `channel_binding` stripped via `urllib.parse`).
 - Needs Depot `NEON_API_KEY` + `NEON_PROJECT_ID` (see `docs/ops/NEON_STAGING.md`).
 - Do **not** block Phase 1 Hyperdrive paste on this.
 
@@ -250,7 +250,7 @@ Only after Phase 1–2 are boring:
 | **PR2** | `chore(edge): wire staging Hyperdrive to Neon` + provisioning doc updates | Neon project + Hyperdrive id |
 | **PR3** | `chore(db): Neon staging baseline / seed Better Auth users` | PR2 |
 | **PR4** | `docs(ops): Neon branch migrate recipe` | PR3 |
-| **PR5** | `feat(analytics): Depot ERP snapshot export → Databricks bronze` | Databricks workspace + PR3 |
+| **PR5** | `feat(analytics): Depot ERP snapshot export → Databricks bronze` | PR3 (workspace/S3 optional for dry-run) |
 | **PR6** | (later) Prod Neon Hyperdrive | Founder gate |
 
 ---
@@ -278,28 +278,29 @@ Only after Phase 1–2 are boring:
 - [ ] D1 handbook/presence paths unchanged (verify after deploy)
 
 ### Phase 3
+- [x] Allowlist exporter + Depot workflow + deny marketing/`ow_*`/`revenue_*` (dry-run path)
+- [ ] Databricks AWS workspace + S3/UC landing secrets
 - [ ] P0 tables present in Databricks silver/bronze
-- [ ] Row-count check script/job logged
+- [ ] Row-count check script/job logged (Depot dry-run vs Neon `COUNT(*)`)
 - [ ] Re-run idempotent
-- [ ] No marketing tables in allowlist
+- [ ] No marketing tables in allowlist (unit-tested)
 
 ---
 
 ## Open questions (remaining)
 
 1. Does the Databricks $1k credit unlock **AWS `ap-southeast-1`**, or only certain regions? (Affects workspace region only — cloud stays AWS.)
-2. Confirm Neon APAC project create + Hyperdrive id paste owner (founder vs eng with wrangler token).
 
 ---
 
 ## Next action
 
 1. Set Depot secret `CLOUDFLARE_API_TOKEN` (Manut-scoped; org `CF_STAGING_API_TOKEN` does not apply to this repo).
-2. `wrangler secret put BETTER_AUTH_SECRET --env staging` (and deploy edge + edge-jobs).
-3. Re-seed admin password if needed: `SEED_ADMIN_PASSWORD=… pnpm --filter @nexora/db db:seed-better-auth-admin`.
-4. Smoke `https://staging.manut.xyz` login as `admin@manut.xyz`.
-
-Databricks AWS workspace can be provisioned in parallel but code lands in **PR5**.
+2. Promote `main` → `preview` with a **merge commit** (preview is behind; Workers still absent).
+3. `wrangler secret put BETTER_AUTH_SECRET --env staging` after first deploy creates `intranet-edge-staging`.
+4. Re-seed admin password if needed: `SEED_ADMIN_PASSWORD=… pnpm --filter @nexora/db db:seed-better-auth-admin`.
+5. Smoke `https://staging.manut.xyz` login as `admin@manut.xyz`.
+6. Provision Databricks AWS + set optional `ERP_SNAPSHOT_S3_*` / AWS secrets; dispatch `erp-snapshot-export.yml` dry-run then write.
 
 ---
 

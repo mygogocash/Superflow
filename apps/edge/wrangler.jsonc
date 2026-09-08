@@ -21,7 +21,8 @@
     "POSTHOG_ASSETS_HOST": "https://us-assets.i.posthog.com",
     "MAGIC_LINK_ALLOWED_ROLES": "",
     "CF_ACCESS_AUD": "",
-    "CF_ACCESS_TEAM_DOMAIN": ""
+    "CF_ACCESS_TEAM_DOMAIN": "",
+    "AVATAR_GENERATOR_ENABLED": "true"
   },
   "hyperdrive": [
     { "binding": "HYPERDRIVE", "id": "00000000000000000000000000000000", "localConnectionString": "postgresql://postgres:dev@localhost:54330/intranet" }
@@ -67,7 +68,8 @@
         "POSTHOG_ASSETS_HOST": "https://us-assets.i.posthog.com",
         "MAGIC_LINK_ALLOWED_ROLES": "",
         "CF_ACCESS_AUD": "",
-        "CF_ACCESS_TEAM_DOMAIN": ""
+        "CF_ACCESS_TEAM_DOMAIN": "",
+        "AVATAR_GENERATOR_ENABLED": "true"
       },
       "routes": [{ "pattern": "staging.manut.xyz", "custom_domain": true }],
       "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "2531da29a59f4890bf8817697f5d350d" }],
@@ -93,6 +95,13 @@
       "queues": { "producers": [{ "binding": "JOBS_QUEUE", "queue": "intranet-jobs-staging" }] },
       "durable_objects": {
         "bindings": [{ "name": "PRESENCE", "class_name": "PresenceRoom" }]
+      },
+      // env.* does not inherit top-level `unsafe` — repeat rate-limit bindings per env.
+      "unsafe": {
+        "bindings": [
+          { "name": "RATE_LIMITER_LOGIN", "type": "ratelimit", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } },
+          { "name": "RATE_LIMITER_GLOBAL", "type": "ratelimit", "namespace_id": "1002", "simple": { "limit": 2000, "period": 60 } }
+        ]
       }
     },
     "production": {
@@ -104,7 +113,8 @@
         "POSTHOG_ASSETS_HOST": "https://us-assets.i.posthog.com",
         "MAGIC_LINK_ALLOWED_ROLES": "",
         "CF_ACCESS_AUD": "",
-        "CF_ACCESS_TEAM_DOMAIN": ""
+        "CF_ACCESS_TEAM_DOMAIN": "",
+        "AVATAR_GENERATOR_ENABLED": "false"
       },
       "routes": [{ "pattern": "manut.xyz", "custom_domain": true }],
       "hyperdrive": [{ "binding": "HYPERDRIVE", "id": "REPLACE_WITH_PROD_HYPERDRIVE_ID" }],
@@ -130,6 +140,12 @@
       "queues": { "producers": [{ "binding": "JOBS_QUEUE", "queue": "intranet-jobs-prod" }] },
       "durable_objects": {
         "bindings": [{ "name": "PRESENCE", "class_name": "PresenceRoom" }]
+      },
+      "unsafe": {
+        "bindings": [
+          { "name": "RATE_LIMITER_LOGIN", "type": "ratelimit", "namespace_id": "1001", "simple": { "limit": 30, "period": 60 } },
+          { "name": "RATE_LIMITER_GLOBAL", "type": "ratelimit", "namespace_id": "1002", "simple": { "limit": 2000, "period": 60 } }
+        ]
       }
     }
   }

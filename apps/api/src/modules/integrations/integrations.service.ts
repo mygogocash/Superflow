@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 
+import sanitizeHtml from "sanitize-html";
+
 import {
   BadRequestException,
   InternalServerErrorException,
@@ -187,22 +189,39 @@ function findFirstPart(
   return null;
 }
 
+// Basic named entities that sanitize-html leaves encoded in text output.
+// Decoded in a single left-to-right pass (see decodeBasicEntities) so we never
+// double-decode, unlike a sequential .replace() chain (CodeQL js/double-escaping).
+const BASIC_ENTITIES: Record<string, string> = {
+  "&amp;": "&",
+  "&lt;": "<",
+  "&gt;": ">",
+  "&quot;": '"',
+  "&apos;": "'",
+  "&#39;": "'",
+};
+
+function decodeBasicEntities(text: string): string {
+  return text.replace(
+    /&(?:amp|lt|gt|quot|apos|#39);/g,
+    (m) => BASIC_ENTITIES[m] ?? m,
+  );
+}
+
 function htmlToReadableText(html: string): string {
-  return html
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<head[\s\S]*?<\/head>/gi, "")
-    .replace(/<!--[\s\S]*?-->/g, "")
+  // Preserve line structure from common block elements before stripping tags.
+  const withBreaks = html
     .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p\s*>/gi, "\n\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+    .replace(/<\/(?:p|div|h[1-6]|li|tr)\s*>/gi, "\n\n");
+  // sanitize-html removes ALL tags and drops the *content* of script/style/head
+  // (nonTextTags), replacing the hand-rolled regex chain that CodeQL flagged as
+  // an incomplete / bad-tag-filter sanitizer. Output is used as plain text.
+  const stripped = sanitizeHtml(withBreaks, {
+    allowedTags: [],
+    allowedAttributes: {},
+    nonTextTags: ["style", "script", "textarea", "option", "head", "noscript"],
+  });
+  return decodeBasicEntities(stripped)
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
@@ -219,18 +238,9 @@ function extractBodies(payload: GmailMessage["payload"]): {
 }
 
 function stripHtmlToPlain(html: string): string {
-  return html
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  // Same safe HTML->text path as htmlToReadableText (was a near-duplicate
+  // hand-rolled regex chain flagged by CodeQL).
+  return htmlToReadableText(html);
 }
 
 function foldBase64(data: string): string {
@@ -871,7 +881,11 @@ export const integrationsService = {
       orderBy: "modifiedTime desc",
     });
     if (query) {
-      params.set("q", `name contains '${query.replace(/'/g, "\\'")}'`);
+      // Escape backslashes first, then single quotes, so a value containing a
+      // backslash cannot break out of the quoted Drive query literal (CodeQL
+      // js/incomplete-sanitization — the previous version escaped only `'`).
+      const safeQuery = query.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+      params.set("q", `name contains '${safeQuery}'`);
     }
     if (pageToken) params.set("pageToken", pageToken);
 

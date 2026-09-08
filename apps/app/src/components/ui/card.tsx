@@ -1,14 +1,14 @@
 import type { ComponentProps } from "react";
 import { View } from "react-native";
 import { Text } from "@/components/ui/text";
-import { shadowSm } from "@/lib/shadow";
 import { cn } from "@/lib/utils";
 
 function Card({ className, style, ...props }: ComponentProps<typeof View>) {
+  // CI §12: cards are border + white surface — no shadow.
   return (
     <View
       className={cn("flex flex-col gap-4 rounded-xl border border-border bg-card p-6", className)}
-      style={[shadowSm, style]}
+      style={style}
       {...props}
     />
   );

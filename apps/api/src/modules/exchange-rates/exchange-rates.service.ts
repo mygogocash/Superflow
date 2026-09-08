@@ -29,7 +29,7 @@ export interface FxLookupResult {
 
 // Currencies we try as a bridge when no direct / inverse rate is on
 // file. USD first because finance keeps it as the canonical base;
-// THB second so a TBH-Thailand run can still convert when only entity-
+// THB second so a Thailand-entity run can still convert when only entity-
 // local quotes are stored.
 const BRIDGE_CURRENCIES = ["USD", "THB", "EUR"] as const;
 

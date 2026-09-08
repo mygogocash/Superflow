@@ -87,3 +87,5 @@ export * from "./admin";
 export * from "./integrations";
 export * from "./users";
 export * from "./organizations";
+export * from "./line";
+export * from "./avatar";

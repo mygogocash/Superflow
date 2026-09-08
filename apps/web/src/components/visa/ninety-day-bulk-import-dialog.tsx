@@ -34,7 +34,7 @@ const TEMPLATE_SAMPLE_ROWS = [
   [
     "Kunanon Jarat",
     "kunanon@manut.xyz",
-    "TBH-001",
+    "MNT-001",
     "2026-02-14",
     "pending",
     "Returned from Singapore on the 14th — TM.47 due 15 May",
@@ -202,7 +202,7 @@ export function NinetyDayBulkImportDialog({
             <span className="font-mono">Employee Name</span>,{" "}
             <span className="font-mono">Email</span>, or{" "}
             <span className="font-mono">employeeId</span> (UUID or staff code
-            like <span className="font-mono">TBH-001</span>). Optional:{" "}
+            like <span className="font-mono">MNT-001</span>). Optional:{" "}
             <span className="font-mono">status</span> (pending / to_be_notifying
             / approved / no_required — defaults to pending),{" "}
             <span className="font-mono">notes</span>.

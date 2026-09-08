@@ -1,15 +1,17 @@
 import type { AuthEmailSender } from "@nexora/auth";
 
 type EmailBindings = {
-  EMAIL_SERVICE_URL?: string;
-  EMAIL_SERVICE_API_KEY?: string;
+  RESEND_API_KEY?: string;
+  EMAIL_FROM?: string;
   APP_URL: string;
 };
 
+const RESEND_ENDPOINT = "https://api.resend.com/emails";
+const DEFAULT_FROM = "Manut <noreply@manut.xyz>";
+
 /**
- * Port of apps/api email.service deliverEmail — HTTP POST to the shared email
- * service. Magic-link / reset use a simple html template until dedicated
- * template ids are provisioned.
+ * Auth email sender backed by Resend (POST https://api.resend.com/emails).
+ * Magic-link / reset use a simple inline HTML body.
  */
 export function createEmailSender(env: EmailBindings): AuthEmailSender {
   return {
@@ -17,17 +19,15 @@ export function createEmailSender(env: EmailBindings): AuthEmailSender {
       await deliver(env, {
         to: email,
         templateId: "auth-magic-link",
-        subject: "Your Intranet sign-in link",
-        variables: { url, portalUrl: env.APP_URL },
-        html: `<p>Sign in to Intranet:</p><p><a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p>`,
+        subject: "Your Manut sign-in link",
+        html: `<p>Sign in to Manut:</p><p><a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p>`,
       });
     },
     async sendResetPassword({ email, url }) {
       await deliver(env, {
         to: email,
         templateId: "auth-reset-password",
-        subject: "Reset your Intranet password",
-        variables: { url, portalUrl: env.APP_URL },
+        subject: "Reset your Manut password",
         html: `<p>Reset your password:</p><p><a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p>`,
       });
     },
@@ -40,29 +40,43 @@ async function deliver(
     to: string;
     templateId: string;
     subject: string;
-    variables: Record<string, string>;
     html: string;
   },
 ): Promise<void> {
-  const base = env.EMAIL_SERVICE_URL?.replace(/\/+$/, "");
-  const key = env.EMAIL_SERVICE_API_KEY;
-  if (!base || !key) {
-    console.warn(JSON.stringify({ level: "warn", msg: "email_not_configured", to: input.to, templateId: input.templateId }));
+  const key = env.RESEND_API_KEY;
+  if (!key) {
+    console.warn(
+      JSON.stringify({
+        level: "warn",
+        msg: "email_not_configured",
+        to: input.to,
+        templateId: input.templateId,
+      }),
+    );
     return;
   }
-  const res = await fetch(`${base}/api/emails`, {
+  const res = await fetch(RESEND_ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "x-api-key": key },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${key}`,
+    },
     body: JSON.stringify({
-      templateId: input.templateId,
+      from: env.EMAIL_FROM || DEFAULT_FROM,
       to: input.to,
       subject: input.subject,
-      variables: input.variables,
       html: input.html,
     }),
   });
   if (!res.ok) {
-    console.error(JSON.stringify({ level: "error", msg: "email_send_failed", status: res.status, templateId: input.templateId }));
+    console.error(
+      JSON.stringify({
+        level: "error",
+        msg: "email_send_failed",
+        status: res.status,
+        templateId: input.templateId,
+      }),
+    );
   }
 }
 

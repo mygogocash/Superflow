@@ -26,7 +26,7 @@ const visaDocumentSchema = z.object({
 //     and `holderRelationship` stay null.
 //   - "dependent": `employeeId` is the SPONSOR employee (so the
 //     reminder cron's existing employee-id query path still mails a
-//     TBH inbox), `holderName` carries the dependent's real name, and
+//     Manut inbox), `holderName` carries the dependent's real name, and
 //     `holderRelationship` is a free string ("spouse", "child", …).
 const HOLDER_TYPES = ["employee", "dependent"] as const;
 

@@ -307,7 +307,7 @@ const NAV_GROUPS: NavGroup[] = [
       },
       {
         id: "aria",
-        label: "ARIA",
+        label: "Manut AI",
         href: "/aria",
         icon: Sparkles,
         badge: "AI",

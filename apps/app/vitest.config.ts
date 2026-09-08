@@ -9,6 +9,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "lucide-react-native": path.resolve(__dirname, "./src/test/lucide-react-native-stub.ts"),
     },
   },
 });

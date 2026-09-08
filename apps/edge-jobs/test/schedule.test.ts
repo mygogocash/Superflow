@@ -6,8 +6,20 @@ const bkk = (h: number, m: number, day = 15) => new Date(Date.UTC(2026, 8, day, 
 
 describe("localTime", () => {
   it("converts UTC instants to Bangkok wall clock", () => {
-    expect(localTime(new Date("2026-09-15T01:00:00Z"), TZ)).toEqual({ day: 15, hour: 8, minute: 0 });
-    expect(localTime(new Date("2026-09-14T17:30:00Z"), TZ)).toEqual({ day: 15, hour: 0, minute: 30 });
+    expect(localTime(new Date("2026-09-15T01:00:00Z"), TZ)).toEqual({
+      year: 2026,
+      month: 9,
+      day: 15,
+      hour: 8,
+      minute: 0,
+    });
+    expect(localTime(new Date("2026-09-14T17:30:00Z"), TZ)).toEqual({
+      year: 2026,
+      month: 9,
+      day: 15,
+      hour: 0,
+      minute: 30,
+    });
   });
 });
 
@@ -35,5 +47,11 @@ describe("tickKey", () => {
   it("is stable within a 10-minute bucket and differs across buckets", () => {
     expect(tickKey("fx-sync", bkk(7, 0), TZ)).toBe(tickKey("fx-sync", bkk(7, 9), TZ));
     expect(tickKey("fx-sync", bkk(7, 0), TZ)).not.toBe(tickKey("fx-sync", bkk(7, 10), TZ));
+  });
+  it("uses the local calendar date near midnight (not UTC)", () => {
+    // 00:30 Asia/Bangkok = previous calendar day in UTC
+    const key = tickKey("fx-sync", bkk(0, 30), TZ);
+    expect(key).toContain("2026-09-15T0030");
+    expect(key).not.toContain("2026-09-14");
   });
 });

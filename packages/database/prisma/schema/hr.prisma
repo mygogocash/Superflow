@@ -544,7 +544,7 @@ model LeaveApprovalDecision {
 
 model PublicHoliday {
   id        String   @id @default(uuid()) @db.Uuid
-  // Scoped to one entity (e.g. TBH India). Mirrors LeaveType.entityId so
+  // Scoped to one entity (e.g. Manut India). Mirrors LeaveType.entityId so
   // the same Entity selector can drive both Leave Policies and Holidays.
   entityId  String   @map("entity_id")
   date      DateTime @db.Date
@@ -865,7 +865,7 @@ model VisaRecord {
   // For `holderType = "employee"` (default): the employee whose visa
   // this is. For `holderType = "dependent"`: the SPONSOR employee
   // (e.g. MP's wife's record points at MP), so the existing reminder
-  // cron still routes expiry emails to a TBH inbox without rewriting
+  // cron still routes expiry emails to a Manut inbox without rewriting
   // its query path. The actual holder's display name lives in
   // `holderName`.
   employeeId  String    @map("employee_id") @db.Uuid

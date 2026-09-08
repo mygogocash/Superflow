@@ -23,6 +23,8 @@ export interface AuthUser {
   jobTitle: string | null;
   entity: { id: string; name: string; code: string } | null;
   mustChangePassword: boolean;
+  /** Preferred UI language (BCP-47 primary subtag) or null to follow defaults. */
+  locale: string | null;
 }
 
 // Multi-company (PRD Rule 7) — an entity the user belongs to. `roleId`

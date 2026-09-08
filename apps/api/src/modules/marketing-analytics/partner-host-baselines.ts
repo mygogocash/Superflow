@@ -25,6 +25,7 @@
 
 import type { Prisma } from "@nexora/database";
 
+import { BadRequestException } from "@/common/exceptions/http-exception";
 import { prisma } from "@/infrastructure/database/prisma";
 
 /**
@@ -119,6 +120,11 @@ export async function setHostBaseline(
   slug: string,
   baseline: HostBaseline,
 ): Promise<HostBaselineMap> {
+  // `slug` becomes an object key below; reject the prototype-pollution keys so
+  // a crafted slug cannot poison Object.prototype (CodeQL js/remote-property-injection).
+  if (slug === "__proto__" || slug === "constructor" || slug === "prototype") {
+    throw new BadRequestException("Invalid partner slug");
+  }
   const current = await getHostBaselineOverrides();
   const next: HostBaselineMap = {
     ...current,

@@ -12,6 +12,7 @@ import {
 
 import { trackSessionEnded, trackSessionStarted } from "@/lib/events";
 import { tracking } from "@/lib/tracking";
+import { applyUserLocale } from "@/providers/i18n-provider";
 import type {
   AuthRole,
   AuthUser,
@@ -106,6 +107,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading: false,
         isAuthenticated: true,
       });
+
+      // The server-stored language preference is authoritative, so it follows
+      // the user across devices. Applied here (not just from localStorage) on
+      // every /me refresh; no-op when it already matches.
+      applyUserLocale(result.user.locale);
 
       const roles = result.roles ?? [];
       const employeeOnly =

@@ -66,7 +66,7 @@ describe("buildStatementPdfBuffer", () => {
   it("produces a non-empty PDF buffer (sanitising non-Latin names)", async () => {
     const buf = await buildStatementPdfBuffer({
       company: DEFAULT_INVOICE_COMPANY,
-      entityName: "TBH Thailand",
+      entityName: "Manut Thailand",
       counterparty: "ลูกค้า ABC Co.", // Thai chars must not crash Helvetica
       side: "receivable",
       currency: "THB",

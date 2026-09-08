@@ -3,7 +3,7 @@ import multer from "multer";
 import { ZodError } from "zod";
 
 import { HttpException } from "@/common/exceptions/http-exception";
-import { logger } from "@/common/utils/logger";
+import { logger, scrubLog } from "@/common/utils/logger";
 import { trackFormValidationFailed } from "@/lib/events";
 
 /** Prisma throws this class name; avoid importing @prisma/client in the API layer. */
@@ -65,7 +65,7 @@ export function errorHandler(
   _next: NextFunction,
 ) {
   if (err instanceof ZodError) {
-    logger.warn(`${req.method} ${req.path}`, {
+    logger.warn(scrubLog(`${req.method} ${req.path}`), {
       code: "VALIDATION_ERROR",
       issues: zodIssuesForLog(err),
     });
@@ -88,7 +88,7 @@ export function errorHandler(
   }
 
   if (err instanceof multer.MulterError) {
-    logger.warn(`${req.method} ${req.path}`, {
+    logger.warn(scrubLog(`${req.method} ${req.path}`), {
       code: err.code,
       message: err.message,
     });
@@ -111,9 +111,9 @@ export function errorHandler(
   if (err instanceof HttpException) {
     const logPayload = { code: err.code, message: err.message };
     if (err.status >= 500) {
-      logger.error(`${req.method} ${req.path}`, logPayload);
+      logger.error(scrubLog(`${req.method} ${req.path}`), logPayload);
     } else {
-      logger.warn(`${req.method} ${req.path}`, logPayload);
+      logger.warn(scrubLog(`${req.method} ${req.path}`), logPayload);
     }
     return res.status(err.status).json({
       error: {
@@ -128,7 +128,7 @@ export function errorHandler(
     err.constructor.name === "PrismaClientInitializationError" ||
     err.name === "PrismaClientInitializationError"
   ) {
-    logger.error(`${req.method} ${req.path}`, {
+    logger.error(scrubLog(`${req.method} ${req.path}`), {
       code: "PRISMA_INIT",
       message: err.message,
     });
@@ -143,7 +143,7 @@ export function errorHandler(
   if (isPrismaClientKnownRequestError(err)) {
     const mapped = mapPrismaKnownRequestError(err);
     const logFn = mapped.status >= 500 ? logger.error : logger.warn;
-    logFn(`${req.method} ${req.path}`, {
+    logFn(scrubLog(`${req.method} ${req.path}`), {
       prismaCode: err.code,
       message: err.message,
     });
@@ -155,7 +155,7 @@ export function errorHandler(
     });
   }
 
-  logger.error(`${req.method} ${req.path}`, {
+  logger.error(scrubLog(`${req.method} ${req.path}`), {
     error: err.message,
     stack: err.stack,
   });

@@ -5,7 +5,7 @@ import {
   PERMISSIONS,
   PERMISSIONS_BY_MODULE,
 } from "@/common/constants/permissions";
-import { logger } from "@/common/utils/logger";
+import { logger, scrubLog } from "@/common/utils/logger";
 import { getRequiredParam } from "@/common/utils/params";
 import {
   authenticate,
@@ -51,7 +51,7 @@ router.post(
   asyncHandler(async (req, res) => {
     const input = createRoleSchema.parse(req.body);
     const result = await rolesService.create(input);
-    logger.info(`Role created: ${input.name} by ${req.user!.email}`);
+    logger.info(scrubLog(`Role created: ${input.name} by ${req.user!.email}`));
     void logAudit({
       action: "create",
       resource: "role",
@@ -91,7 +91,7 @@ router.put(
     const id = getRequiredParam(req.params, "id");
     const input = updateRoleSchema.parse(req.body);
     const result = await rolesService.update(id, input);
-    logger.info(`Role updated: ${id} by ${req.user!.email}`);
+    logger.info(scrubLog(`Role updated: ${id} by ${req.user!.email}`));
     void logAudit({
       action: "update",
       resource: "role",
@@ -110,7 +110,7 @@ router.post(
     const id = getRequiredParam(req.params, "id");
     const input = cloneRoleSchema.parse(req.body);
     const result = await rolesService.clone(id, input);
-    logger.info(`Role cloned from ${id}: ${input.name} by ${req.user!.email}`);
+    logger.info(scrubLog(`Role cloned from ${id}: ${input.name} by ${req.user!.email}`));
     void logAudit({
       action: "clone",
       resource: "role",
@@ -128,7 +128,7 @@ router.delete(
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
     const result = await rolesService.remove(id);
-    logger.info(`Role deleted: ${id} by ${req.user!.email}`);
+    logger.info(scrubLog(`Role deleted: ${id} by ${req.user!.email}`));
     void logAudit({
       action: "delete",
       resource: "role",

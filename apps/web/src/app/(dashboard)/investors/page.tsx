@@ -828,7 +828,7 @@ function InvestorsWorkspace() {
           toast.error("Nothing to export");
           return;
         }
-        // Header set mirrors the "TBH Pipeline Master.xlsx" so reps
+        // Header set mirrors the "Pipeline Master.xlsx" so reps
         // can export → edit → re-import without renaming columns.
         // Extra audit columns (Investments / Added By / Created /
         // Notes JSON / Phone / Website / Visibility) are appended
@@ -1907,7 +1907,7 @@ function InvestorsWorkspace() {
           // "Company", "Fund", etc. CrmImportDialog matches headers
           // case-insensitively against this list, so the first hit
           // wins and the rest fall through to undefined.
-          // Aligned with the "TBH Pipeline Master.xlsx" column set
+          // Aligned with the "Pipeline Master.xlsx" column set
           // (Org Name | Category | Location | Key Contact | Title |
           // Email | LinkedIn URL | Revenue Stream | Pipeline Status |
           // Last Contact | Next Action | Est Commission | Cross-Sell |

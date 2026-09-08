@@ -30,6 +30,6 @@ export const TABS_LIST = [
   { id: "preferences", label: "Preferences" },
   { id: "security", label: "Security" },
   { id: "integrations", label: "Integrations" },
-  { id: "aria-brief", label: "ARIA brief" },
+  { id: "aria-brief", label: "Manut AI brief" },
   { id: "system", label: "System" },
 ];

@@ -186,7 +186,7 @@ renamed from "Nexora" to "Intranet" — don't rename it.
 | Database | PostgreSQL 15+ (Supabase, `aws-1-ap-southeast-1`), Prisma 6 |
 | Auth | Supabase Auth (JWT in HTTP-only cookie); permissions resolved server-side per request |
 | Storage | Supabase Storage (`avatars`/`article`/`blog`/`uploads` = public; `documents`/`receipts` = private with signed URLs) |
-| Email | External email service (`EMAIL_SERVICE_URL` + template IDs) |
+| Email | Resend (`RESEND_API_KEY`); HTML rendered in-app (`apps/api/src/infrastructure/email/templates.ts`) |
 | AI | Gemini (default), Anthropic (optional) — feeds the ARIA assistant |
 | Analytics | PostHog (server + client) |
 | Edge | Hono + Hono RPC on Cloudflare Workers. Hyperdrive → Postgres (ERP SoT). Sidecar: D1, Durable Objects, Queues, Workflows, R2, optional Vectorize + Workers AI, Cloudflare Access |
@@ -387,9 +387,9 @@ PORT=3001
 ALLOWED_ORIGINS=http://localhost:3000
 PORTAL_URL=http://localhost:3000
 
-# Email (optional in dev)
-EMAIL_SERVICE_API_KEY=
-EMAIL_SERVICE_URL=
+# Email (Resend; optional in dev — leave unset to skip sending)
+RESEND_API_KEY=
+EMAIL_FROM=Manut <noreply@manut.xyz>
 
 # AI
 GEMINI_API_KEY=
@@ -456,8 +456,8 @@ Open <http://localhost:8081>, sign in with a seeded user (see
 | `PORT` | API | Defaults to 3001 |
 | `ALLOWED_ORIGINS` | API | Comma-separated CORS allowlist |
 | `PORTAL_URL` | API | Used in email links |
-| `EMAIL_SERVICE_API_KEY` | API | Email service authentication |
-| `EMAIL_SERVICE_URL` | API | Email service base URL |
+| `RESEND_API_KEY` | API + Edge | Resend API key for transactional email |
+| `EMAIL_FROM` | API + Edge | Resend-verified sender (e.g. `Manut <noreply@manut.xyz>`) |
 | `GEMINI_API_KEY` | API | ARIA assistant (default model) |
 | `ANTHROPIC_API_KEY` | API | ARIA assistant (optional fallback) |
 | `POSTHOG_API_KEY` | API + Web | Event tracking |

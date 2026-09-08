@@ -448,7 +448,7 @@ export function NinetyDayFormDialog({
                         For a non-employee applicant — spouse, child, parent —
                         whose 90-day filing we track. Fill in the holder name
                         and pick a sponsor employee so reminders still route to
-                        a TBH inbox.
+                        a Manut inbox.
                       </p>
                     )}
                     <FormMessage />
