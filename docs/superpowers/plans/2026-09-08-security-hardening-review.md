@@ -76,17 +76,17 @@ Each wave below is independently reviewable. Do not start Wave N+1 until Wave N�
 
 ### Tasks
 
-- [ ] Confirm production/staging: httpOnly Better Auth cookies vs Bearer-from-storage; write decision in SECURITY_REVIEW_LOG (prefer cookies for web; document native constraints).
-- [ ] Ensure logout clears **all** client session stores (cookie + any `*session.v1` keys).
-- [ ] Add tests: unauthenticated `/api/*` (except allowlist) → 401; revoked session rejected.
-- [ ] CF Access: document env matrix; for production, require `CF_ACCESS_AUD` **or** explicitly document residual risk + compensating controls (Turnstile, rate limit, Trusted Origins).
-- [ ] Audit `TRUSTED_ORIGINS` vs Expo web / staging / prod hosts.
-- [ ] Review permission KV/cache TTL; on role/permission mutation, invalidate cache (or document 60s window as accepted risk with ticket).
-- [ ] Commit: `fix(security): harden session logout + access perimeter docs/tests`
+- [x] Confirm production/staging: httpOnly Better Auth cookies vs Bearer-from-storage; write decision in SECURITY_REVIEW_LOG (prefer cookies for web; document native constraints).
+- [x] Ensure logout clears **all** client session stores (cookie + any `*session.v1` keys).
+- [x] Add tests: unauthenticated `/api/*` (except allowlist) → 401; revoked session rejected.
+- [x] CF Access: document env matrix; for production, require `CF_ACCESS_AUD` **or** explicitly document residual risk + compensating controls (Turnstile, rate limit, Trusted Origins).
+- [x] Audit `TRUSTED_ORIGINS` vs Expo web / staging / prod hosts.
+- [x] Review permission KV/cache TTL; on role/permission mutation, invalidate cache (or document 60s window as accepted risk with ticket).
+- [x] Commit: `fix(security): harden session logout + access perimeter docs/tests`
 
 ### Verify
 
-- [ ] Vitest edge auth/access tests green.
+- [x] Vitest edge auth/access tests green.
 - [ ] Manual: login → logout → API call with old token fails.
 
 ---

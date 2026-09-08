@@ -33,4 +33,17 @@ describe("intranet-edge", () => {
     const res = await run("/ws/messages/general");
     expect(res.status).toBe(426);
   });
+
+  it("returns 401 for unauthenticated protected API routes", async () => {
+    const users = await run("/api/users");
+    expect(users.status).toBe(401);
+    const me = await run("/api/auth/me");
+    expect(me.status).toBe(401);
+  });
+
+  it("leaves Better Auth public handlers reachable without a session", async () => {
+    // Handler may 400/404 on missing body; it must not be 401 from requireAuth.
+    const res = await run("/api/auth/ok", { method: "GET" });
+    expect(res.status).not.toBe(401);
+  });
 });

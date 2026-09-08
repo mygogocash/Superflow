@@ -56,6 +56,14 @@ npx wrangler d1 migrations apply EDGE_DB --local --env staging
 # Set CF_ACCESS_AUD + CF_ACCESS_TEAM_DOMAIN on the Worker. Empty AUD = fail-open.
 ```
 
+**Access fail-open (intentional until Zero Trust cutover):** when `CF_ACCESS_AUD`
+is unset, `requireAccess` skips JWT checks so local/staging/prod keep working
+without a team domain. Residual risk is accepted for now; compensating controls
+are Bot Fight Mode, Turnstile on auth flows, login + global rate limits, and a
+tight `TRUSTED_ORIGINS` list (`APP_URL` + `intranet://` / Expo localhost). Set
+both Access vars when enabling Zero Trust so the Worker fails closed. See
+`docs/ops/SECURITY_REVIEW_LOG.md` Wave 1 matrix.
+
 ### Secrets (staging)
 
 Depot CI puts these after `wrangler deploy --env staging` (secrets cannot exist
