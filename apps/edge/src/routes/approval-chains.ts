@@ -1,6 +1,5 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { PERMISSIONS } from "@nexora/contracts";
 import {
   chainReorderSchema,
   chainScopeParamSchema,
@@ -11,14 +10,16 @@ import {
 import type { ChainScope } from "@nexora/contracts/modules/approval-chains/chain.types";
 import { chainService } from "@nexora/core";
 import type { AppEnv } from "../lib/context";
-import { requirePermission, requireSystemAdmin } from "../middleware/rbac";
+import { requireSystemAdmin } from "../middleware/rbac";
 
+// Approval-chain config is admin surface (approver identities / step order).
+// projects:read is on every employee — do not leak chain layout on that gate.
 export const approvalChains = new Hono<AppEnv>()
-  .get("/", requirePermission(PERMISSIONS.PROJECTS_READ), async (c) => {
+  .get("/", requireSystemAdmin, async (c) => {
     const data = await chainService.listChains(c.var.db);
     return c.json({ data });
   })
-  .get("/:scope", requirePermission(PERMISSIONS.PROJECTS_READ), async (c) => {
+  .get("/:scope", requireSystemAdmin, async (c) => {
     const { scope } = chainScopeParamSchema.parse({ scope: c.req.param("scope") });
     const data = await chainService.getChain(c.var.db, scope as ChainScope);
     if (!data) {

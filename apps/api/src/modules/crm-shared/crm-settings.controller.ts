@@ -22,58 +22,63 @@ import {
 // reads/writes through these parameterized routes so a new CRM is one map
 // entry, not a new controller.
 //
-// Gate shape mirrors it-crm: read for any module reader, write for the
-// module's manage perm (plus projects:manage as the workspace super-perm).
-// read-all is a read-scope widener, never a write grant.
+// Org-wide reminder recipient lists: require read-all/manage (not bare module
+// read or projects:read). Write stays manage-only.
 const MODULE_PERMS: Partial<
   Record<CrmModule, { read: string[]; write: string[] }>
 > = {
   general: {
-    read: [PERMISSIONS.PROJECTS_READ, PERMISSIONS.PROJECTS_READ_ALL],
+    read: [PERMISSIONS.PROJECTS_READ_ALL, PERMISSIONS.PROJECTS_MANAGE],
     write: [PERMISSIONS.PROJECTS_MANAGE],
   },
   hr: {
     read: [
-      PERMISSIONS.HR_CRM_READ,
       PERMISSIONS.HR_CRM_READ_ALL,
+      PERMISSIONS.HR_CRM_MANAGE,
+      PERMISSIONS.PROJECTS_READ_ALL,
       PERMISSIONS.PROJECTS_MANAGE,
     ],
     write: [PERMISSIONS.HR_CRM_MANAGE, PERMISSIONS.PROJECTS_MANAGE],
   },
   legal: {
     read: [
-      PERMISSIONS.LEGAL_CRM_READ,
       PERMISSIONS.LEGAL_CRM_READ_ALL,
+      PERMISSIONS.LEGAL_CRM_MANAGE,
+      PERMISSIONS.PROJECTS_READ_ALL,
       PERMISSIONS.PROJECTS_MANAGE,
     ],
     write: [PERMISSIONS.LEGAL_CRM_MANAGE, PERMISSIONS.PROJECTS_MANAGE],
   },
   accounting: {
     read: [
-      PERMISSIONS.ACCOUNTING_CRM_READ,
       PERMISSIONS.ACCOUNTING_CRM_READ_ALL,
+      PERMISSIONS.ACCOUNTING_CRM_MANAGE,
+      PERMISSIONS.PROJECTS_READ_ALL,
       PERMISSIONS.PROJECTS_MANAGE,
     ],
     write: [PERMISSIONS.ACCOUNTING_CRM_MANAGE, PERMISSIONS.PROJECTS_MANAGE],
   },
   product: {
     read: [
-      PERMISSIONS.PRODUCT_CRM_READ,
       PERMISSIONS.PRODUCT_CRM_READ_ALL,
+      PERMISSIONS.PRODUCT_CRM_MANAGE,
+      PERMISSIONS.PROJECTS_READ_ALL,
       PERMISSIONS.PROJECTS_MANAGE,
     ],
     write: [PERMISSIONS.PRODUCT_CRM_MANAGE, PERMISSIONS.PROJECTS_MANAGE],
   },
   qa: {
     read: [
-      PERMISSIONS.QA_CRM_READ,
       PERMISSIONS.QA_CRM_READ_ALL,
+      PERMISSIONS.QA_CRM_MANAGE,
+      PERMISSIONS.PROJECTS_READ_ALL,
       PERMISSIONS.PROJECTS_MANAGE,
     ],
     write: [PERMISSIONS.QA_CRM_MANAGE, PERMISSIONS.PROJECTS_MANAGE],
   },
   sales: {
-    read: [PERMISSIONS.CRM_READ],
+    // crm:read is on every employee — reminder recipient lists are settings.
+    read: [PERMISSIONS.CRM_SETTINGS_MANAGE],
     write: [PERMISSIONS.CRM_SETTINGS_MANAGE],
   },
 };
