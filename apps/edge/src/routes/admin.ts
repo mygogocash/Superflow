@@ -30,13 +30,18 @@ export const admin = new Hono<AppEnv>()
     "/settings",
     requirePermission(PERMISSIONS.ADMIN_MANAGE),
     zValidator("json", updateSettingsSchema),
-    async (c) => c.json({ data: await adminService.updateSettings(c.var.db, c.req.valid("json")) }),
+    async (c) =>
+      c.json({
+        data: await adminService.updateSettings(c.var.db, c.req.valid("json"), {
+          isSystemAdmin: c.var.user!.isSystemAdmin,
+        }),
+      }),
   )
   .get("/entities", requirePermission(PERMISSIONS.ADMIN_READ, PERMISSIONS.USER_READ), async (c) =>
     c.json(await adminService.listEntities(c.var.db)),
   )
   .get("/module-access/:userId", requirePermission(PERMISSIONS.ADMIN_MANAGE), async (c) =>
-    c.json(await adminService.getModuleAccess(c.var.db, c.req.param("userId"))),
+    c.json(await adminService.getModuleAccess(c.var.db, c.req.param("userId"), c.var.user!.id)),
   )
   .put(
     "/module-access",

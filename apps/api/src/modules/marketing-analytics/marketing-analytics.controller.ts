@@ -118,13 +118,11 @@ router.delete(
 // CRM has a Manage dialog over the same shape — so arming the alert meant a
 // hand-written row in each environment's database.
 //
-// Read is dashboard-level so anyone who can see the numbers can see who is
-// told when they stop agreeing. Write is an org-wide config change, gated on
-// ADMIN_MANAGE like the host baselines above rather than on a marketing
-// campaign permission.
+// Recipient emails are org-wide config (and PII). Both read and write require
+// ADMIN_MANAGE — dashboard viewers do not need the alert mailing list.
 router.get(
   "/drift-settings",
-  requirePermission(...DASHBOARD),
+  requirePermission(PERMISSIONS.ADMIN_MANAGE),
   asyncHandler(async (_req, res) => {
     res.json({ data: { recipients: await getDriftRecipients() } });
   }),

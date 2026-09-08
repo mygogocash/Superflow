@@ -275,7 +275,7 @@ router.get(
   requirePermission(PERMISSIONS.USER_READ),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
-    const result = await usersService.getById(id);
+    const result = await usersService.getById(id, req.user!.id);
     res.json(result);
   }),
 );

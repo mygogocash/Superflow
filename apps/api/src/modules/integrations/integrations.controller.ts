@@ -182,48 +182,6 @@ router.post(
   }),
 );
 
-// Diagnostic — calls Google Gmail + Drive APIs directly with the user's
-// stored access token (no MCP). Reveals whether 403s are MCP-specific or
-// token/scope/policy-wide. Remove after debugging.
-router.get(
-  "/google/probe",
-  authenticate,
-  requirePermission(PERMISSIONS.INTEGRATIONS_USE),
-  asyncHandler(async (req, res) => {
-    const { googleTokenRepository } =
-      await import("@/modules/integrations/google-token.repository");
-    const { accessToken } = await googleTokenRepository.getValid(req.user!.id);
-
-    const probe = async (label: string, url: string) => {
-      const r = await fetch(url, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const body = await r.text();
-      return { label, status: r.status, body: body.slice(0, 500) };
-    };
-
-    const results = await Promise.all([
-      probe(
-        "tokeninfo",
-        `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`,
-      ),
-      probe(
-        "gmail.users.getProfile",
-        "https://gmail.googleapis.com/gmail/v1/users/me/profile",
-      ),
-      probe(
-        "gmail.users.messages.list",
-        "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=1",
-      ),
-      probe(
-        "drive.about.get",
-        "https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)",
-      ),
-    ]);
-
-    res.json({ data: results });
-  }),
-);
 
 router.post(
   "/gmail/read",
