@@ -299,6 +299,73 @@ jobs:
         # the structural tell; thresholds and rationale live in the script.
         run: bash scripts/check-line-length.sh
 
+  # Wave 7 — security baseline. Audit stays warn-only until advisories are
+  # triaged; secret-scan + inventory fail closed. All three always run so a
+  # docs-only paths-ignore cannot skip the secret scan on a later push that
+  # still touches workflow/code.
+  security-audit:
+    name: Dependency audit (warn)
+    needs: changes
+    if: always() && needs.changes.result == 'success'
+    runs-on: depot-ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.depot/actions/setup-workspace
+        with:
+          turbo-cache-key: security-audit
+      - name: pnpm audit --prod (warn; do not fail Validate)
+        run: |
+          set +e
+          pnpm audit --prod --audit-level=high
+          code=$?
+          set -e
+          if [ "$code" -ne 0 ]; then
+            echo "::warning::pnpm audit --prod found high/critical advisories (Wave 7 warn mode — Validate still green). Triage then ratchet to fail-closed."
+          else
+            echo "pnpm audit --prod: no high/critical advisories."
+          fi
+          exit 0
+
+  secret-scan:
+    name: Secret scan
+    needs: changes
+    if: always() && needs.changes.result == 'success'
+    runs-on: depot-ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks
+        run: |
+          set -euo pipefail
+          ver=8.24.0
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${ver}/gitleaks_${ver}_linux_x64.tar.gz" \
+            | tar -xz -C /usr/local/bin gitleaks
+          gitleaks version
+      # Working-tree only (`--no-git`): full-history scan still reports retired
+      # path debt (documented in SECURITY_REVIEW_LOG Wave 7). Config allowlists
+      # doc/example false positives — see `.gitleaks.toml`.
+      - name: gitleaks detect (working tree)
+        run: gitleaks detect --no-git --source . --config .gitleaks.toml --verbose --redact --exit-code 1
+
+  security-inventory:
+    name: Security inventory gates
+    needs: changes
+    if: always() && needs.changes.result == 'success'
+    runs-on: depot-ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.depot/actions/setup-workspace
+        with:
+          turbo-cache-key: security-inventory
+      - name: Ungated routes (--fail)
+        run: pnpm security:ungated-routes -- --fail
+      - name: HTML sinks (--fail)
+        run: pnpm security:dangerously-html -- --fail
+
   # ---------------------------------------------------------------------------
   # deploy-gate was retired with the Cloud Run deploy workflows (2026-09): the
   # freshness/atomicity rule it guarded lived in deploy.yml/deploy-staging.yml,
@@ -322,6 +389,9 @@ jobs:
         edge-check,
         brand-drift,
         long-lines,
+        security-audit,
+        secret-scan,
+        security-inventory,
       ]
     if: always()
     runs-on: depot-ubuntu-latest
@@ -349,13 +419,16 @@ jobs:
               *)       printf '  FAIL   %s (%s)\n' "$1" "$2"; failed=1 ;;
             esac
           }
-          assess "type-check"  "${{ needs.type-check.result }}"
-          assess "lint-api"    "${{ needs.lint-api.result }}"
-          assess "lint-web"    "${{ needs.lint-web.result }}"
-          assess "test"        "${{ needs.test.result }}"
-          assess "edge-check"  "${{ needs.edge-check.result }}"
-          assess "brand-drift" "${{ needs.brand-drift.result }}"
-          assess "long-lines"  "${{ needs.long-lines.result }}"
+          assess "type-check"          "${{ needs.type-check.result }}"
+          assess "lint-api"            "${{ needs.lint-api.result }}"
+          assess "lint-web"            "${{ needs.lint-web.result }}"
+          assess "test"                "${{ needs.test.result }}"
+          assess "edge-check"          "${{ needs.edge-check.result }}"
+          assess "brand-drift"         "${{ needs.brand-drift.result }}"
+          assess "long-lines"          "${{ needs.long-lines.result }}"
+          assess "security-audit"      "${{ needs.security-audit.result }}"
+          assess "secret-scan"         "${{ needs.secret-scan.result }}"
+          assess "security-inventory"  "${{ needs.security-inventory.result }}"
           if [ "$failed" = "1" ]; then
             echo "::error::One or more gates failed. A 'cancelled' gate hit its own timeout — open that job, not this one."
             exit 1

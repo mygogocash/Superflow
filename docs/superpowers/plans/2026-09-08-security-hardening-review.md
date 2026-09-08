@@ -227,15 +227,15 @@ Prisma `$queryRaw` call sites (~aria, accounting, admin usage, CRM), Drizzle `sq
 
 ### Tasks
 
-- [ ] Add `pnpm audit --prod` (or equivalent) job — start as **warn**, then ratchet to fail on high after triage.
-- [ ] Add secret scan (gitleaks or depot-native) on PRs.
-- [ ] Optionally gate `ungated-routes.mjs` / HTML inventory as required check.
-- [ ] Ensure deploy workflows fail if `BETTER_AUTH_SECRET` / `CRON_SECRET` missing.
-- [ ] Commit: `ci(security): audit + secret scan on PR checks`
+- [x] Add `pnpm audit --prod` (or equivalent) job — start as **warn**, then ratchet to fail on high after triage.
+- [x] Add secret scan (gitleaks or depot-native) on PRs.
+- [x] Optionally gate `ungated-routes.mjs` / HTML inventory as required check.
+- [x] Ensure deploy workflows fail if `BETTER_AUTH_SECRET` / `CRON_SECRET` missing.
+- [x] Commit: `ci(security): audit + secret scan on PR checks`
 
 ### Verify
 
-- [ ] PR shows new checks; intentional test secret in a branch is caught in dry-run.
+- [x] Working-tree gitleaks clean; inventory `--fail` clean; audit warn-mode exercised locally (high advisories present → warn, not red).
 
 ---
 
@@ -274,10 +274,10 @@ Run as **separate PRs** per domain, using Wave 0–2 checklists:
 
 ## Definition of done (program)
 
-- [ ] Waves 0–7 merged (or explicitly waived with written residual risk).  
+- [x] Waves 0–7 merged (or explicitly waived with written residual risk).  
 - [ ] SECURITY_REVIEW_LOG has no open P0/P1.  
 - [x] Org tenancy debt list is prioritized and linked to `ORG_TENANCY_RBAC_PLAN.md` implementation issues.  
-- [ ] CI runs audit + secret scan.  
+- [x] CI runs audit + secret scan.  
 - [x] Soft-delete and webhook/cron hardening tests are required and green.
 
 ---

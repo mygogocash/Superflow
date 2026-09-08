@@ -40,6 +40,30 @@ jobs:
         with:
           turbo-cache-key: deploy-edge-production
 
+      - name: Require production secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID BETTER_AUTH_SECRET CRON_SECRET; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::${name} is unset in Depot — production deploy cannot proceed."
+              missing=1
+            fi
+          done
+          if [ -n "${CRON_SECRET:-}" ] && [ "${#CRON_SECRET}" -lt 32 ]; then
+            echo "::error::CRON_SECRET must be at least 32 characters (Wave 4 fail-closed)."
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+          echo "Required production secrets present (values not printed)."
+
       - name: Drizzle migrate (production)
         if: ${{ secrets.DATABASE_URL != '' }}
         env:

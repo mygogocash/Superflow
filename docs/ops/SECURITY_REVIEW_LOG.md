@@ -23,7 +23,7 @@ Allowlist for intentional public / alt-auth surfaces: `scripts/security/allowlis
 | SEC-005 | 0 | P0/P1 | Org tenancy incomplete on ERP rows | mitigated | Wave 3: `assertSameOrg` + users/membership scoping + `ORG_TENANCY_ENFORCED` fail-closed (users/org only). ERP column backfill still debt — see Wave 3 tenancy debt below | |
 | SEC-006 | 0 | P1 | Cron/webhook secret compare | done | Wave 4: timing-safe + fail-closed empty/short secret (≥32) | |
 | SEC-007 | 0 | P2 | CF Access fail-open when AUD unset | accepted | Wave 1: documented residual risk + compensating controls; set `CF_ACCESS_AUD` when Zero Trust is cut over | |
-| SEC-008 | 0 | P3 | No CI audit/secret-scan gate | open | Wave 7 | |
+| SEC-008 | 0 | P3 | No CI audit/secret-scan gate | done | Wave 7: `security-audit` (warn), `secret-scan` (gitleaks fail-closed), `security-inventory` (--fail) on Depot Validate; deploy requires `BETTER_AUTH_SECRET` + `CRON_SECRET` (≥32) | |
 | SEC-009 | 1 | P2 | RBAC KV not invalidated on role assign | done | `PUT /api/users/:id/roles` now calls `invalidateUserPermissions` | |
 
 ## Wave 1 — session / perimeter (2026-09-08)
@@ -218,3 +218,27 @@ Do **not** claim multi-org ERP is done until debt rows above carry `organization
 ### Tests
 
 - `attendance.repository.soft-delete.test.ts` asserts leave raw SQL includes `deleted_at IS NULL`.
+
+## Wave 7 — CI security baseline (2026-09-08)
+
+### Landed
+
+| Surface | Change |
+|---------|--------|
+| Depot `pr-checks.yml` | Jobs `security-audit` (warn-only `pnpm audit --prod --audit-level=high`), `secret-scan` (gitleaks working-tree, fail-closed), `security-inventory` (`security:ungated-routes` + `security:dangerously-html` with `--fail`); all wired into Validate |
+| `.gitleaks.toml` | Allowlists docs/agents/build artifacts + investor localStorage false positives; **working-tree scan only** (`--no-git`) — full-history findings in retired paths remain residual debt |
+| Deploy staging / production | Fail-closed require `BETTER_AUTH_SECRET` + `CRON_SECRET` (min 32 chars); staging also puts `CRON_SECRET` on edge + edge-jobs Workers |
+| GitHub `pr-checks.yml` | Parity jobs (Actions disabled; kept for future re-enable) |
+
+### Residual
+
+| id | Finding | Disposition |
+|----|---------|-------------|
+| SEC-008 | No CI audit/secret-scan | **fixed** (audit warn-only until advisories triaged; then ratchet to fail-closed) |
+| SEC-015 | `pnpm audit --prod` high advisories (transitive `image-size` via Expo metro) | **accepted / warn** — triage + upgrade path before fail-closed |
+| SEC-016 | Full-history gitleaks noise in retired paths | **accepted** — Wave 7 gates working tree; history cleanup is separate debt |
+
+### Verify
+
+- Local: `gitleaks detect --no-git --config .gitleaks.toml` → no leaks.
+- Local: `pnpm security:ungated-routes -- --fail` + `pnpm security:dangerously-html -- --fail` → clean.

@@ -43,15 +43,20 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           set -euo pipefail
           missing=0
-          for name in STAGING_DIRECT_URL CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID BETTER_AUTH_SECRET; do
+          for name in STAGING_DIRECT_URL CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID BETTER_AUTH_SECRET CRON_SECRET; do
             if [ -z "${!name:-}" ]; then
               echo "::error::${name} is unset in Depot — staging deploy cannot proceed."
               missing=1
             fi
           done
+          if [ -n "${CRON_SECRET:-}" ] && [ "${#CRON_SECRET}" -lt 32 ]; then
+            echo "::error::CRON_SECRET must be at least 32 characters (Wave 4 fail-closed)."
+            missing=1
+          fi
           if [ "$missing" -ne 0 ]; then
             exit 1
           fi
@@ -84,6 +89,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
           BETTER_AUTH_API_KEY: ${{ secrets.BETTER_AUTH_API_KEY }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
         working-directory: apps/edge
         run: |
           set -euo pipefail
@@ -94,6 +100,14 @@ jobs:
           fi
           printf '%s' "$BETTER_AUTH_SECRET" | npx wrangler secret put BETTER_AUTH_SECRET --env staging
           echo "Put BETTER_AUTH_SECRET on intranet-edge-staging."
+          if [ -z "${CRON_SECRET:-}" ] || [ "${#CRON_SECRET}" -lt 32 ]; then
+            echo "::error::CRON_SECRET unset or shorter than 32 chars — refusing staging cron without a strong secret."
+            exit 1
+          fi
+          printf '%s' "$CRON_SECRET" | npx wrangler secret put CRON_SECRET --env staging
+          echo "Put CRON_SECRET on intranet-edge-staging."
+          printf '%s' "$CRON_SECRET" | npx wrangler secret put CRON_SECRET --env staging --config ../edge-jobs/wrangler.jsonc
+          echo "Put CRON_SECRET on intranet-edge-jobs-staging."
           if [ -n "${BETTER_AUTH_API_KEY:-}" ]; then
             printf '%s' "$BETTER_AUTH_API_KEY" | npx wrangler secret put BETTER_AUTH_API_KEY --env staging
             echo "Put BETTER_AUTH_API_KEY on intranet-edge-staging."

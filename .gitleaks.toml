@@ -1,0 +1,23 @@
+# Wave 7 secret-scan baseline. Scans the working tree (`gitleaks detect --no-git`),
+# not full git history — historical findings in retired paths remain residual debt.
+title = "Manut"
+
+[allowlist]
+description = "Known false positives (docs examples + UI localStorage keys + build artifacts)"
+paths = [
+  '''^\.agents/''',
+  '''^docs/''',
+  '''(^|/)CHANGELOG\.md$''',
+  '''(^|/)node_modules/''',
+  '''(^|/)\.git/''',
+  '''(^|/)dist/''',
+  '''(^|/)coverage/''',
+  '''(^|/)\.turbo/''',
+  '''(^|/)\.next/''',
+  '''(^|/)\.playwright-mcp/''',
+]
+
+# localStorage column-layout keys look like API tokens to generic-api-key.
+regexes = [
+  '''investors-col-(order|width)-v\d+''',
+]
