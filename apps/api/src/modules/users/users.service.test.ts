@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, type Mock, vi } from "vitest";
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   NotFoundException,
 } from "@/common/exceptions/http-exception";
 import { sendWelcomeTemplateEmail } from "@/infrastructure/email/email.service";
@@ -50,9 +51,18 @@ const mockUserRoleFindFirst = vi.fn();
 const mockRoleFindUnique = vi.fn();
 const mockEntityFindMany = vi.fn();
 const mockRoleFindMany = vi.fn();
+const mockUserFindUnique = vi.fn();
+const mockOrgMembershipFindFirst = vi.fn();
 
 vi.mock("@/infrastructure/database/prisma", () => ({
   prisma: {
+    user: {
+      findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
+    },
+    organizationMembership: {
+      findFirst: (...args: unknown[]) => mockOrgMembershipFindFirst(...args),
+      findMany: vi.fn(),
+    },
     userRole: {
       findFirst: (...args: unknown[]) => mockUserRoleFindFirst(...args),
     },
@@ -78,6 +88,8 @@ describe("UsersService", () => {
     mockRoleFindUnique.mockResolvedValue(null);
     mockEntityFindMany.mockResolvedValue([]);
     mockRoleFindMany.mockResolvedValue([]);
+    mockUserFindUnique.mockResolvedValue(null);
+    mockOrgMembershipFindFirst.mockResolvedValue(null);
   });
 
   describe("list", () => {
@@ -163,6 +175,75 @@ describe("UsersService", () => {
       await expect(usersService.getById("non-existent")).rejects.toThrow(
         NotFoundException,
       );
+    });
+
+    it("rejects org-scoped actors without an active organization", async () => {
+      mockUserFindUnique.mockResolvedValue({
+        platformRole: "member",
+        activeOrganizationId: null,
+      });
+      await expect(usersService.getById("user-123", "actor-1")).rejects.toThrow(
+        /Active organization required/,
+      );
+      expect(usersRepository.findById).not.toHaveBeenCalled();
+    });
+
+    it("404s when target user is outside the actor organization", async () => {
+      mockUserFindUnique.mockResolvedValue({
+        platformRole: "member",
+        activeOrganizationId: "org-1",
+      });
+      mockOrgMembershipFindFirst.mockResolvedValue(null);
+      await expect(usersService.getById("outsider", "actor-1")).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(usersRepository.findById).not.toHaveBeenCalled();
+    });
+
+    it("returns user when target is an org member", async () => {
+      const mockUser = {
+        id: "user-123",
+        email: "test@example.com",
+        name: "Test User",
+        avatarUrl: null,
+        phone: null,
+        department: null,
+        jobTitle: null,
+        employeeId: "EMP001",
+        reportingTo: null,
+        employmentType: null,
+        startDate: null,
+        endDate: null,
+        dateOfBirth: null,
+        salary: 50000,
+        currency: "USD",
+        location: null,
+        country: null,
+        timezone: null,
+        passportNumber: null,
+        thaiId: null,
+        taxId: null,
+        aadhaarNumber: null,
+        panCardNumber: null,
+        workPermitType: null,
+        visaType: null,
+        permitNumber: null,
+        isActive: true,
+        entity: null,
+        manager: null,
+        userRoles: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockUserFindUnique.mockResolvedValue({
+        platformRole: "member",
+        activeOrganizationId: "org-1",
+      });
+      mockOrgMembershipFindFirst.mockResolvedValue({ userId: "user-123" });
+      (usersRepository.findById as Mock).mockResolvedValue(mockUser);
+      const result = await usersService.getById("user-123", "actor-1");
+      expect(result.data.id).toBe("user-123");
+      expect(result.data.salary).toBe(50000);
     });
   });
 

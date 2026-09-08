@@ -11,7 +11,8 @@ import type {
 import type { Db } from "@nexora/db";
 import { asc, desc, eq } from "drizzle-orm";
 import { schema } from "@nexora/db";
-import { NotFoundException } from "../http-exception";
+import { ForbiddenException, NotFoundException } from "../http-exception";
+import { assertActorCanAccessUser } from "../users/service";
 import * as repo from "./admin.repository";
 
 export async function listAuditLogs(
@@ -48,7 +49,15 @@ export async function getSettings(db: Db) {
   return result;
 }
 
-export async function updateSettings(db: Db, input: UpdateSettingsInput) {
+export async function updateSettings(
+  db: Db,
+  input: UpdateSettingsInput,
+  options: { isSystemAdmin?: boolean } = {},
+) {
+  const securityWrites = input.settings.filter((s) => s.key.startsWith("security."));
+  if (securityWrites.length > 0 && !options.isSystemAdmin) {
+    throw new ForbiddenException("System administrator required to change security settings");
+  }
   await repo.upsertSettings(
     db,
     input.settings.map((s) => ({ key: s.key, value: s.value })),
@@ -56,7 +65,8 @@ export async function updateSettings(db: Db, input: UpdateSettingsInput) {
   return getSettings(db);
 }
 
-export async function getModuleAccess(db: Db, userId: string) {
+export async function getModuleAccess(db: Db, userId: string, actorId: string) {
+  await assertActorCanAccessUser(db, actorId, userId);
   const [user] = await db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.id, userId)).limit(1);
   if (!user) throw new NotFoundException("User not found");
   const access = await repo.findModuleAccessByUser(db, userId);
@@ -64,6 +74,7 @@ export async function getModuleAccess(db: Db, userId: string) {
 }
 
 export async function updateModuleAccess(db: Db, input: UpdateModuleAccessInput, actorId: string) {
+  await assertActorCanAccessUser(db, actorId, input.userId);
   const [user] = await db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.id, input.userId)).limit(1);
   if (!user) throw new NotFoundException("User not found");
   await repo.upsertModuleAccess(db, input.userId, input.modules, actorId);

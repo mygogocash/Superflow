@@ -201,7 +201,28 @@ export class UsersService {
     };
   }
 
-  async getById(id: string) {
+  async getById(id: string, actorId?: string) {
+    if (actorId) {
+      const actor = await prisma.user.findUnique({
+        where: { id: actorId },
+        select: { platformRole: true, activeOrganizationId: true },
+      });
+      if (!isPlatformAdmin(actor?.platformRole)) {
+        const orgId = actor?.activeOrganizationId ?? null;
+        if (!orgId) {
+          throw new ForbiddenException("Active organization required");
+        }
+        const membership = await prisma.organizationMembership.findFirst({
+          where: { organizationId: orgId, userId: id, isActive: true },
+          select: { userId: true },
+        });
+        if (!membership) {
+          // Same as list(): out-of-org ids are invisible (avoid existence oracle on PII).
+          throw new NotFoundException("User not found");
+        }
+      }
+    }
+
     const user = await usersRepository.findById(id);
     if (!user) throw new NotFoundException("User not found");
 

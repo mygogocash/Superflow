@@ -32,6 +32,10 @@ export const push = new Hono<AppEnv>()
     return c.json({ data });
   })
   .post("/test", requireAuth, zValidator("json", testNotificationSchema), async (c) => {
+    // Parity with Express: self-test push is not registered in production.
+    if (process.env.NODE_ENV === "production") {
+      return c.json({ error: { message: "Not Found", statusCode: 404 } }, 404);
+    }
     const input = c.req.valid("json");
     const data = await pushService.sendToUsers(c.var.db, [c.var.user!.id], {
       title: input.title ?? "Test notification",

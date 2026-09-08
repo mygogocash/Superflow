@@ -121,7 +121,7 @@ export async function list(
   };
 }
 
-async function assertActorCanAccessUser(
+export async function assertActorCanAccessUser(
   db: Db,
   actorId: string,
   targetUserId: string,

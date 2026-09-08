@@ -362,3 +362,36 @@ Do **not** claim multi-org ERP is done until debt rows above carry `organization
 - Manual: stranger conversation id → 404 on get/delete/chat; knowledge ACL miss → 404.
 - `pnpm --filter @nexora/core --filter @nexora/api --filter @nexora/edge exec tsc --noEmit`
 - `pnpm --filter @nexora/api exec vitest run src/modules/aria/__tests__/aria-tools.eval.test.ts src/modules/aria/__tests__/aria-feedback.test.ts`
+
+## Wave 8 — Admin / telemetry / push deep-dive (2026-09-08)
+
+### Findings fixed
+
+| id | Sev | Finding | Fix |
+|----|-----|---------|-----|
+| SEC-046 | P1 | Edge push `deleteByEndpoint` ignored `userId` — any auth user could unsubscribe another device | Scope delete with `and(endpoint, userId)`; return `{ removed, count }` |
+| SEC-047 | P1 | Org `admin:manage` could edit any user’s module access + write `security.*` settings with no system-admin gate | Module-access goes through `assertActorCanAccessUser`; `security.*` settings require `isSystemAdmin` |
+| SEC-048 | P1 | Express `users.getById` had no actor/org check (salary / passport / tax PII) | Pass `req.user.id`; assert active-org membership (404 out-of-org, same as list) |
+| SEC-049 | P2 | Edge `POST /push/test` always registered in production | Return 404 when `NODE_ENV === "production"` (Express parity) |
+| SEC-050 | P2 | Push subscribe echoed `auth` / `p256dh` secrets | Strip secrets from subscribe response |
+| SEC-051 | P2 | Express `GET /integrations/google/probe` leaked live Google token diagnostics | Remove diagnostic route |
+| SEC-052 | P2 | Marketing drift-settings GET readable with dashboard perms (recipient emails) | Gate GET on `ADMIN_MANAGE` |
+
+### Residual (Admin batch)
+
+| id | Finding | Disposition |
+|----|---------|-------------|
+| SEC-053 | Telemetry ingest still auth-gated but payload schema may accept free-form client fields | accepted for this batch; tighten field allowlist in a follow-up if PII shows up in warehouses |
+| SEC-054 | Express push module (if still mounted) should keep the same ownership + secret-stripping invariants as edge | follow-up if Express push remains in the dual-stack window |
+
+### Verify
+
+- Manual: user A cannot unsubscribe user B’s push endpoint (removed=false).
+- Manual: non-system-admin with `admin:manage` → 403 on `security.*` settings write; cannot read/write module-access for users outside active org.
+- Manual: org member → `GET /users/:id` for outsider → 404; in-org colleague with salary fields → 200.
+- Manual: production `POST /push/test` → 404; subscribe response has no auth/p256dh.
+- Manual: `GET /integrations/google/probe` → 404/gone; drift-settings GET without `admin:manage` → 403.
+- `pnpm --filter @nexora/core --filter @nexora/api --filter @nexora/edge exec tsc --noEmit`
+- `pnpm --filter @nexora/core exec vitest run src/push/push.service.test.ts src/admin/admin.service.test.ts`
+- `pnpm --filter @nexora/api exec vitest run src/modules/users/users.service.test.ts`
+

@@ -31,13 +31,21 @@ export async function subscribe(
   userId: string,
   input: { endpoint: string; keys: { p256dh: string; auth: string }; userAgent?: string | null },
 ) {
-  return repo.upsertSubscription(db, {
+  const row = await repo.upsertSubscription(db, {
     userId,
     endpoint: input.endpoint,
     p256dh: input.keys.p256dh,
     auth: input.keys.auth,
     userAgent: input.userAgent,
   });
+  // Never echo push auth / p256dh material back to the client.
+  return {
+    id: row.id,
+    endpoint: row.endpoint,
+    userAgent: row.userAgent ?? null,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+  };
 }
 
 export async function unsubscribe(db: Db, userId: string, endpoint: string) {

@@ -1,4 +1,4 @@
-import { count, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import type { Db } from "@nexora/db";
 import { schema } from "@nexora/db";
 
@@ -46,10 +46,18 @@ export async function upsertSubscription(db: Db, data: {
 }
 
 export async function deleteByEndpoint(db: Db, userId: string, endpoint: string) {
-  await db
+  // Must scope by userId: endpoint URLs are guessable/replayable; never let
+  // one authenticated user unsubscribe another user's device.
+  const deleted = await db
     .delete(schema.pushSubscriptions)
-    .where(eq(schema.pushSubscriptions.endpoint, endpoint));
-  return { removed: true };
+    .where(
+      and(
+        eq(schema.pushSubscriptions.endpoint, endpoint),
+        eq(schema.pushSubscriptions.userId, userId),
+      ),
+    )
+    .returning({ id: schema.pushSubscriptions.id });
+  return { removed: deleted.length > 0, count: deleted.length };
 }
 
 export async function deleteAllForUser(db: Db, userId: string) {
