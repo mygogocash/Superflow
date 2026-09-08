@@ -338,10 +338,20 @@ export async function restore(db: Db, id: string, actorId: string, permissions: 
   return repo.restore(db, id);
 }
 
-export async function permanentDelete(db: Db, id: string) {
-  const existing = await repo.findById(db, id);
+export async function permanentDelete(
+  db: Db,
+  id: string,
+  permissions: string[],
+) {
+  // Soft-deleted rows are the normal purge target; the live finder would 404 them.
+  const existing = await repo.findByIdIncludingDeleted(db, id);
   if (!existing) {
     throw new NotFoundException("Cash advance request not found");
+  }
+  if (!permissions.includes(PERMISSIONS.CASH_ADVANCE_APPROVE)) {
+    throw new ForbiddenException(
+      "Only approvers can permanently delete cash advance requests",
+    );
   }
   return repo.permanentDelete(db, id);
 }

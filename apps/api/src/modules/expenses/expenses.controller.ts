@@ -352,7 +352,10 @@ router.delete(
   requirePermission(PERMISSIONS.EXPENSE_HR_DELETE),
   asyncHandler(async (req, res) => {
     const reportId = getRequiredParam(req.params, "reportId");
-    const data = await expensesService.permanentDeleteReport(reportId);
+    const data = await expensesService.permanentDeleteReport(
+      reportId,
+      req.user!.permissions,
+    );
     res.json({ data });
   }),
 );
@@ -666,7 +669,10 @@ router.delete(
   requirePermission(PERMISSIONS.EXPENSE_HR_DELETE),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
-    const data = await expensesService.permanentDeleteExpense(id);
+    const data = await expensesService.permanentDeleteExpense(
+      id,
+      req.user!.permissions,
+    );
     res.json({ data });
   }),
 );

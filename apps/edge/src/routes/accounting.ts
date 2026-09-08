@@ -297,7 +297,14 @@ export const accounting = new Hono<AppEnv>()
     return c.json({ data: { success: true } });
   })
   .post("/journals/:id/restore", requirePermission(PERMISSIONS.ACCOUNTING_CREATE), async (c) =>
-    c.json({ data: await accountingService.restoreJournal(c.var.db, c.req.param("id")) }),
+    c.json({
+      data: await accountingService.restoreJournal(
+        c.var.db,
+        c.req.param("id"),
+        c.var.user!.id,
+        c.var.user!.permissions,
+      ),
+    }),
   )
   .put("/journals/:id/approve", requirePermission(PERMISSIONS.ACCOUNTING_APPROVE), async (c) =>
     c.json({ data: await accountingService.approveJournal(c.var.db, c.req.param("id"), c.var.user!.id) }),

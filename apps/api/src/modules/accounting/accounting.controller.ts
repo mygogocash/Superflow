@@ -640,7 +640,11 @@ router.post(
   requirePermission(PERMISSIONS.ACCOUNTING_ADMIN),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
-    const data = await accountingService.restoreJournal(id);
+    const data = await accountingService.restoreJournal(
+      id,
+      req.user!.id,
+      req.user!.permissions,
+    );
     void logAudit({
       action: "restore",
       resource: "journal_entry",
@@ -856,7 +860,11 @@ router.post(
   requirePermission(PERMISSIONS.ACCOUNTING_ADMIN),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
-    const data = await accountingService.restoreInvoice(id);
+    const data = await accountingService.restoreInvoice(
+      id,
+      req.user!.id,
+      req.user!.permissions,
+    );
     void logAudit({
       action: "restore",
       resource: "invoice",

@@ -7,6 +7,7 @@ import { cashAdvanceService } from "@/modules/cash-advance/cash-advance.service"
 vi.mock("@/modules/cash-advance/cash-advance.repository", () => ({
   cashAdvanceRepository: {
     findById: vi.fn(),
+    findByIdIncludingDeleted: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     findApprovalSteps: vi.fn(),
@@ -14,6 +15,7 @@ vi.mock("@/modules/cash-advance/cash-advance.repository", () => ({
     findDecisions: vi.fn(),
     updateDecision: vi.fn(),
     findUserById: vi.fn(),
+    permanentDelete: vi.fn(),
   },
 }));
 vi.mock("@/infrastructure/email/email.service", () => ({
@@ -32,6 +34,8 @@ vi.mock("@/infrastructure/database/prisma", () => ({
 }));
 
 const findById = cashAdvanceRepository.findById as Mock;
+const findByIdIncludingDeleted =
+  cashAdvanceRepository.findByIdIncludingDeleted as Mock;
 const create = cashAdvanceRepository.create as Mock;
 const update = cashAdvanceRepository.update as Mock;
 const findApprovalSteps = cashAdvanceRepository.findApprovalSteps as Mock;
@@ -39,6 +43,7 @@ const createDecisions = cashAdvanceRepository.createDecisions as Mock;
 const findDecisions = cashAdvanceRepository.findDecisions as Mock;
 const updateDecision = cashAdvanceRepository.updateDecision as Mock;
 const findUserById = cashAdvanceRepository.findUserById as Mock;
+const permanentDelete = cashAdvanceRepository.permanentDelete as Mock;
 
 const REQUESTER = "emp-1";
 const MANAGER = "mgr-1";
@@ -450,5 +455,34 @@ describe("cashAdvanceService.withdraw — unsubmit to draft + authz", () => {
     await expect(
       cashAdvanceService.withdraw("ca-1", REQUESTER),
     ).rejects.toThrow("Only submitted requests can be unsubmitted");
+  });
+});
+
+describe("CashAdvanceService permanent delete (soft-delete IDOR)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("purges a soft-deleted row when the actor holds approve", async () => {
+    findByIdIncludingDeleted.mockResolvedValue(
+      baseRequest({ deletedAt: new Date() }),
+    );
+    permanentDelete.mockResolvedValue({ id: "ca-1" });
+
+    await cashAdvanceService.permanentDelete("ca-1", APPROVE);
+
+    expect(findByIdIncludingDeleted).toHaveBeenCalledWith("ca-1");
+    expect(permanentDelete).toHaveBeenCalledWith("ca-1");
+  });
+
+  it("forbids permanent delete without approve permission", async () => {
+    findByIdIncludingDeleted.mockResolvedValue(
+      baseRequest({ deletedAt: new Date() }),
+    );
+
+    await expect(
+      cashAdvanceService.permanentDelete("ca-1", ["cash-advance:create"]),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(permanentDelete).not.toHaveBeenCalled();
   });
 });

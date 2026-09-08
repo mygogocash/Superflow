@@ -1028,10 +1028,17 @@ export class TravelService {
     return travelRepository.restoreRequest(id);
   }
 
-  async permanentDeleteRequest(id: string) {
-    const request = await travelRepository.findRequestById(id);
+  async permanentDeleteRequest(id: string, permissions: string[]) {
+    // Soft-deleted rows are the normal purge target; the live finder would 404 them.
+    const request =
+      await travelRepository.findRequestByIdIncludingDeleted(id);
     if (!request) {
       throw new NotFoundException("Travel request not found");
+    }
+    if (!permissions.includes(PERMISSIONS.TRAVEL_HR_READ)) {
+      throw new ForbiddenException(
+        "Only HR can permanently delete travel requests",
+      );
     }
     return travelRepository.permanentDeleteRequest(id);
   }

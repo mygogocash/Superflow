@@ -198,7 +198,10 @@ router.delete(
   requirePermission(PERMISSIONS.CASH_ADVANCE_APPROVE),
   asyncHandler(async (req, res) => {
     const id = getRequiredParam(req.params, "id");
-    const result = await cashAdvanceService.permanentDelete(id);
+    const result = await cashAdvanceService.permanentDelete(
+      id,
+      req.user!.permissions,
+    );
     res.json({ data: result });
   }),
 );

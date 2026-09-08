@@ -104,16 +104,16 @@ Each wave below is independently reviewable. Do not start Wave N+1 until Wave N�
 
 ### Tasks
 
-- [ ] Grep all `restore` / `permanent` / `IncludingDeleted` handlers; for each, assert service-level owner-or-HR (or module-specific) check exists + has a unit test.
-- [ ] Spot-check approval modules (travel, cash-advance, expenses, leave, proposals, approval-chains): route is read-gated; **authority** is `assertCanActOnStep` / identity.
-- [ ] Add negative tests: user A cannot restore/approve/delete user B’s resource (one test per module family).
-- [ ] Audit `requireSystemAdmin` usages — ensure none are reachable by org Admin post-tenancy.
-- [ ] Commit: `fix(security): close soft-delete and approval IDOR gaps`
+- [x] Grep all `restore` / `permanent` / `IncludingDeleted` handlers; for each, assert service-level owner-or-HR (or module-specific) check exists + has a unit test.
+- [x] Spot-check approval modules (travel, cash-advance, expenses, leave, proposals, approval-chains): route is read-gated; **authority** is `assertCanActOnStep` / identity.
+- [x] Add negative tests: user A cannot restore/approve/delete user B’s resource (one test per module family).
+- [x] Audit `requireSystemAdmin` usages — ensure none are reachable by org Admin post-tenancy.
+- [x] Commit: `fix(security): close soft-delete and approval IDOR gaps`
 
 ### Verify
 
-- [ ] New IDOR tests fail before fix, pass after.
-- [ ] `pnpm --filter @nexora/api test` / edge equivalent for touched suites.
+- [x] New IDOR tests fail before fix, pass after.
+- [x] `pnpm --filter @nexora/api test` / edge equivalent for touched suites.
 
 ---
 

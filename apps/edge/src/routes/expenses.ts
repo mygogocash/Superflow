@@ -170,7 +170,13 @@ export const expenses = new Hono<AppEnv>()
     }),
   )
   .delete("/reports/:reportId/permanent", requirePermission(PERMISSIONS.EXPENSE_HR_DELETE), async (c) =>
-    c.json({ data: await expensesService.permanentDeleteReport(c.var.db, c.req.param("reportId")) }),
+    c.json({
+      data: await expensesService.permanentDeleteReport(
+        c.var.db,
+        c.req.param("reportId"),
+        c.var.user!.permissions,
+      ),
+    }),
   )
   .post(
     "/reports/:reportId/expenses",
@@ -313,7 +319,13 @@ export const expenses = new Hono<AppEnv>()
     }),
   )
   .delete("/:id/permanent", requirePermission(PERMISSIONS.EXPENSE_HR_DELETE), async (c) =>
-    c.json({ data: await expensesService.permanentDeleteExpense(c.var.db, c.req.param("id")) }),
+    c.json({
+      data: await expensesService.permanentDeleteExpense(
+        c.var.db,
+        c.req.param("id"),
+        c.var.user!.permissions,
+      ),
+    }),
   )
   .put("/:id/approve", requirePermission(PERMISSIONS.EXPENSE_APPROVE), async (c) =>
     c.json({ data: await expensesService.approveExpense(c.var.db, c.req.param("id"), c.var.user!.id) }),

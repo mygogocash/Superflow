@@ -58,15 +58,32 @@ function canReadAllAccounting(permissions: string[]): boolean {
   );
 }
 
+function assertDocumentAccess(
+  document: { createdBy: string | null },
+  actorId: string,
+  permissions: string[],
+  label: string,
+) {
+  if (canReadAllAccounting(permissions)) return;
+  if (document.createdBy !== actorId) {
+    throw new ForbiddenException(`You can only access your own ${label}`);
+  }
+}
+
 function assertInvoiceAccess(
   invoice: { createdBy: string | null },
   actorId: string,
   permissions: string[],
 ) {
-  if (canReadAllAccounting(permissions)) return;
-  if (invoice.createdBy !== actorId) {
-    throw new ForbiddenException("You can only access your own invoices/bills");
-  }
+  assertDocumentAccess(invoice, actorId, permissions, "invoices/bills");
+}
+
+function assertJournalAccess(
+  journal: { createdBy: string | null },
+  actorId: string,
+  permissions: string[],
+) {
+  assertDocumentAccess(journal, actorId, permissions, "journal entries");
 }
 
 function lineItemsToCalcInput(
@@ -326,7 +343,15 @@ export async function deleteJournal(db: Db, id: string, actorId: string) {
   return { success: true };
 }
 
-export async function restoreJournal(db: Db, id: string) {
+export async function restoreJournal(
+  db: Db,
+  id: string,
+  actorId: string,
+  permissions: string[],
+) {
+  const existing = await repo.findJournalById(db, id, { includeDeleted: true });
+  if (!existing) throw new NotFoundException("Journal entry not found");
+  assertJournalAccess(existing, actorId, permissions);
   const restored = await db.transaction(async (tx) => repo.restoreJournal(tx, id));
   if (!restored) throw new NotFoundException("Journal entry not found");
   return decorateJournalTotals(restored);
