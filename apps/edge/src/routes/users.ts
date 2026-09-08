@@ -8,6 +8,7 @@ import {
 } from "@nexora/contracts/modules/users/users.validation";
 import { usersService } from "@nexora/core";
 import type { AppEnv } from "../lib/context";
+import { invalidateUserPermissions } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
 
 function notImplemented(message: string) {
@@ -48,10 +49,18 @@ export const users = new Hono<AppEnv>()
     "/:id/roles",
     requirePermission(PERMISSIONS.USER_ASSIGN_ROLE),
     zValidator("json", assignRolesSchema),
-    async (c) =>
-      c.json(
-        await usersService.assignRoles(c.var.db, c.req.param("id"), c.req.valid("json"), c.var.user!.id),
-      ),
+    async (c) => {
+      const userId = c.req.param("id");
+      const result = await usersService.assignRoles(
+        c.var.db,
+        userId,
+        c.req.valid("json"),
+        c.var.user!.id,
+      );
+      // Drop the 60s RBAC KV entry so the next request sees the new roles.
+      c.executionCtx.waitUntil(invalidateUserPermissions(c.env.KV_CACHE, userId));
+      return c.json(result);
+    },
   )
   .post("/:id/restore", requirePermission(PERMISSIONS.USER_DELETE), async (c) =>
     c.json(await usersService.restore(c.var.db, c.req.param("id"), c.var.user!.id)),

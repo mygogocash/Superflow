@@ -1,5 +1,8 @@
 const STORAGE_KEY = "intranet.session.v1";
 
+/** Prior keys that may still hold tokens after a rename — clear on logout. */
+const LEGACY_SESSION_KEYS = ["manut.session.v1"] as const;
+
 export type ExpoSession = {
   accessToken: string;
   refreshToken: string;
@@ -67,8 +70,12 @@ export function clearSession(): void {
   memory = null;
   persistMode = "local";
   try {
-    storageFor("local")?.removeItem(STORAGE_KEY);
-    storageFor("session")?.removeItem(STORAGE_KEY);
+    const local = storageFor("local");
+    const tab = storageFor("session");
+    for (const key of [STORAGE_KEY, ...LEGACY_SESSION_KEYS]) {
+      local?.removeItem(key);
+      tab?.removeItem(key);
+    }
   } catch {
     // ignore
   }

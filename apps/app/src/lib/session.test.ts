@@ -71,4 +71,13 @@ describe("session persist", () => {
     clearSession();
     expect(loadSession()).toBeNull();
   });
+
+  it("clears legacy session keys on logout", () => {
+    vi.stubGlobal("localStorage", local);
+    vi.stubGlobal("sessionStorage", session);
+    local.setItem("manut.session.v1", JSON.stringify({ accessToken: "x", refreshToken: "y" }));
+    clearSession();
+    expect(local.getItem("manut.session.v1")).toBeNull();
+    expect(local.getItem("intranet.session.v1")).toBeNull();
+  });
 });

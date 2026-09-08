@@ -18,14 +18,50 @@ Allowlist for intentional public / alt-auth surfaces: `scripts/security/allowlis
 | SEC-000 | 0 | — | inventory harness | done | Scripts + allowlist + this log | #319 |
 | SEC-001 | 0 | P3 | HTML sinks without nearby sanitizer | open | 4 REVIEW rows: print CSS, chart CSS, Expo `RichHtml` (caller-must-sanitize) — Wave 5 | |
 | SEC-002 | 0 | P2 | Workflow email-action public controller | open | `projects/workflow/workflow-public.controller.ts` uses `verifyActionToken`. Wave 4: replay/expiry/binding audit | |
-| SEC-003 | 0 | P2 | Expo session in web storage | open | Wave 1: logout + XSS blast radius | |
+| SEC-003 | 0 | P2 | Expo session in web storage | mitigated | Wave 1: logout clears `intranet.session.v1` + legacy keys; residual XSS blast radius remains (Bearer-in-storage for Expo) | |
 | SEC-004 | 0 | P1 | Soft-delete restore IDOR pattern | open | Wave 2: owner-or-HR service checks | |
 | SEC-005 | 0 | P0/P1 | Org tenancy incomplete on ERP rows | open | Wave 3; see `docs/ORG_TENANCY_RBAC_PLAN.md` | |
 | SEC-006 | 0 | P1 | Cron/webhook secret compare | open | Wave 4: timing-safe + fail-closed empty secret | |
-| SEC-007 | 0 | P2 | CF Access fail-open when AUD unset | open | Wave 1: document / require in prod | |
+| SEC-007 | 0 | P2 | CF Access fail-open when AUD unset | accepted | Wave 1: documented residual risk + compensating controls; set `CF_ACCESS_AUD` when Zero Trust is cut over | |
 | SEC-008 | 0 | P3 | No CI audit/secret-scan gate | open | Wave 7 | |
+| SEC-009 | 1 | P2 | RBAC KV not invalidated on role assign | done | `PUT /api/users/:id/roles` now calls `invalidateUserPermissions` | |
 
-## Wave 0 baseline (2026-09-08)
+## Wave 1 — session / perimeter (2026-09-08)
+
+### Session model decision
+
+| Client | Credential storage | Notes |
+|--------|-------------------|--------|
+| Expo web / native (`apps/app`) | Bearer token in `intranet.session.v1` (localStorage or sessionStorage) | Required for React Native; XSS ⇒ account takeover. Logout must clear memory + both storages + legacy keys. Prefer migrating web-only surfaces to httpOnly cookies later. |
+| Better Auth cookie session | httpOnly Secure cookies when `APP_URL` is https | Preferred for browser-only clients; Expo still dual-writes Bearer for native. |
+| Legacy Express JWT (`apps/web` / api) | Cookie or Bearer depending on path | Parity surface only; edge is live. |
+
+### Cloudflare Access env matrix
+
+| Env | `CF_ACCESS_AUD` | Behavior | Residual risk / controls |
+|-----|-----------------|----------|---------------------------|
+| local (`wrangler.dev`) | empty | Fail-open | Expected for local DX |
+| staging | empty (today) | Fail-open | Compensating: Turnstile on sign-in/magic-link, login + global rate limits, `TRUSTED_ORIGINS`, Bot Fight Mode |
+| production | empty (today) | Fail-open | **Accepted until Zero Trust cutover.** Same compensating controls. When Access is enabled, set `CF_ACCESS_AUD` (+ optional `CF_ACCESS_TEAM_DOMAIN`) so `requireAccess` fails closed. |
+
+### `TRUSTED_ORIGINS` audit
+
+Better Auth `trustedOrigins` = `[APP_URL, ...TRUSTED_ORIGINS]`.
+
+| Env | `APP_URL` | Extra `TRUSTED_ORIGINS` | Covers |
+|-----|-----------|-------------------------|--------|
+| local | `http://localhost:8787` | `intranet://,http://localhost:8081` | Worker origin, Expo scheme, Expo web |
+| staging | `https://staging.manut.xyz` | `intranet://` | Staging host + native scheme |
+| production | `https://manut.xyz` | `intranet://` | Prod host + native scheme |
+
+Do **not** use `*` origins. Add any new Expo web preview host explicitly before shipping it.
+
+### Permission cache
+
+- KV key `rbac:{userId}`, TTL **60s**.
+- `PUT /api/users/:id/roles` invalidates immediately via `invalidateUserPermissions`.
+- Role-permission CRUD is not yet on edge (list-only); when it lands, invalidate all members of that role (or accept ≤60s window with a ticket).
+
 
 ### Ungated routes (`pnpm security:ungated-routes`)
 
