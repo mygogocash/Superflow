@@ -75,6 +75,7 @@ export const usageRepository = {
         SELECT COUNT(*)::bigint AS total
         FROM users u
         WHERE u.is_active = true
+          AND u.deleted_at IS NULL
           AND (
             ${searchPattern}::text IS NULL
             OR LOWER(u.name) LIKE ${searchPattern}
@@ -103,6 +104,7 @@ export const usageRepository = {
                COUNT(*)::bigint   AS cnt,
                MAX(created_at)    AS last_at
         FROM file_uploads
+        WHERE deleted_at IS NULL
         GROUP BY uploaded_by
       ),
       ea AS (
@@ -138,6 +140,7 @@ export const usageRepository = {
       LEFT JOIN ea  ON ea.uid  = u.id
       LEFT JOIN drm ON drm.uid = u.id
       WHERE u.is_active = true
+        AND u.deleted_at IS NULL
         AND (
           ${searchPattern}::text IS NULL
           OR LOWER(u.name) LIKE ${searchPattern}
@@ -177,6 +180,7 @@ export const usageRepository = {
         SELECT COUNT(*)::bigint AS total
         FROM users u
         WHERE u.is_active = true
+          AND u.deleted_at IS NULL
           AND (
             ${searchPattern}::text IS NULL
             OR LOWER(u.name) LIKE ${searchPattern}
@@ -226,6 +230,7 @@ export const usageRepository = {
         LIMIT 1
       ) ta ON TRUE
       WHERE u.is_active = true
+        AND u.deleted_at IS NULL
         AND (
           ${searchPattern}::text IS NULL
           OR LOWER(u.name) LIKE ${searchPattern}
@@ -284,7 +289,7 @@ export const usageRepository = {
       }>
     >(Prisma.sql`
       WITH all_uploads AS (
-        SELECT size::bigint AS bytes, created_at FROM file_uploads
+        SELECT size::bigint AS bytes, created_at FROM file_uploads WHERE deleted_at IS NULL
         UNION ALL
         SELECT file_size::bigint, created_at FROM employee_agreements WHERE file_size IS NOT NULL
         UNION ALL

@@ -188,6 +188,7 @@ export async function hasApprovedLeaveOnDate(db: Db, employeeId: string, date: D
     SELECT id FROM leave_requests
     WHERE employee_id = ${employeeId}::uuid
       AND status = 'approved'
+      AND deleted_at IS NULL
       AND start_date <= ${formatDate(date)}::date
       AND end_date >= ${formatDate(date)}::date
     LIMIT 1
@@ -207,6 +208,7 @@ export async function findApprovedLeavesInRange(
     FROM leave_requests
     WHERE employee_id = ANY(${employeeIds}::uuid[])
       AND status = 'approved'
+      AND deleted_at IS NULL
       AND start_date <= ${formatDate(to)}::date
       AND end_date >= ${formatDate(from)}::date
   `);

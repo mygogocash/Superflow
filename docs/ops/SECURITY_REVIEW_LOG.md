@@ -193,3 +193,28 @@ Do **not** claim multi-org ERP is done until debt rows above carry `organization
 
 - Expo Bearer-in-storage XSS blast radius remains (SEC-003) — sanitizing HTML sinks reduces injection paths but does not remove token-in-storage risk.
 - Static CSS sinks (print invoice, chart) remain intentional; documented in `htmlSinkNotes`.
+
+## Wave 6 — raw SQL / soft-delete / RLS (2026-09-08)
+
+### Landed
+
+| Surface | Change |
+|---------|--------|
+| Attendance leave raw SQL (API + `@nexora/core`) | `hasApprovedLeaveOnDate` / `findApprovedLeavesInRange` add `AND deleted_at IS NULL` on `leave_requests` |
+| Admin usage rollups | Soft-deleted users excluded (`u.deleted_at IS NULL`); soft-deleted `file_uploads` excluded from per-user + workspace storage CTEs |
+| RLS docs (`packages/db/drizzle/0002_rls.sql`) | Header documents Hyperdrive owner bypass → **application-layer tenancy only** for ERP |
+| Ban review | No attacker-controlled SQL fragment found; `$queryRawUnsafe` / `sql.raw` sites use `$n` binds or module table allowlists (`BUSINESS_UNIT_TABLES`, ARIA vectors) |
+
+### Accepted / residual
+
+| id | Finding | Disposition |
+|----|---------|-------------|
+| SEC-010 | Soft-deleted leave counted as attendance leave | **fixed** |
+| SEC-011 | Soft-deleted users/uploads inflated admin usage | **fixed** |
+| SEC-012 | ARIA `$queryRawUnsafe` for embeddings | **accepted** — SQL fixed; vector + limit bound as `$1`/`$2` |
+| SEC-013 | `sql.raw` table names in business-unit strip | **accepted** — table list is module constant, not request input |
+| SEC-014 | RLS enabled but Hyperdrive is DB owner | **accepted / documented** — ERP isolation is app-layer (Wave 3); do not claim RLS enforces Worker tenancy |
+
+### Tests
+
+- `attendance.repository.soft-delete.test.ts` asserts leave raw SQL includes `deleted_at IS NULL`.

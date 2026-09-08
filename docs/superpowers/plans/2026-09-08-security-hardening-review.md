@@ -210,14 +210,14 @@ Prisma `$queryRaw` call sites (~aria, accounting, admin usage, CRM), Drizzle `sq
 
 ### Tasks
 
-- [ ] Ban review: every `$queryRaw` / `sql\`\`` must use bound parameters; flag template-string user input.
-- [ ] Confirm Hyperdrive DB role and whether RLS is enabled; if not, document “application-layer tenancy only” and prioritize Wave 3.
-- [ ] Fix any raw query that returns soft-deleted or cross-owner rows.
-- [ ] Commit: `fix(security): parameterize and scope raw SQL hotspots`
+- [x] Ban review: every `$queryRaw` / `sql\`\`` must use bound parameters; flag template-string user input.
+- [x] Confirm Hyperdrive DB role and whether RLS is enabled; if not, document “application-layer tenancy only” and prioritize Wave 3.
+- [x] Fix any raw query that returns soft-deleted or cross-owner rows.
+- [x] Commit: `fix(security): parameterize and scope raw SQL hotspots`
 
 ### Verify
 
-- [ ] Targeted repository tests with another user’s id → empty/403.
+- [x] Targeted repository tests with another user’s id → empty/403.
 
 ---
 

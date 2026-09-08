@@ -139,6 +139,7 @@ export class AttendanceRepository {
       FROM leave_requests
       WHERE employee_id = ${employeeId}::uuid
         AND status = 'approved'
+        AND deleted_at IS NULL
         AND start_date <= ${date}::date
         AND end_date >= ${date}::date
       LIMIT 1
@@ -163,6 +164,7 @@ export class AttendanceRepository {
       FROM leave_requests
       WHERE employee_id = ANY(${employeeIds}::uuid[])
         AND status = 'approved'
+        AND deleted_at IS NULL
         AND start_date <= ${to}::date
         AND end_date >= ${from}::date
     `;

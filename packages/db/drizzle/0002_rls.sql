@@ -1,7 +1,14 @@
 -- Idempotent RLS for the tables historically covered by
--- packages/database/scripts/apply-rls.ts. Hyperdrive connects as the DB owner,
--- so these policies do not block the Worker; they keep anon/authenticated
--- (PostgREST) locked down the way the Prisma-era script did.
+-- packages/database/scripts/apply-rls.ts.
+--
+-- IMPORTANT (Wave 6 / Hyperdrive): the Cloudflare Worker connects through
+-- Hyperdrive as the Postgres owner (or an equivalently privileged role).
+-- Owner connections bypass RLS, so these policies do NOT enforce ERP
+-- isolation for the edge/API runtime. Tenancy for ERP rows is
+-- application-layer only (Wave 3 org-scope helpers + service filters).
+-- RLS here still locks down anon/authenticated PostgREST-style roles the
+-- way the Prisma-era script did — do not claim DB-enforced ERP isolation.
+--
 -- Statement breakpoints kept for drizzle-kit migrate.
 
 CREATE OR REPLACE FUNCTION public.is_service_role()
