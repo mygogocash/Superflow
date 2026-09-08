@@ -39,6 +39,9 @@
     "db:drizzle:parity": "pnpm --filter @nexora/db db:parity",
     "contracts:sync": "pnpm --filter @nexora/contracts sync",
     "route-parity": "node scripts/route-parity.mjs",
+    "security:ungated-routes": "node scripts/security/ungated-routes.mjs",
+    "security:dangerously-html": "node scripts/security/dangerously-html.mjs",
+    "security:inventory": "node scripts/security/ungated-routes.mjs && node scripts/security/dangerously-html.mjs",
     "db:migrate-storage": "node packages/db/scripts/migrate-storage.mjs",
     "db:migrate-auth": "node packages/db/scripts/migrate-supabase-auth.mjs"
   },
