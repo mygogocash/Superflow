@@ -25,6 +25,10 @@ export {
   mergeOrgAwarePermissions,
   orgRoleRank,
   canAssignOrgRole,
+  isSameOrg,
+  assertSameOrg,
+  OrgScopeError,
+  isOrgTenancyEnforced,
 } from "./org-rbac";
 export type { OrgRole, PlatformRole } from "./org-rbac";
 export { isMagicLinkEligible } from "./magic-link";

@@ -6,10 +6,15 @@ import {
   listUsersQuerySchema,
   updateUserSchema,
 } from "@nexora/contracts/modules/users/users.validation";
+import { isOrgTenancyEnforced } from "@nexora/auth/org-rbac";
 import { usersService } from "@nexora/core";
 import type { AppEnv } from "../lib/context";
 import { invalidateUserPermissions } from "../middleware/auth";
 import { requirePermission } from "../middleware/rbac";
+
+function tenancyOptions(env: { ORG_TENANCY_ENFORCED?: string }) {
+  return { tenancyEnforced: isOrgTenancyEnforced(env.ORG_TENANCY_ENFORCED) };
+}
 
 function notImplemented(message: string) {
   return (c: { json: (body: unknown, status?: number) => Response }) =>
@@ -18,7 +23,7 @@ function notImplemented(message: string) {
 
 export const users = new Hono<AppEnv>()
   .get("/", requirePermission(PERMISSIONS.USER_READ), zValidator("query", listUsersQuerySchema), async (c) =>
-    c.json(await usersService.list(c.var.db, c.req.valid("query"), c.var.user!.id)),
+    c.json(await usersService.list(c.var.db, c.req.valid("query"), c.var.user!.id, tenancyOptions(c.env))),
   )
   .get("/stats", requirePermission(PERMISSIONS.USER_READ), async (c) =>
     c.json(await usersService.stats(c.var.db)),
@@ -32,7 +37,7 @@ export const users = new Hono<AppEnv>()
   .get("/import-template", requirePermission(PERMISSIONS.USER_CREATE), notImplemented("Import template download is not available on edge yet"))
   .post("/bulk-import", requirePermission(PERMISSIONS.USER_CREATE), notImplemented("Bulk import is not available on edge yet"))
   .get("/:id", requirePermission(PERMISSIONS.USER_READ), async (c) =>
-    c.json(await usersService.getById(c.var.db, c.req.param("id"))),
+    c.json(await usersService.getById(c.var.db, c.req.param("id"), c.var.user!.id, tenancyOptions(c.env))),
   )
   .put(
     "/:id",

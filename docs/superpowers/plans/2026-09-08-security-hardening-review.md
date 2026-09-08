@@ -129,17 +129,17 @@ Each wave below is independently reviewable. Do not start Wave N+1 until Wave N�
 
 ### Tasks
 
-- [ ] Inventory tables with `organizationId` vs without (script or SQL against schema).
-- [ ] Codify invariant helper: `assertSameOrg(resource.organizationId, actor.activeOrganizationId)` for org-scoped resources; use in organizations + users first.
-- [ ] Ensure Platform Admin vs Org Super Admin split is enforced in org routes (no customer Super Admin listing other orgs).
-- [ ] Feature-flag or fail-closed: if `ORG_TENANCY_ENFORCED=true`, reject ERP handlers that lack org filter (start with users + org membership only; expand module-by-module — do not pretend whole ERP is done).
-- [ ] Update SECURITY_REVIEW_LOG with “tenancy debt” list ordered by PII/finance sensitivity (payroll → expenses → CRM → content).
-- [ ] Commit: `fix(security): org-scope invariants for memberships + users`
+- [x] Inventory tables with `organizationId` vs without (`pnpm security:tenancy-inventory`).
+- [x] Codify invariant helper: `assertSameOrg` / `isSameOrg` in `@nexora/auth` org-rbac; use in organizations + users first.
+- [x] Ensure Platform Admin vs Org Super Admin split is enforced in org routes (no customer Super Admin listing other orgs).
+- [x] Feature-flag or fail-closed: if `ORG_TENANCY_ENFORCED=true`, reject users + org membership outside active org (ERP modules remain debt — do not pretend whole ERP is done).
+- [x] Update SECURITY_REVIEW_LOG with “tenancy debt” list ordered by PII/finance sensitivity (payroll → expenses → CRM → content).
+- [x] Commit: `fix(security): org-scope invariants for memberships + users`
 
 ### Verify
 
-- [ ] Tests: member of Org A cannot read Org B membership/users.
-- [ ] Platform Admin path still works and is audited/logged.
+- [x] Tests: member of Org A cannot read Org B membership/users (`service.tenancy.test.ts` + org-rbac helpers).
+- [x] Platform Admin path still works and is audited/logged.
 
 ---
 
@@ -276,7 +276,7 @@ Run as **separate PRs** per domain, using Wave 0–2 checklists:
 
 - [ ] Waves 0–7 merged (or explicitly waived with written residual risk).  
 - [ ] SECURITY_REVIEW_LOG has no open P0/P1.  
-- [ ] Org tenancy debt list is prioritized and linked to `ORG_TENANCY_RBAC_PLAN.md` implementation issues.  
+- [x] Org tenancy debt list is prioritized and linked to `ORG_TENANCY_RBAC_PLAN.md` implementation issues.  
 - [ ] CI runs audit + secret scan.  
 - [ ] Soft-delete and webhook/cron hardening tests are required and green.
 

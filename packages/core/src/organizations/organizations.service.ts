@@ -1,9 +1,11 @@
 import { and, count, eq, isNull } from "drizzle-orm";
 import {
+  assertSameOrg,
   canAssignOrgRole,
   isOrgRole,
   isPlatformAdmin,
   isOrgAdminRole,
+  OrgScopeError,
   type OrgRole,
 } from "@nexora/auth/org-rbac";
 import type {
@@ -79,6 +81,33 @@ function assertOrgAdmin(ctx: { isPlatformAdmin: boolean; orgRole: OrgRole | null
   }
 }
 
+
+export type OrgTenancyOptions = {
+  /** When true (`ORG_TENANCY_ENFORCED`), non–platform actors may only touch their active org. */
+  tenancyEnforced?: boolean;
+};
+
+function assertOrgResourceScope(
+  ctx: { isPlatformAdmin: boolean; activeOrganizationId: string | null; orgRole: OrgRole | null },
+  organizationId: string,
+  options: OrgTenancyOptions = {},
+) {
+  if (ctx.isPlatformAdmin) return;
+  if (options.tenancyEnforced) {
+    try {
+      assertSameOrg(organizationId, ctx.activeOrganizationId);
+    } catch (err) {
+      if (err instanceof OrgScopeError) {
+        throw new ForbiddenException("Cross-organization access denied");
+      }
+      throw err;
+    }
+  }
+  if (ctx.orgRole == null) {
+    throw new ForbiddenException("Not a member of this organization");
+  }
+}
+
 export async function listOrganizations(db: Db, actorId: string) {
   const ctx = await loadActorOrgContext(db, actorId, null);
   assertPlatformAdmin(ctx);
@@ -98,11 +127,14 @@ export async function listOrganizations(db: Db, actorId: string) {
   return { data: rows };
 }
 
-export async function getOrganization(db: Db, actorId: string, organizationId: string) {
+export async function getOrganization(
+  db: Db,
+  actorId: string,
+  organizationId: string,
+  options: OrgTenancyOptions = {},
+) {
   const ctx = await loadActorOrgContext(db, actorId, organizationId);
-  if (!ctx.isPlatformAdmin && ctx.orgRole == null) {
-    throw new ForbiddenException("Not a member of this organization");
-  }
+  assertOrgResourceScope(ctx, organizationId, options);
 
   const [org] = await db
     .select()
@@ -202,12 +234,15 @@ export async function updateOrganization(
   return getOrganization(db, actorId, organizationId);
 }
 
-export async function listMembers(db: Db, actorId: string, organizationId: string) {
+export async function listMembers(
+  db: Db,
+  actorId: string,
+  organizationId: string,
+  options: OrgTenancyOptions = {},
+) {
   const ctx = await loadActorOrgContext(db, actorId, organizationId);
+  assertOrgResourceScope(ctx, organizationId, options);
   assertOrgAdmin(ctx);
-  if (!ctx.isPlatformAdmin && ctx.orgRole == null) {
-    throw new ForbiddenException("Not a member of this organization");
-  }
 
   const rows = await db
     .select({
@@ -242,8 +277,10 @@ export async function upsertMember(
   actorId: string,
   organizationId: string,
   input: UpsertOrgMembershipInput,
+  options: OrgTenancyOptions = {},
 ) {
   const ctx = await loadActorOrgContext(db, actorId, organizationId);
+  assertOrgResourceScope(ctx, organizationId, options);
   assertOrgAdmin(ctx);
 
   if (!canAssignOrgRole({ platformRole: ctx.platformRole, orgRole: ctx.orgRole }, input.orgRole)) {
@@ -310,8 +347,10 @@ export async function updateMember(
   organizationId: string,
   membershipId: string,
   input: UpdateOrgMembershipInput,
+  options: OrgTenancyOptions = {},
 ) {
   const ctx = await loadActorOrgContext(db, actorId, organizationId);
+  assertOrgResourceScope(ctx, organizationId, options);
   assertOrgAdmin(ctx);
 
   const [existing] = await db

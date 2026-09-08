@@ -131,3 +131,43 @@ export function canAssignOrgRole(actor: {
   if (actor.orgRole === "admin") return targetRole === "user" || targetRole === "admin";
   return false;
 }
+
+/** True when resource and actor share the same organization id. */
+export function isSameOrg(
+  resourceOrganizationId: string | null | undefined,
+  actorActiveOrganizationId: string | null | undefined,
+): boolean {
+  if (!resourceOrganizationId || !actorActiveOrganizationId) return false;
+  return resourceOrganizationId === actorActiveOrganizationId;
+}
+
+export class OrgScopeError extends Error {
+  readonly code = "ORG_SCOPE_MISMATCH" as const;
+  constructor(message = "Cross-organization access denied") {
+    super(message);
+    this.name = "OrgScopeError";
+  }
+}
+
+/**
+ * Fail-closed org-scope invariant for resources tagged with `organizationId`.
+ * Callers that use HTTP exceptions should catch `OrgScopeError` and map to 403.
+ */
+export function assertSameOrg(
+  resourceOrganizationId: string | null | undefined,
+  actorActiveOrganizationId: string | null | undefined,
+  message?: string,
+): void {
+  if (!isSameOrg(resourceOrganizationId, actorActiveOrganizationId)) {
+    throw new OrgScopeError(message);
+  }
+}
+
+/** Parse `ORG_TENANCY_ENFORCED` (and similar) env flags. */
+export function isOrgTenancyEnforced(value: string | boolean | null | undefined): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value !== "string") return false;
+  const normalized = value.trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "on";
+}
+

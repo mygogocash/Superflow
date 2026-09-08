@@ -59,6 +59,8 @@ export type Bindings = {
   ACCOUNTING_GL_POSTING?: string;
   /** Fail-closed: avatar generator routes only when === "true". */
   AVATAR_GENERATOR_ENABLED?: string;
+  /** Fail-closed org scope for users + memberships when === "true". */
+  ORG_TENANCY_ENFORCED?: string;
   /** LINE Login (Better Auth socialProviders.line). Unset = login button hidden. */
   LINE_LOGIN_CHANNEL_ID?: string;
   LINE_LOGIN_CHANNEL_SECRET?: string;
