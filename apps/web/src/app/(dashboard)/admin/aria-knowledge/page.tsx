@@ -31,11 +31,11 @@ import { useAuth } from "@/providers/auth-provider";
 import {
   ARIA_KNOWLEDGE_CATEGORIES,
   ARIA_KNOWLEDGE_CATEGORY_LABELS,
-  type ManutAiKnowledgeArticle,
   type AriaKnowledgeCategory,
   createAriaKnowledge,
   deleteAriaKnowledge,
   listAriaKnowledge,
+  type ManutAiKnowledgeArticle,
   updateAriaKnowledge,
 } from "@/services/aria-knowledge.service";
 
@@ -304,8 +304,9 @@ export default function AriaKnowledgeAdminPage() {
               {form.id ? "Edit article" : "New article"}
             </DialogTitle>
             <DialogDescription>
-              Manut AI prepends the matching article body to its chat system prompt.
-              Keep titles + bodies focused so the model has clean context.
+              Manut AI prepends the matching article body to its chat system
+              prompt. Keep titles + bodies focused so the model has clean
+              context.
             </DialogDescription>
           </DialogHeader>
 
@@ -401,8 +402,9 @@ export default function AriaKnowledgeAdminPage() {
                 Leave empty for an article every signed-in user can see. Add
                 codes (e.g. <code>payroll:read</code>, <code>visa:hr-read</code>
                 ) to gate it: the caller must hold AT LEAST ONE of these codes
-                for Manut AI to surface the article in chat. Codes are free strings
-                — admins can reference future permissions without redeploying.
+                for Manut AI to surface the article in chat. Codes are free
+                strings — admins can reference future permissions without
+                redeploying.
               </p>
             </div>
             <div className="flex items-center gap-2">

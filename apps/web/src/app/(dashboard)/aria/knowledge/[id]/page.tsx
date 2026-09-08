@@ -13,8 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/api-client";
 import {
   ARIA_KNOWLEDGE_CATEGORY_LABELS,
-  type ManutAiKnowledgeArticle,
   getAriaKnowledge,
+  type ManutAiKnowledgeArticle,
 } from "@/services/aria-knowledge.service";
 
 function formatDate(value: string | null | undefined): string {
