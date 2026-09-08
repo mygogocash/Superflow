@@ -15,7 +15,7 @@ Allowlist for intentional public / alt-auth surfaces: `scripts/security/allowlis
 
 | id | wave | severity | surface | status | notes | PR |
 |----|------|----------|---------|--------|-------|-----|
-| SEC-000 | 0 | — | inventory harness | done | Scripts + allowlist + this log | TBD |
+| SEC-000 | 0 | — | inventory harness | done | Scripts + allowlist + this log | #319 |
 | SEC-001 | 0 | P3 | HTML sinks without nearby sanitizer | open | 4 REVIEW rows: print CSS, chart CSS, Expo `RichHtml` (caller-must-sanitize) — Wave 5 | |
 | SEC-002 | 0 | P2 | Workflow email-action public controller | open | `projects/workflow/workflow-public.controller.ts` uses `verifyActionToken`. Wave 4: replay/expiry/binding audit | |
 | SEC-003 | 0 | P2 | Expo session in web storage | open | Wave 1: logout + XSS blast radius | |
