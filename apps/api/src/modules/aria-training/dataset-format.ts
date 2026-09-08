@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 
 // Phase 2/3 — pure dataset formatters over redacted interaction traces (with
 // their joined feedback). Each builder emits the canonical shape for one
-// training target; the service persists a versioned AriaTrainingDataset row +
+// training target; the service persists a versioned ManutAiTrainingDataset row +
 // exports these rows as JSONL. No DB, no PII logic here — inputs are assumed
 // already redacted.
 
@@ -21,7 +21,7 @@ export interface TraceExampleInput {
   topDistance: number | null;
   toolNames: string[];
   error: boolean;
-  /** Joined from AriaFeedback (via assistantMessageId): "up" | "down" | null. */
+  /** Joined from ManutAiFeedback (via assistantMessageId): "up" | "down" | null. */
   rating: "up" | "down" | null;
   feedbackReason: string | null;
 }

@@ -22,7 +22,7 @@ export const ARIA_KNOWLEDGE_CATEGORY_LABELS: Record<
   other: "Other",
 };
 
-export interface AriaKnowledgeArticle {
+export interface ManutAiKnowledgeArticle {
   id: string;
   category: AriaKnowledgeCategory;
   title: string;
@@ -72,26 +72,26 @@ function buildQuery(params: AriaKnowledgeListParams): string {
 
 export async function listAriaKnowledge(
   params: AriaKnowledgeListParams = {},
-): Promise<ApiSuccessResponse<AriaKnowledgeArticle[]>> {
+): Promise<ApiSuccessResponse<ManutAiKnowledgeArticle[]>> {
   return api.get(`/aria/knowledge${buildQuery(params)}`);
 }
 
 export async function getAriaKnowledge(
   id: string,
-): Promise<ApiSuccessResponse<AriaKnowledgeArticle>> {
+): Promise<ApiSuccessResponse<ManutAiKnowledgeArticle>> {
   return api.get(`/aria/knowledge/${id}`);
 }
 
 export async function createAriaKnowledge(
   input: AriaKnowledgeInput,
-): Promise<ApiSuccessResponse<AriaKnowledgeArticle>> {
+): Promise<ApiSuccessResponse<ManutAiKnowledgeArticle>> {
   return api.post("/aria/knowledge", input);
 }
 
 export async function updateAriaKnowledge(
   id: string,
   input: Partial<AriaKnowledgeInput>,
-): Promise<ApiSuccessResponse<AriaKnowledgeArticle>> {
+): Promise<ApiSuccessResponse<ManutAiKnowledgeArticle>> {
   return api.put(`/aria/knowledge/${id}`, input);
 }
 

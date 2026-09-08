@@ -171,7 +171,7 @@ export interface TravelRequestSubmittedProps {
   estimated_cost_thb?: number;
 }
 
-export interface AriaMessageSentProps {
+export interface ManutAiMessageSentProps {
   preset?: string;
   prompt_length: number;
   context_modules?: string;
@@ -185,7 +185,7 @@ export interface AriaResponseReceivedProps {
   error: boolean;
 }
 
-export interface AriaFeedbackProps {
+export interface ManutAiFeedbackProps {
   rating: "up" | "down";
 }
 
@@ -315,13 +315,13 @@ export const trackPayrollImported = (props: {
 export const trackAgreementUploaded = (props: { agreement_type?: string }) =>
   tracking.capture(EVENTS.AGREEMENT_UPLOADED, props);
 
-export const trackAriaMessageSent = (props: AriaMessageSentProps) =>
+export const trackAriaMessageSent = (props: ManutAiMessageSentProps) =>
   tracking.capture(EVENTS.ARIA_MESSAGE_SENT, props);
 
 export const trackAriaResponseReceived = (props: AriaResponseReceivedProps) =>
   tracking.capture(EVENTS.ARIA_RESPONSE_RECEIVED, props);
 
-export const trackAriaFeedback = (props: AriaFeedbackProps) =>
+export const trackAriaFeedback = (props: ManutAiFeedbackProps) =>
   tracking.capture(EVENTS.ARIA_FEEDBACK_GIVEN, props);
 
 export const trackMessageSent = (props: MessageSentProps) =>

@@ -5,7 +5,7 @@ import { MessageSquarePlus, Trash2 } from "lucide-react";
 import { formatDate } from "@/components/aria/aria-utils";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { AriaConversation } from "@/services/aria.service";
+import type { ManutAiConversation } from "@/services/aria.service";
 
 export function ConversationItem({
   conversation,
@@ -13,7 +13,7 @@ export function ConversationItem({
   onSelect,
   onDelete,
 }: {
-  conversation: AriaConversation;
+  conversation: ManutAiConversation;
   isActive: boolean;
   onSelect: () => void;
   onDelete: () => void;

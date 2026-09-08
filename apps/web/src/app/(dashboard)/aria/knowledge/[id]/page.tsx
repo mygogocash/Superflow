@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ApiError } from "@/lib/api-client";
 import {
   ARIA_KNOWLEDGE_CATEGORY_LABELS,
-  type AriaKnowledgeArticle,
+  type ManutAiKnowledgeArticle,
   getAriaKnowledge,
 } from "@/services/aria-knowledge.service";
 
@@ -28,12 +28,12 @@ function formatDate(value: string | null | undefined): string {
   });
 }
 
-export default function AriaKnowledgeArticlePage() {
+export default function ManutAiKnowledgeArticlePage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const id = typeof params?.id === "string" ? params.id : "";
 
-  const [article, setArticle] = useState<AriaKnowledgeArticle | null>(null);
+  const [article, setArticle] = useState<ManutAiKnowledgeArticle | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

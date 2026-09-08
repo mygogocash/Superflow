@@ -31,7 +31,7 @@ import { useAuth } from "@/providers/auth-provider";
 import {
   ARIA_KNOWLEDGE_CATEGORIES,
   ARIA_KNOWLEDGE_CATEGORY_LABELS,
-  type AriaKnowledgeArticle,
+  type ManutAiKnowledgeArticle,
   type AriaKnowledgeCategory,
   createAriaKnowledge,
   deleteAriaKnowledge,
@@ -64,7 +64,7 @@ const EMPTY_FORM: FormState = {
   isActive: true,
 };
 
-function articleToForm(a: AriaKnowledgeArticle): FormState {
+function articleToForm(a: ManutAiKnowledgeArticle): FormState {
   return {
     id: a.id,
     category: a.category,
@@ -90,7 +90,7 @@ export default function AriaKnowledgeAdminPage() {
   const { hasPermission } = useAuth();
   const canManage = hasPermission("aria:knowledge-manage");
 
-  const [articles, setArticles] = useState<AriaKnowledgeArticle[]>([]);
+  const [articles, setArticles] = useState<ManutAiKnowledgeArticle[]>([]);
   const [loading, setLoading] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -121,7 +121,7 @@ export default function AriaKnowledgeAdminPage() {
     setEditorOpen(true);
   }
 
-  function openEdit(a: AriaKnowledgeArticle) {
+  function openEdit(a: ManutAiKnowledgeArticle) {
     setForm(articleToForm(a));
     setEditorOpen(true);
   }
@@ -159,7 +159,7 @@ export default function AriaKnowledgeAdminPage() {
     }
   }
 
-  async function handleDelete(a: AriaKnowledgeArticle) {
+  async function handleDelete(a: ManutAiKnowledgeArticle) {
     if (!confirm(`Delete "${a.title}"?`)) return;
     try {
       await deleteAriaKnowledge(a.id);

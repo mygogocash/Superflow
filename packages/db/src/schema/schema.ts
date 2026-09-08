@@ -189,7 +189,7 @@ export const wallPosts = pgTable("wall_posts", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const ariaConversationSummaries = pgTable("aria_conversation_summaries", {
+export const manutAiConversationSummaries = pgTable("manut_ai_conversation_summaries", {
 	conversationId: uuid("conversation_id").primaryKey().notNull(),
 	summary: text().notNull(),
 	coversThroughMessageId: uuid("covers_through_message_id"),
@@ -200,12 +200,12 @@ export const ariaConversationSummaries = pgTable("aria_conversation_summaries", 
 }, (table) => [
 	foreignKey({
 			columns: [table.conversationId],
-			foreignColumns: [ariaConversations.id],
+			foreignColumns: [manutAiConversations.id],
 			name: "aria_conversation_summaries_conversation_id_fkey"
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const ariaConversationMemory = pgTable("aria_conversation_memory", {
+export const manutAiConversationMemory = pgTable("manut_ai_conversation_memory", {
 	id: uuid().primaryKey().notNull(),
 	conversationId: uuid("conversation_id").notNull(),
 	key: text().notNull(),
@@ -217,12 +217,12 @@ export const ariaConversationMemory = pgTable("aria_conversation_memory", {
 	uniqueIndex("aria_conversation_memory_conversation_id_key_key").using("btree", table.conversationId.asc().nullsLast().op("text_ops"), table.key.asc().nullsLast().op("text_ops")),
 	foreignKey({
 			columns: [table.conversationId],
-			foreignColumns: [ariaConversations.id],
+			foreignColumns: [manutAiConversations.id],
 			name: "aria_conversation_memory_conversation_id_fkey"
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const ariaMessages = pgTable("aria_messages", {
+export const manutAiMessages = pgTable("manut_ai_messages", {
 	id: uuid().primaryKey().notNull(),
 	conversationId: uuid("conversation_id").notNull(),
 	role: text().notNull(),
@@ -233,12 +233,12 @@ export const ariaMessages = pgTable("aria_messages", {
 	index("aria_messages_conversation_id_idx").using("btree", table.conversationId.asc().nullsLast().op("uuid_ops")),
 	foreignKey({
 			columns: [table.conversationId],
-			foreignColumns: [ariaConversations.id],
+			foreignColumns: [manutAiConversations.id],
 			name: "aria_messages_conversation_id_fkey"
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const ariaConversations = pgTable("aria_conversations", {
+export const manutAiConversations = pgTable("manut_ai_conversations", {
 	id: uuid().primaryKey().notNull(),
 	userId: uuid("user_id").notNull(),
 	title: text(),
@@ -253,7 +253,7 @@ export const ariaConversations = pgTable("aria_conversations", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const ariaAttachments = pgTable("aria_attachments", {
+export const manutAiAttachments = pgTable("manut_ai_attachments", {
 	id: uuid().primaryKey().notNull(),
 	userId: uuid("user_id").notNull(),
 	messageId: uuid("message_id"),
@@ -276,12 +276,12 @@ export const ariaAttachments = pgTable("aria_attachments", {
 		}).onUpdate("cascade").onDelete("cascade"),
 	foreignKey({
 			columns: [table.messageId],
-			foreignColumns: [ariaMessages.id],
+			foreignColumns: [manutAiMessages.id],
 			name: "aria_attachments_message_id_fkey"
 		}).onUpdate("cascade").onDelete("set null"),
 ]);
 
-export const ariaKnowledgeArticles = pgTable("aria_knowledge_articles", {
+export const manutAiKnowledgeArticles = pgTable("manut_ai_knowledge_articles", {
 	id: uuid().primaryKey().notNull(),
 	category: text().notNull(),
 	title: text().notNull(),
@@ -305,7 +305,7 @@ export const ariaKnowledgeArticles = pgTable("aria_knowledge_articles", {
 		}).onUpdate("cascade").onDelete("set null"),
 ]);
 
-export const ariaQueryLogs = pgTable("aria_query_logs", {
+export const manutAiQueryLogs = pgTable("manut_ai_query_logs", {
 	id: uuid().primaryKey().notNull(),
 	conversationId: uuid("conversation_id"),
 	userId: uuid("user_id").notNull(),
@@ -338,12 +338,12 @@ export const ariaQueryLogs = pgTable("aria_query_logs", {
 		}).onUpdate("cascade").onDelete("cascade"),
 	foreignKey({
 			columns: [table.conversationId],
-			foreignColumns: [ariaConversations.id],
+			foreignColumns: [manutAiConversations.id],
 			name: "aria_query_logs_conversation_id_fkey"
 		}).onUpdate("cascade").onDelete("set null"),
 ]);
 
-export const ariaBriefSubscriptions = pgTable("aria_brief_subscriptions", {
+export const manutAiBriefSubscriptions = pgTable("manut_ai_brief_subscriptions", {
 	userId: uuid("user_id").primaryKey().notNull(),
 	enabled: boolean().default(true).notNull(),
 	hourLocal: integer("hour_local").default(7).notNull(),
@@ -363,7 +363,7 @@ export const ariaBriefSubscriptions = pgTable("aria_brief_subscriptions", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const ariaBriefDeliveries = pgTable("aria_brief_deliveries", {
+export const manutAiBriefDeliveries = pgTable("manut_ai_brief_deliveries", {
 	id: uuid().primaryKey().notNull(),
 	userId: uuid("user_id").notNull(),
 	deliveredOn: text("delivered_on").notNull(),
@@ -416,7 +416,7 @@ export const blogs = pgTable("blogs", {
 		}).onUpdate("cascade").onDelete("cascade"),
 ]);
 
-export const ariaFeedback = pgTable("aria_feedback", {
+export const manutAiFeedback = pgTable("manut_ai_feedback", {
 	id: uuid().primaryKey().notNull(),
 	messageId: uuid("message_id").notNull(),
 	userId: uuid("user_id").notNull(),
@@ -435,7 +435,7 @@ export const ariaFeedback = pgTable("aria_feedback", {
 	index("aria_feedback_reviewed_by_id_idx").using("btree", table.reviewedById.asc().nullsLast().op("uuid_ops")),
 	foreignKey({
 			columns: [table.messageId],
-			foreignColumns: [ariaMessages.id],
+			foreignColumns: [manutAiMessages.id],
 			name: "aria_feedback_message_id_fkey"
 		}).onUpdate("cascade").onDelete("cascade"),
 	foreignKey({
@@ -450,7 +450,7 @@ export const ariaFeedback = pgTable("aria_feedback", {
 		}).onUpdate("cascade").onDelete("set null"),
 	foreignKey({
 			columns: [table.resultingArticleId],
-			foreignColumns: [ariaKnowledgeArticles.id],
+			foreignColumns: [manutAiKnowledgeArticles.id],
 			name: "aria_feedback_resulting_article_id_fkey"
 		}).onUpdate("cascade").onDelete("set null"),
 ]);

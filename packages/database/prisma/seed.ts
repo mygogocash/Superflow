@@ -712,7 +712,7 @@ async function main() {
     prisma.balanceTransaction.deleteMany({}),
     prisma.exchangeRate.deleteMany({ where: { source: "seed" } }),
     prisma.session.deleteMany({ where: { userAgent: "SeedRunner/1.0" } }),
-    prisma.ariaMessage.deleteMany({}),
+    prisma.manutAiMessage.deleteMany({}),
     prisma.auditLog.deleteMany({}),
     prisma.moduleAccess.deleteMany({}),
     prisma.moduleOwner.deleteMany({
@@ -750,7 +750,7 @@ async function main() {
   // Phase 2: Delete mid-level tables
   await Promise.all([
     prisma.appraisal.deleteMany({}),
-    prisma.ariaConversation.deleteMany({}),
+    prisma.manutAiConversation.deleteMany({}),
     prisma.wallPost.deleteMany({}),
     prisma.conversationMember.deleteMany({}),
     prisma.conversation.deleteMany({}),
@@ -4542,19 +4542,19 @@ async function main() {
   ] as const;
 
   const ariaTitlesSeed = ARIA_TITLES.slice(0, BULK_ROWS);
-  const ariaConversationsData: Prisma.AriaConversationUncheckedCreateInput[] =
+  const ariaConversationsData: Prisma.ManutAiConversationUncheckedCreateInput[] =
     ariaTitlesSeed.map((title, i) => ({
       userId: USER_IDS[i % Math.min(15, USER_IDS.length)]!,
       title,
       createdAt: pastDate(5 + ((i * 4) % 40)),
     }));
-  await prisma.ariaConversation.createMany({ data: ariaConversationsData });
-  const ariaConvRows = await prisma.ariaConversation.findMany({
+  await prisma.manutAiConversation.createMany({ data: ariaConversationsData });
+  const ariaConvRows = await prisma.manutAiConversation.findMany({
     where: { title: { in: [...ariaTitlesSeed] } },
   });
   const ariaConvIdByTitle = new Map(ariaConvRows.map((c) => [c.title!, c.id]));
 
-  const ariaMessagesData: Prisma.AriaMessageUncheckedCreateInput[] = [];
+  const ariaMessagesData: Prisma.ManutAiMessageUncheckedCreateInput[] = [];
   for (let i = 0; i < BULK_ROWS; i++) {
     const convId = ariaConvIdByTitle.get(ariaTitlesSeed[i]!)!;
     ariaMessagesData.push(
@@ -4585,7 +4585,7 @@ async function main() {
       },
     );
   }
-  await prisma.ariaMessage.createMany({ data: ariaMessagesData });
+  await prisma.manutAiMessage.createMany({ data: ariaMessagesData });
   console.log(
     `  ✅ ${ariaTitlesSeed.length} ARIA conversations with messages\n`,
   );

@@ -9,7 +9,7 @@ import { trackAriaMessageSent } from "@/lib/events";
 
 // ─── Types ──────────────────────────────────────────────
 
-export interface AriaConversation {
+export interface ManutAiConversation {
   id: string;
   userId: string;
   title: string | null;
@@ -18,7 +18,7 @@ export interface AriaConversation {
   _count: { messages: number };
 }
 
-export interface AriaAttachment {
+export interface ManutAiAttachment {
   id: string;
   name: string;
   kind: "image" | "document" | "video";
@@ -27,17 +27,17 @@ export interface AriaAttachment {
   status: "ready" | "processing" | "failed";
 }
 
-export interface AriaMessage {
+export interface ManutAiMessage {
   id: string;
   conversationId: string;
   role: "user" | "assistant";
   content: string;
   createdAt: string;
-  attachments?: AriaAttachment[];
+  attachments?: ManutAiAttachment[];
 }
 
-export interface AriaConversationWithMessages extends AriaConversation {
-  messages: AriaMessage[];
+export interface ManutAiConversationWithMessages extends ManutAiConversation {
+  messages: ManutAiMessage[];
 }
 
 export type AriaStreamEvent =
@@ -50,7 +50,7 @@ export type AriaStreamEvent =
       status: "running" | "done" | "error";
       summary: string;
     }
-  | { t: "done"; message: AriaMessage }
+  | { t: "done"; message: ManutAiMessage }
   | { t: "error"; message: string };
 
 /** Gemini receipt parse (`POST /aria/parse-receipt`) */
@@ -95,15 +95,15 @@ export interface AriaParsedInvoice {
 }
 
 interface ListConversationsResponse {
-  data: AriaConversation[];
+  data: ManutAiConversation[];
 }
 
 interface GetConversationResponse {
-  data: AriaConversationWithMessages;
+  data: ManutAiConversationWithMessages;
 }
 
 interface CreateConversationResponse {
-  data: AriaConversation;
+  data: ManutAiConversation;
 }
 
 function parseApiErrorBody(text: string): {
@@ -204,14 +204,14 @@ function parseStreamLine(line: string): AriaStreamEvent | null {
 
 // ─── Service ────────────────────────────────────────────
 
-export async function listConversations(): Promise<AriaConversation[]> {
+export async function listConversations(): Promise<ManutAiConversation[]> {
   const res = await api.get<ListConversationsResponse>("/aria/conversations");
   return res.data;
 }
 
 export async function getConversation(
   id: string,
-): Promise<AriaConversationWithMessages> {
+): Promise<ManutAiConversationWithMessages> {
   const res = await api.get<GetConversationResponse>(
     `/aria/conversations/${id}`,
   );
@@ -220,7 +220,7 @@ export async function getConversation(
 
 export async function createConversation(
   title?: string,
-): Promise<AriaConversation> {
+): Promise<ManutAiConversation> {
   const res = await api.post<CreateConversationResponse>(
     "/aria/conversations",
     title ? { title } : {},
@@ -256,13 +256,13 @@ export async function confirmAriaAction(token: string): Promise<{
  */
 export async function uploadAriaAttachment(
   file: File,
-): Promise<AriaAttachment> {
+): Promise<ManutAiAttachment> {
   const formData = new FormData();
   formData.append("file", file);
   // apiFetch (not api.post) — api.post JSON-stringifies the body, which would
   // corrupt the multipart form. apiFetch leaves FormData intact + sets no
   // Content-Type so the browser adds the multipart boundary.
-  const res = await apiFetch<{ data: AriaAttachment }>("/aria/attachments", {
+  const res = await apiFetch<{ data: ManutAiAttachment }>("/aria/attachments", {
     method: "POST",
     body: formData,
   });
@@ -509,7 +509,7 @@ export async function getAriaInsights(days = 7): Promise<AriaInsights> {
 
 // ─── Feedback / improvement queue (Phase 6) ─────────────────────
 
-export interface AriaFeedbackRecord {
+export interface ManutAiFeedbackRecord {
   id: string;
   messageId: string;
   userId: string;
@@ -551,8 +551,8 @@ export async function submitAriaFeedback(input: {
   messageId: string;
   rating: "up" | "down";
   reason?: string;
-}): Promise<AriaFeedbackRecord> {
-  const res = await api.post<{ data: AriaFeedbackRecord }>(
+}): Promise<ManutAiFeedbackRecord> {
+  const res = await api.post<{ data: ManutAiFeedbackRecord }>(
     "/aria/feedback",
     input,
   );
@@ -584,8 +584,8 @@ export async function draftArticleFromFeedback(
 export async function reviewAriaFeedback(
   feedbackId: string,
   input: { reviewNote?: string; resultingArticleId?: string },
-): Promise<AriaFeedbackRecord> {
-  const res = await api.post<{ data: AriaFeedbackRecord }>(
+): Promise<ManutAiFeedbackRecord> {
+  const res = await api.post<{ data: ManutAiFeedbackRecord }>(
     `/aria/feedback/${feedbackId}/review`,
     input,
   );

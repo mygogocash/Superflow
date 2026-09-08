@@ -8,7 +8,7 @@ import { ariaRepository } from "@/modules/aria/aria.repository";
  * Prisma applies column defaults) that the ARIA_TRACE_CAPTURE emit relies on.
  */
 const prismaMock = vi.hoisted(() => ({
-  ariaInteractionTrace: { create: vi.fn() },
+  manutAiInteractionTrace: { create: vi.fn() },
 }));
 
 vi.mock("@/infrastructure/database/prisma", () => ({
@@ -58,15 +58,15 @@ function baseInput() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  prismaMock.ariaInteractionTrace.create.mockResolvedValue({ id: "trace-1" });
+  prismaMock.manutAiInteractionTrace.create.mockResolvedValue({ id: "trace-1" });
 });
 
 describe("ariaRepository.recordInteractionTrace", () => {
   it("maps the full turn, preserving the RBAC snapshot + tool-call JSON", async () => {
     await ariaRepository.recordInteractionTrace(baseInput());
 
-    expect(prismaMock.ariaInteractionTrace.create).toHaveBeenCalledTimes(1);
-    const { data } = prismaMock.ariaInteractionTrace.create.mock.calls[0]![0];
+    expect(prismaMock.manutAiInteractionTrace.create).toHaveBeenCalledTimes(1);
+    const { data } = prismaMock.manutAiInteractionTrace.create.mock.calls[0]![0];
 
     expect(data.assistantMessageId).toBe("msg-1");
     expect(data.promptVersion).toBe("abc123def456");
@@ -96,7 +96,7 @@ describe("ariaRepository.recordInteractionTrace", () => {
       errorMessage: null,
     });
 
-    const { data } = prismaMock.ariaInteractionTrace.create.mock.calls[0]![0];
+    const { data } = prismaMock.manutAiInteractionTrace.create.mock.calls[0]![0];
     expect(data.maxTokens).toBeUndefined();
     expect(data.topDistance).toBeUndefined();
     expect(data.cacheCreateTokens).toBeUndefined();
